@@ -28,7 +28,7 @@ y un marcador público contra el TAF.
 | F0 | Repositorio, estructura, CI | ✅ |
 | F1 | Datos: METAR histórico, limpieza y análisis exploratorio | ✅ |
 | F2 | Baselines (persistencia, climatología, TAF) | 🔄 persistencia y climatología ✅ · TAF grabándose en directo |
-| F3 | Modelo: niebla + techo de nubes | 🔄 v1 solo con METAR ✅ · falta añadir pronósticos numéricos |
+| F3 | Modelo: niebla + techo de nubes | ✅ v1 (METAR) y v2 (METAR + pronóstico numérico) |
 | F4 | Hora de disipación y tipo de niebla | ⏳ |
 | F5 | Aplicación web en vivo + briefing operativo (niebla, techo y viento en pista) | ⏳ |
 
@@ -111,7 +111,7 @@ año Y se entrena con los años anteriores y el umbral de decisión se elige en 
 - Lo que más pesa ([importancia SHAP](reports/modelo_importancia.png)): humedad, temperatura, época del año y la
   componente oeste del viento — el aire que llega del mar, coherente con la niebla de advección.
 
-## NOVOK v2: + pronóstico numérico (F3, en curso)
+## NOVOK v2: + pronóstico numérico (F3)
 
 Se añaden pronósticos de modelos meteorológicos (ECMWF IFS desde 2024, JMA GSM desde 2018) de la API
 **Previous Runs** de Open-Meteo, usando **el pronóstico emitido ~24 h antes** de cada hora (`_previous_day1`).
@@ -125,6 +125,25 @@ objetivo; cambio previsto respecto a ahora; y error actual del modelo frente al 
 
 v1 y v2 se entrenan con las mismas filas y la misma validación por años; los resultados se separan para
 2024–2025, los únicos años con ECMWF.
+
+![v1 frente a v2](reports/modelo_v2_csi.png)
+
+**CSI en 2024–2025 (mismas horas para todos):**
+
+| Antelación | Niebla v1 | Niebla v2 | Persistencia | Bajo mínimos v1 | Bajo mínimos v2 | Persistencia |
+|---|---|---|---|---|---|---|
+| 1 h | 0,34 | 0,34 | 0,31 | 0,32 | 0,36 | 0,38 |
+| 3 h | 0,22 | 0,24 | 0,18 | 0,24 | 0,27 | 0,24 |
+| 6 h | 0,14 | **0,18** | 0,11 | 0,16 | **0,20** | 0,16 |
+| 12 h | 0,08 | **0,12** | 0,03 | 0,12 | **0,17** | 0,07 |
+
+- El pronóstico numérico aporta donde la v1 no llegaba: **+30–50 % de CSI a 6–12 h**, y la habilidad
+  probabilística a 12 h pasa de +0,02 a +0,06 (niebla) y de +0,05 a +0,09 (bajo mínimos).
+- A 1 h no cambia: manda lo que dice el METAR. En bajo mínimos a 1 h la persistencia sigue siendo
+  ligeramente mejor.
+- Cautela: dos años de prueba y valores absolutos bajos; la mejora es consistente en los cuatro casos de 6–12 h.
+- Variables disponibles en el archivo de pasadas anteriores: temperatura, rocío, humedad, viento, nubosidad
+  total, presión y precipitación (no hay nubes bajas ni visibilidad).
 
 ## Puesta en marcha
 

@@ -126,7 +126,7 @@ def descargar() -> pd.DataFrame:
     for p in partes:
         clave = p.columns[0].split("_")[1]
         por_modelo.setdefault(clave, []).append(p)
-    nwp = pd.concat([pd.concat(v).sort_index() for v in por_modelo.values()], axis=1)
+    nwp = pd.concat([pd.concat(v).sort_index() for v in por_modelo.values()], axis=1, sort=True)
     nwp = nwp[~nwp.index.duplicated()].sort_index()
     nwp.to_parquet(DATA_PROCESSED / "nwp.parquet")
     print(f"\nNWP: {len(nwp):,} horas · columnas: {', '.join(nwp.columns)}")
