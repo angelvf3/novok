@@ -29,7 +29,7 @@ y un marcador público contra el TAF.
 | F1 | Datos: METAR histórico, limpieza y análisis exploratorio | ✅ |
 | F2 | Baselines (persistencia, climatología, TAF) | 🔄 persistencia y climatología ✅ · TAF grabándose en directo |
 | F3 | Modelo: niebla + techo de nubes | ✅ v1 (METAR) y v2 (METAR + pronóstico numérico) |
-| F4 | Hora de disipación y tipo de niebla | ⏳ |
+| F4 | Hora de disipación y tipo de niebla | ✅ |
 | F5 | Aplicación web en vivo + briefing operativo (niebla, techo y viento en pista) | ⏳ |
 
 ## Primeros resultados (METAR 2017–2025)
@@ -141,9 +141,41 @@ v1 y v2 se entrenan con las mismas filas y la misma validación por años; los r
   probabilística a 12 h pasa de +0,02 a +0,06 (niebla) y de +0,05 a +0,09 (bajo mínimos).
 - A 1 h no cambia: manda lo que dice el METAR. En bajo mínimos a 1 h la persistencia sigue siendo
   ligeramente mejor.
-- Cautela: dos años de prueba y valores absolutos bajos; la mejora es consistente en los cuatro casos de 6–12 h.
+- **¿Es real o suerte?** Remuestreo por días (2000 réplicas): a 6 y 12 h la mejora de v2 sobre v1 tiene un
+  intervalo de confianza del 95 % que no incluye el cero, en niebla y en bajo mínimos. A 1–3 h en niebla
+  la diferencia no es significativa.
 - Variables disponibles en el archivo de pasadas anteriores: temperatura, rocío, humedad, viento, nubosidad
   total, presión y precipitación (no hay nubes bajas ni visibilidad).
+
+## Tipos de niebla y disipación (F4)
+
+**Tipos** (reglas físicas basadas en Tardif y Rasmussen, 2007; no hay etiquetas reales):
+
+![Tipos de niebla por mes](reports/tipos_niebla.png)
+
+| Tipo | Episodios/año | Duración mediana | Duración p90 | Visibilidad mínima mediana |
+|---|---|---|---|---|
+| Llovizna o lluvia | 20 | 1 h | 4 h | 550 m |
+| Descenso de nubes | 10 | 4 h | 8 h | 300 m |
+| Advección | 7 | 2 h | 7 h | 250 m |
+| Radiación | 5 | 2 h | 5 h | 200 m |
+
+- Más de la mitad de los episodios llegan con **orbayu**: llovizna con niebla, breves.
+- Los más largos son los de **estratos que bajan hasta el suelo**, típicos del verano cantábrico.
+- La niebla de **radiación** (noches en calma) es la menos frecuente, pero la más cerrada.
+
+**¿Cuándo se levanta?** Para cada hora con niebla, NOVOK predice las horas que faltan con un intervalo
+del 80 % (regresión por cuantiles con LightGBM; variables: METAR actual, tendencias, altura del sol, tipo).
+Validación por años 2020–2025, frente a la climatología condicionada (mismo tiempo transcurrido y época):
+
+| | Error medio NOVOK | Error medio climatología | Intervalo 80 % NOVOK | Intervalo 80 % climatología |
+|---|---|---|---|---|
+| Todas las horas | 1,8 h | 2,0 h | 3,6 h de ancho | 4,7 h de ancho |
+| Episodios de 3 h o más | 2,1 h | 2,5 h | 3,8 h de ancho | 4,8 h de ancho |
+
+Las dos coberturas rondan el 80–85 %. La mejora es significativa (remuestreo por episodios: −0,24 h de error
+en general y −0,42 h en episodios largos, IC 95 % sin cero), aunque modesta: en episodios de 1–2 h es difícil
+batir a «se levanta en la próxima hora».
 
 ## Puesta en marcha
 
@@ -177,6 +209,9 @@ python -m novok.data.descargar_nwp
 
 # 8. NOVOK v2 (METAR + pronóstico) frente a v1 (~15 min)
 python -m novok.modelo.entrenar_nwp
+
+# 9. Tipos de niebla y modelo de disipación (~10 s)
+python -m novok.episodios.disipacion
 
 # Tests y lint
 pytest -q
@@ -229,6 +264,7 @@ src/novok/
   taf/parser.py             # TAF -> pronóstico horario (predominante, peor caso, probabilidad)
   verificacion/             # baselines y métricas (POD, FAR, CSI, Brier)
   modelo/                   # variables desde METAR y entrenamiento LightGBM con validación temporal
+  episodios/                # episodios, tipo de niebla y predicción de la hora de disipación
   analysis/resumen_niebla.py
 tests/
 ```
