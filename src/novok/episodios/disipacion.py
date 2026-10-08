@@ -23,7 +23,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 
-from novok.config import ANIO_INICIO_FIABLE, REPORTS
+from novok.config import ANIO_INICIO_FIABLE, RAIZ, REPORTS
 from novok.episodios.episodios import TIPOS, ZONA_LOCAL, episodios
 from novok.modelo.variables import variables_base
 from novok.verificacion.baselines import cargar_observado
@@ -34,6 +34,7 @@ CUANTILES = (0.1, 0.5, 0.9)
 PARAMS = {"learning_rate": 0.05, "num_leaves": 7, "min_child_samples": 15, "feature_fraction": 0.8,
           "bagging_fraction": 0.8, "bagging_freq": 1, "verbose": -1, "seed": 42}
 N_ARBOLES = 250
+DIR_MODELOS = RAIZ / "modelos"
 
 
 def elevacion_solar(t_utc: pd.DatetimeIndex) -> np.ndarray:
@@ -57,6 +58,12 @@ def filas_episodios(h: pd.DataFrame, ep: pd.DataFrame) -> pd.DataFrame:
             filas.append({"hora_obs_utc": t, "inicio": e["inicio"], "tipo": e["tipo"],
                           "transcurridas_h": k + 1, "restantes_h": len(horas) - k - 1})
     d = pd.DataFrame(filas).set_index("hora_obs_utc")
+    return completar_variables(d, base)
+
+
+def completar_variables(d: pd.DataFrame, base: pd.DataFrame) -> pd.DataFrame:
+    """Añade las variables del modelo a filas con índice = hora observada y columnas inicio, tipo y
+    transcurridas_h. Lo usan el entrenamiento y el briefing en directo."""
     d = d.join(base[["vis_log", "rvr_log", "techo_ft", "dif_rocio_c", "hr_pct", "temp_c", "viento_kt", "viento_u",
                      "viento_v", "tend1_vis_log", "tend3_vis_log", "tend1_dif_rocio", "tend3_temp", "tend3_qnh",
                      "fen_lluvia", "fen_llovizna"]])
@@ -72,6 +79,16 @@ def filas_episodios(h: pd.DataFrame, ep: pd.DataFrame) -> pd.DataFrame:
     d["anio"] = d.index.year
     d["verano"] = local.month.isin(range(4, 10))
     return d
+
+
+def entrenar_final(d: pd.DataFrame) -> None:
+    """Modelos de cuantiles con todos los años, para el briefing en directo."""
+    DIR_MODELOS.mkdir(exist_ok=True)
+    cols = columnas_x(d)
+    for q in CUANTILES:
+        m = lgb.train({**PARAMS, "objective": "quantile", "alpha": q}, lgb.Dataset(d[cols], d["restantes_h"]),
+                      num_boost_round=N_ARBOLES)
+        m.save_model(str(DIR_MODELOS / f"disipacion_q{int(q * 100)}.txt"))
 
 
 def columnas_x(d: pd.DataFrame) -> list[str]:
@@ -184,6 +201,7 @@ def main() -> None:
     o = validacion(d)
     res = resumen(o)
     res.round(3).to_csv(REPORTS / "disipacion_resultados.csv", index=False)
+    entrenar_final(d)
     print("\nDisipación · validación por años 2020-2025 (horas restantes):")
     print(res.round(2).to_string(index=False))
     print(f"\nInformes en {REPORTS}")

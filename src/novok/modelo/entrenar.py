@@ -30,7 +30,7 @@ from novok.verificacion.metricas import brier, brier_skill, deterministas
 SUCESOS = ["niebla", "bajo_minimos_cat1"]
 HORIZONTES_H = [1, 3, 6, 12]
 ANIOS_PRUEBA = list(range(ANIO_INICIO_FIABLE + 3, 2026))  # 2020-2025: al menos 2 años de entrenamiento
-DIR_MODELOS = RAIZ / "models"
+DIR_MODELOS = RAIZ / "modelos"  # se sube al repo: lo usa el briefing en directo
 
 PARAMS = {
     "objective": "binary",
@@ -45,6 +45,17 @@ PARAMS = {
     "seed": 42,
 }
 MAX_ARBOLES = 2000
+
+
+def guardar_umbral(clave: str, valor: float) -> None:
+    """Guarda el umbral de decisión de un modelo en modelos/umbrales.json (lo usa el briefing)."""
+    import json
+
+    DIR_MODELOS.mkdir(exist_ok=True)
+    f = DIR_MODELOS / "umbrales.json"
+    datos = json.loads(f.read_text()) if f.exists() else {}
+    datos[clave] = round(float(valor), 3)
+    f.write_text(json.dumps(dict(sorted(datos.items())), indent=2))
 
 
 def umbral_csi(y: np.ndarray, p: np.ndarray) -> float:
@@ -131,7 +142,8 @@ def main() -> None:
             n_final = int(oos["arboles"].iloc[-1])
             imp, modelo = importancia_shap(x, y, n_final)
             importancias[(suceso, L)] = imp
-            modelo.save_model(str(DIR_MODELOS / f"novok_{suceso}_{L}h.txt"))
+            modelo.save_model(str(DIR_MODELOS / f"novok_v1_{suceso}_{L}h.txt"))
+            guardar_umbral(f"v1_{suceso}_{L}h", oos["umbral"].iloc[-1])
 
     res = pd.DataFrame(filas)
     REPORTS.mkdir(exist_ok=True)

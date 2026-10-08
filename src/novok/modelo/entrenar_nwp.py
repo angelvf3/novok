@@ -30,6 +30,8 @@ from novok.modelo.entrenar import (
     TINTA,
     TINTA2,
     _estilo,
+    entrenar,
+    guardar_umbral,
     importancia_shap,
     validacion_temporal,
 )
@@ -94,6 +96,11 @@ def main() -> None:
             importancias[(suceso, L)] = imp
             DIR_MODELOS.mkdir(exist_ok=True)
             modelo.save_model(str(DIR_MODELOS / f"novok_v2_{suceso}_{L}h.txt"))
+            guardar_umbral(f"v2_{suceso}_{L}h", o2["umbral"].iloc[-1])
+            # v1 final: respaldo del briefing cuando no hay pronóstico numérico
+            entrenar(x1, y, n_arboles=int(o1["arboles"].iloc[-1])).save_model(
+                str(DIR_MODELOS / f"novok_v1_{suceso}_{L}h.txt"))
+            guardar_umbral(f"v1_{suceso}_{L}h", o1["umbral"].iloc[-1])
 
     res = pd.DataFrame(filas)
     res.round(4).to_csv(REPORTS / "modelo_v2_resultados.csv", index=False)

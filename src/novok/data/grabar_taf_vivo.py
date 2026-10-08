@@ -5,7 +5,8 @@ data/vivo/taf_LEAS.txt con la misma forma que usa el resto del proyecto:
 
     202610071030 TAF AMD LEAS 071013Z 0710/0809 30009KT 9999 ... =
 
-Pensado para ejecutarse cada 30 min con GitHub Actions (.github/workflows/grabar_taf.yml).
+Pensado para ejecutarse cada 30 min con GitHub Actions (.github/workflows/grabar_taf.yml), que guarda
+el fichero en la rama datos-vivo.
 Solo añade líneas si el TAF es nuevo, así que se puede lanzar tantas veces como se quiera.
 
 Uso:
@@ -14,6 +15,7 @@ Uso:
 
 from __future__ import annotations
 
+import argparse
 from datetime import UTC, datetime
 from pathlib import Path
 
@@ -65,7 +67,9 @@ def grabar(tafs: list[str], fichero: Path, ahora: datetime | None = None) -> int
 
 
 def main() -> None:
-    fichero = DIR_VIVO / f"taf_{ESTACION}.txt"
+    p = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
+    p.add_argument("--dir", default=str(DIR_VIVO), help="carpeta donde se guarda taf_LEAS.txt")
+    fichero = Path(p.parse_args().dir) / f"taf_{ESTACION}.txt"
     n = grabar(tafs_actuales(), fichero)
     print(f"TAF nuevos: {n} -> {fichero}")
 

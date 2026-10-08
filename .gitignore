@@ -18,3 +18,7 @@ __pycache__/
 
 # Modelos entrenados (se regeneran con python -m novok.modelo.entrenar)
 models/
+
+# Briefing generado (se publica con GitHub Actions)
+web/briefing.json
+_site/

@@ -1,0 +1,45 @@
+name: Publicar briefing
+
+# Cada 30 min: genera el briefing con datos en directo y lo publica en GitHub Pages.
+# Requiere una vez: Settings → Pages → Source: "GitHub Actions".
+on:
+  schedule:
+    - cron: "13,43 * * * *"
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths: ["web/**", "src/novok/app/**", "modelos/**"]
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: true
+
+jobs:
+  publicar:
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.despliegue.outputs.page_url }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+      - name: Instalar
+        run: pip install -e .
+      - name: Generar briefing
+        run: |
+          mkdir -p _site
+          cp web/index.html web/novok-logo.png _site/
+          python -m novok.app.briefing --salida _site/briefing.json
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: _site
+      - id: despliegue
+        uses: actions/deploy-pages@v4

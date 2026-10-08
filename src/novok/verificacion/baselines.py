@@ -60,8 +60,13 @@ def evento(vis, techo, umbral_vis, umbral_techo) -> pd.Series:
 
 def cargar_observado() -> pd.DataFrame:
     """Tabla horaria en rejilla regular (para desplazar exactamente L horas)."""
-    h = pd.read_parquet(DATA_PROCESSED / "horario.parquet").set_index("fecha_utc").sort_index()
-    rejilla = pd.date_range(h.index.min(), h.index.max(), freq="1h")
+    return preparar_observado(pd.read_parquet(DATA_PROCESSED / "horario.parquet"))
+
+
+def preparar_observado(horario: pd.DataFrame, hasta: pd.Timestamp | None = None) -> pd.DataFrame:
+    """Rejilla horaria regular con los sucesos observados. Lo usan el entrenamiento y el sistema en directo."""
+    h = horario.set_index("fecha_utc").sort_index() if "fecha_utc" in horario else horario.sort_index()
+    rejilla = pd.date_range(h.index.min(), hasta if hasta is not None else h.index.max(), freq="1h")
     h = h.reindex(rejilla)
     h["hay_obs"] = h["n_obs"].fillna(0) > 0
     for nombre, (uv, ut) in EVENTOS.items():

@@ -19,7 +19,11 @@ en el Aeropuerto de Asturias, y se compara de forma honesta con el pronóstico o
 actualización con cada METAR, hora estimada de disipación, explicación del porqué
 y un marcador público contra el TAF.
 
-> ⚠️ Proyecto educativo. No apto para decisiones de vuelo.
+> ⚠️ **Prototipo educativo de apoyo a la decisión, complementario al TAF de AEMET. No apto para decisiones de
+> vuelo ni para uso operativo.** En la UE, la información meteorológica aeronáutica solo la pueden proporcionar
+> proveedores certificados (Reglamento (UE) 2017/373); en LEAS, AEMET.
+
+**Briefing en directo:** https://gelan03.github.io/novok/
 
 ## Estado
 
@@ -30,7 +34,7 @@ y un marcador público contra el TAF.
 | F2 | Baselines (persistencia, climatología, TAF) | 🔄 persistencia y climatología ✅ · TAF grabándose en directo |
 | F3 | Modelo: niebla + techo de nubes | ✅ v1 (METAR) y v2 (METAR + pronóstico numérico) |
 | F4 | Hora de disipación y tipo de niebla | ✅ |
-| F5 | Aplicación web en vivo + briefing operativo (niebla, techo y viento en pista) | ⏳ |
+| F5 | Briefing web en directo (niebla, techo, disipación, viento en pista, comparación con el TAF) | ✅ |
 
 ## Primeros resultados (METAR 2017–2025)
 
@@ -177,6 +181,37 @@ Las dos coberturas rondan el 80–85 %. La mejora es significativa (remuestreo p
 en general y −0,42 h en episodios largos, IC 95 % sin cero), aunque modesta: en episodios de 1–2 h es difícil
 batir a «se levanta en la próxima hora».
 
+## Briefing en directo (F5)
+
+![Briefing de NOVOK](reports/briefing_ejemplo.png)
+
+*Repetición del 30 de junio de 2025, 04:40Z: niebla de advección en curso; NOVOK estimó que despejaría hacia las
+09:00Z (80 %: 05:00–10:00Z). Despejó a las 10:00Z.*
+
+**Arquitectura sin servidor:** cada 30 min, GitHub Actions descarga el METAR y el TAF de LEAS
+(aviationweather.gov) y el pronóstico numérico (Open-Meteo), ejecuta los modelos guardados en `modelos/`
+y publica `briefing.json` y la página en GitHub Pages.
+
+```
+METAR + TAF (NOAA) ─┐
+                    ├─► novok.app.briefing ─► briefing.json ─► web/index.html (GitHub Pages)
+NWP (Open-Meteo) ───┘        │
+                       modelos/ (v2, v1, disipación, umbrales)
+```
+
+**Prácticas de software operativo (sin ser un sistema operativo):**
+- **El mismo código en entrenamiento y en directo:** los METAR en texto se convierten al formato de
+  entrenamiento y pasan por la misma limpieza. Validado contra 40 000 METAR reales: 100 % de coincidencia
+  en viento, temperatura, rocío, QNH y altura de nubes.
+- **Control de calidad:** sin pronóstico si el último METAR tiene más de 90 min o faltan más de 6 de las
+  últimas 24 h.
+- **Degradación controlada:** sin pronóstico numérico → NOVOK v1 (solo METAR), y lo dice.
+- **Trazabilidad:** versión del modelo, hora de cada fuente, umbrales y METAR original en el propio briefing;
+  el resumen en texto sale de reglas, no de un modelo de lenguaje, así que cada frase se puede rastrear.
+- **Incertidumbre visible:** probabilidad, nivel (bajo < 10 %, moderado 10–30 %, alto ≥ 30 %), aviso cuando se
+  supera el umbral del modelo e intervalo del 80 % para la disipación.
+- **Comparación en directo con el TAF** de AEMET para las mismas horas.
+
 ## Puesta en marcha
 
 ```bash
@@ -193,8 +228,9 @@ python -m novok.data.limpiar_metar
 # 3. Primer análisis: horas de niebla por año y mapa mes x hora (reports/)
 python -m novok.analysis.resumen_niebla
 
-# 4. TAF: se graban solos en el repo (GitHub Actions). Para unirlos a la verificación:
-git pull
+# 4. TAF: se graban solos en la rama datos-vivo (GitHub Actions). Para unirlos a la verificación:
+git fetch origin datos-vivo
+git checkout origin/datos-vivo -- data/vivo
 python -m novok.data.descargar_taf --extraer
 
 # 5. Verificación de baselines (reports/verificacion_baselines.csv y verificacion_csi.png)
@@ -212,6 +248,11 @@ python -m novok.modelo.entrenar_nwp
 
 # 9. Tipos de niebla y modelo de disipación (~10 s)
 python -m novok.episodios.disipacion
+
+# 10. Briefing: en directo o repitiendo una fecha pasada con tus datos, y verlo en el navegador
+python -m novok.app.briefing
+python -m novok.app.briefing --repetir 2025-06-30T04:40
+python -m http.server 8000 -d web     # abre http://localhost:8000
 
 # Tests y lint
 pytest -q
@@ -265,6 +306,10 @@ src/novok/
   verificacion/             # baselines y métricas (POD, FAR, CSI, Brier)
   modelo/                   # variables desde METAR y entrenamiento LightGBM con validación temporal
   episodios/                # episodios, tipo de niebla y predicción de la hora de disipación
+  app/                      # briefing en directo: fuentes de datos, modelos y controles de calidad
+  data/metar_texto.py       # METAR en texto -> formato de entrenamiento
+web/index.html              # página del briefing (GitHub Pages)
+modelos/                    # modelos entrenados que usa el briefing
   analysis/resumen_niebla.py
 tests/
 ```
