@@ -1,0 +1,38 @@
+name: Grabar TAF de LEAS
+
+# Guarda el TAF vigente cada 30 min (GitHub puede retrasar las ejecuciones programadas unos minutos).
+on:
+  schedule:
+    - cron: "7,37 * * * *"
+  workflow_dispatch:   # permite lanzarlo a mano desde la pestaña Actions
+
+permissions:
+  contents: write
+
+concurrency:
+  group: grabar-taf
+  cancel-in-progress: false
+
+jobs:
+  grabar:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Instalar
+        run: pip install -e .
+      - name: Grabar TAF
+        run: python -m novok.data.grabar_taf_vivo
+      - name: Guardar en el repositorio si hay TAF nuevos
+        run: |
+          if [ -n "$(git status --porcelain data/vivo)" ]; then
+            git config user.name "novok-bot"
+            git config user.email "novok-bot@users.noreply.github.com"
+            git add data/vivo
+            git commit -m "TAF LEAS $(date -u +%Y-%m-%dT%H:%MZ)"
+            git push
+          else
+            echo "Sin TAF nuevos"
+          fi

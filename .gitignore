@@ -1,0 +1,20 @@
+# Datos (se regeneran con los scripts)
+data/raw/*
+data/processed/*
+!data/raw/.gitkeep
+!data/processed/.gitkeep
+
+# Python
+__pycache__/
+*.egg-info/
+.venv/
+.pytest_cache/
+.ruff_cache/
+
+# Editor / SO
+.vscode/
+.idea/
+.DS_Store
+
+# Modelos entrenados (se regeneran con python -m novok.modelo.entrenar)
+models/
