@@ -3,160 +3,241 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>NOVOK · Briefing de niebla LEAS</title>
-<meta name="description" content="Probabilidad de niebla y de condiciones bajo mínimos en el Aeropuerto de Asturias para las próximas 12 horas. Prototipo educativo, complementario al TAF de AEMET.">
+<title>NOVOK · Niebla en LEAS</title>
+<meta name="description" content="Probabilidad de niebla y de condiciones bajo mínimos en el Aeropuerto de Asturias para las próximas 12 horas, frente al TAF de AEMET. Prototipo educativo.">
+<meta name="theme-color" content="#0a1422">
 <link rel="icon" href="novok-logo.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Barlow:wght@400;500;600&family=Barlow+Condensed:wght@500;600&family=IBM+Plex+Mono:wght@400&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Barlow:wght@400;500;600&family=Barlow+Condensed:wght@500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
+  /* Paleta: una sola escala de estado en toda la página.
+     verde = por encima de mínimos / riesgo bajo, ámbar = niebla / riesgo moderado,
+     magenta = bajo mínimos / riesgo alto (el magenta de las cartas aeronáuticas). */
   :root {
-    --fondo: #eef1f3;
-    --superficie: #f8fafb;
-    --tinta: #15305a;
-    --tinta-2: #4b5d75;
-    --tinta-3: #6f7f92;
-    --nube: #8a9097;
+    color-scheme: dark;
+    --fondo: #0a1422;
+    --panel: #0f1d31;
+    --panel-2: #152841;
+    --linea: #213753;
+    --tinta: #e8eef7;
+    --tinta-2: #a9b8cc;
+    --tinta-3: #7b8da6;
     --cielo: #7fc0ea;
-    --linea: #d5dce3;
-    --niebla: 138 144 151;          /* gris nube en RGB, para la densidad de niebla */
-    --bajo: #2f7d5b;
-    --moderado: #a86a00;
-    --alto: #b42318;
-    --foco: #2a78d6;
+    --ok: #3cc6a4;
+    --niebla: #f2b632;
+    --minimos: #e866b0;
+    --aviso: #ff7a59;
+    --taf: #c3ccd8;
+    --estado: var(--ok);
+    --sombra: 0 1px 0 rgb(255 255 255 / .04) inset, 0 12px 32px -18px rgb(0 0 0 / .7);
   }
-  @media (prefers-color-scheme: dark) {
+  @media (prefers-color-scheme: light) {
     :root {
-      --fondo: #0d1726;
-      --superficie: #13213a;
-      --tinta: #e6edf6;
-      --tinta-2: #b6c3d4;
-      --tinta-3: #8d9cb1;
-      --nube: #9aa3ad;
-      --cielo: #7fc0ea;
-      --linea: #26385a;
-      --niebla: 190 198 208;
-      --bajo: #4fbf8b;
-      --moderado: #e0a43a;
-      --alto: #ff7a6b;
-      --foco: #7fc0ea;
+      color-scheme: light;
+      --fondo: #e8edf3;
+      --panel: #fbfcfe;
+      --panel-2: #f1f5f9;
+      --linea: #d2dbe6;
+      --tinta: #13294b;
+      --tinta-2: #45597a;
+      --tinta-3: #6a7b94;
+      --cielo: #2a78d6;
+      --ok: #12836c;
+      --niebla: #a86f00;
+      --minimos: #b52f7e;
+      --aviso: #c9401f;
+      --taf: #56657b;
+      --sombra: 0 1px 2px rgb(19 41 75 / .06), 0 10px 28px -20px rgb(19 41 75 / .45);
     }
   }
+  body[data-estado="niebla"] { --estado: var(--niebla); }
+  body[data-estado="minimos"] { --estado: var(--minimos); }
+
   * { box-sizing: border-box; }
   html { -webkit-text-size-adjust: 100%; }
   body {
-    margin: 0; background: var(--fondo); color: var(--tinta);
+    margin: 0; min-height: 100vh; color: var(--tinta);
     font: 400 1rem/1.5 "Barlow", system-ui, sans-serif;
+    background:
+      radial-gradient(1100px 420px at 18% -120px, color-mix(in srgb, var(--estado) 22%, transparent), transparent 70%),
+      var(--fondo);
+    background-repeat: no-repeat;
   }
   a { color: inherit; }
-  :focus-visible { outline: 3px solid var(--foco); outline-offset: 2px; }
-  .pagina { max-width: 1080px; margin: 0 auto; padding: 24px 20px 56px; }
+  :focus-visible { outline: 3px solid var(--cielo); outline-offset: 2px; border-radius: 4px; }
+  .num { font-family: "Barlow Condensed", "Barlow", sans-serif; font-variant-numeric: tabular-nums; }
+  .codigo { font-family: "IBM Plex Mono", ui-monospace, monospace; }
+  .apagado { color: var(--tinta-3); }
 
-  /* Cabecera */
-  .cabecera { display: flex; align-items: center; justify-content: space-between; gap: 16px; flex-wrap: wrap; }
-  .marca { display: flex; align-items: center; gap: 14px; }
-  .marca img { height: 34px; background: #fff; border-radius: 6px; padding: 4px 8px; }
-  .marca .lugar { font-weight: 500; color: var(--tinta-2); }
-  .estado-datos { display: flex; align-items: center; gap: 8px; color: var(--tinta-2); font-size: .95rem; }
-  .punto { width: 10px; height: 10px; border-radius: 50%; display: inline-block; }
-  .punto.ok { background: var(--bajo); }
-  .punto.mal { background: var(--alto); }
+  .pagina { max-width: 1180px; margin: 0 auto; padding: 0 20px 56px; }
 
-  /* Titular */
-  .titular { margin: 40px 0 8px; max-width: 46ch; font: 600 clamp(1.6rem, 3.6vw, 2.35rem)/1.15 "Barlow", sans-serif; letter-spacing: -.01em; }
-  .subtitular { margin: 0 0 32px; max-width: 70ch; color: var(--tinta-2); font-size: 1.08rem; }
-  .subtitular p { margin: .2rem 0; }
-
-  /* Línea de tiempo con niebla */
-  .tiempo { background: var(--superficie); border: 1px solid var(--linea); border-radius: 14px; padding: 20px 20px 14px; }
-  .tiempo h2, .bloque h2 { margin: 0 0 4px; font: 600 1.15rem/1.3 "Barlow", sans-serif; }
-  .tiempo .nota, .bloque .nota { margin: 0 0 16px; color: var(--tinta-3); font-size: .92rem; }
-  .rejilla { display: grid; grid-template-columns: 150px minmax(120px, 1.3fr) repeat(4, minmax(84px, 1fr)); gap: 6px; align-items: stretch; }
-  .rejilla .cab { font: 500 .9rem/1.2 "Barlow", sans-serif; color: var(--tinta-2); padding: 0 4px 6px; }
-  .rejilla .cab strong { display: block; color: var(--tinta); font: 600 1.1rem/1.2 "Barlow Condensed", sans-serif; }
-  .rejilla .fila { font-weight: 500; padding: 10px 4px; align-self: center; }
-  .rejilla .fila small { display: block; color: var(--tinta-3); font-weight: 400; }
-  .celda {
-    position: relative; min-height: 76px; border-radius: 8px; overflow: hidden;
-    background: linear-gradient(180deg, color-mix(in srgb, var(--cielo) 26%, var(--superficie)), var(--superficie));
-    display: flex; flex-direction: column; justify-content: flex-end; padding: 8px 10px;
+  /* Barra superior */
+  .barra {
+    display: flex; align-items: center; gap: 18px; flex-wrap: wrap;
+    padding: 14px 0; border-bottom: 1px solid var(--linea); margin-bottom: 22px;
   }
-  .celda::before {   /* la niebla: su densidad es la probabilidad */
-    content: ""; position: absolute; inset: 0;
-    background: radial-gradient(120% 90% at 50% 100%, rgb(var(--niebla) / calc(var(--p, 0) * 1.05)), rgb(var(--niebla) / calc(var(--p, 0) * .55)));
-    filter: blur(.5px);
+  .marca { display: flex; align-items: center; gap: 14px; margin-right: auto; min-width: 0; }
+  .marca img { height: 34px; background: #fff; border-radius: 7px; padding: 4px 8px; }
+  .marca .aero { line-height: 1.15; }
+  .marca .aero b { display: block; font-weight: 600; }
+  .marca .aero span { color: var(--tinta-2); font-size: .92rem; }
+  .reloj { display: flex; align-items: baseline; gap: 10px; }
+  .reloj .z { font-size: 1.7rem; font-weight: 600; letter-spacing: .01em; }
+  .reloj .l { color: var(--tinta-2); font-size: 1.05rem; }
+  .chip {
+    display: inline-flex; align-items: center; gap: 7px; padding: 4px 11px; border-radius: 999px;
+    background: var(--panel-2); border: 1px solid var(--linea); font-size: .9rem; font-weight: 500; white-space: nowrap;
   }
-  .celda > * { position: relative; }
-  .celda .p { font: 600 1.7rem/1 "Barlow Condensed", sans-serif; }
-  .celda .nivel { font-size: .85rem; font-weight: 500; display: flex; align-items: center; gap: 5px; }
-  .nivel::before { content: ""; width: 8px; height: 8px; border-radius: 50%; background: currentColor; }
-  .nivel.alto { color: var(--alto); } .nivel.moderado { color: var(--moderado); } .nivel.bajo { color: var(--bajo); }
-  .celda.alerta { box-shadow: inset 0 0 0 2px var(--alto); }
-  .celda.taf { min-height: 60px; background: transparent; border: 1px dashed var(--linea); justify-content: center; font-size: .9rem; color: var(--tinta-2); }
-  .celda.taf::before { display: none; }
-  .celda.taf b { color: var(--tinta); font-weight: 600; }
-  .pasado { display: flex; align-items: flex-end; gap: 2px; height: 76px; padding: 0 2px; border-radius: 8px; }
-  .pasado span { flex: 1; border-radius: 2px 2px 0 0; background: color-mix(in srgb, var(--cielo) 55%, transparent); min-height: 4px; }
-  .pasado span.niebla { background: rgb(var(--niebla)); }
-  .pasado span.min { background: var(--alto); }
-  .leyenda { display: flex; flex-wrap: wrap; gap: 6px 18px; margin-top: 12px; color: var(--tinta-3); font-size: .88rem; }
-  .leyenda i { display: inline-block; width: 12px; height: 12px; border-radius: 3px; vertical-align: -1px; margin-right: 5px; }
+  .chip .led { width: 8px; height: 8px; border-radius: 50%; background: var(--ok); box-shadow: 0 0 0 3px color-mix(in srgb, var(--ok) 25%, transparent); }
+  .chip.mal .led { background: var(--aviso); box-shadow: 0 0 0 3px color-mix(in srgb, var(--aviso) 25%, transparent); }
+  .chip.rep .led { background: var(--cielo); box-shadow: 0 0 0 3px color-mix(in srgb, var(--cielo) 25%, transparent); }
 
-  /* Bloques inferiores */
-  .dos { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-top: 20px; }
-  .bloque { padding: 20px 4px 0; }
-  .grande { font: 600 2.4rem/1 "Barlow Condensed", sans-serif; margin: 6px 0 2px; }
-  .barra { position: relative; height: 34px; margin: 18px 0 6px; border-radius: 6px; background: color-mix(in srgb, var(--cielo) 22%, var(--superficie)); border: 1px solid var(--linea); }
-  .barra .rango { position: absolute; top: 0; bottom: 0; background: rgb(var(--niebla) / .55); border-radius: 5px; }
-  .barra .mediana { position: absolute; top: -6px; bottom: -6px; width: 3px; background: var(--tinta); border-radius: 2px; }
-  .ejes { display: flex; justify-content: space-between; color: var(--tinta-3); font-size: .85rem; }
-  .pista-fig { display: flex; gap: 18px; align-items: center; flex-wrap: wrap; }
-  .pista-fig svg { flex: none; }
-  .datos-viento { display: grid; grid-template-columns: auto auto; gap: 2px 14px; font-size: .98rem; }
-  .datos-viento dt { color: var(--tinta-2); }
-  .datos-viento dd { margin: 0; font-weight: 600; }
-  .aviso-viento { color: var(--alto); font-weight: 500; }
+  /* Paneles */
+  .panel { background: var(--panel); border: 1px solid var(--linea); border-radius: 14px; box-shadow: var(--sombra); padding: 18px 20px; min-width: 0; }
+  .panel > h2 { margin: 0 0 2px; font: 600 1.08rem/1.3 "Barlow", sans-serif; }
+  .panel > .nota { margin: 0 0 14px; color: var(--tinta-3); font-size: .9rem; }
 
-  .metar { margin-top: 28px; padding: 14px 16px; border-left: 3px solid var(--nube); background: var(--superficie); font: 400 .92rem/1.5 "IBM Plex Mono", monospace; overflow-wrap: anywhere; border-radius: 0 8px 8px 0; }
-  .calidad { margin-top: 24px; font-size: .95rem; color: var(--tinta-2); }
-  .calidad ul { margin: 6px 0 0; padding-left: 20px; }
-  .bloqueo { margin: 28px 0; padding: 18px 20px; border-radius: 10px; border: 2px solid var(--alto); background: var(--superficie); }
-  .bloqueo h2 { margin: 0 0 6px; color: var(--alto); font-size: 1.15rem; }
-  .pie { margin-top: 40px; padding-top: 16px; border-top: 1px solid var(--linea); color: var(--tinta-3); font-size: .9rem; max-width: 80ch; }
-  .pie strong { color: var(--tinta-2); }
-
-  @media (max-width: 760px) {
-    .dos { grid-template-columns: 1fr; }
-    .tiempo { padding: 16px 12px 12px; }
-    .rejilla { grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 5px; }
-    .rejilla .col-pasado, .rejilla .esquina { display: none; }
-    .rejilla .fila { grid-column: 1 / -1; padding: 10px 2px 0; }
-    .rejilla .fila small { display: inline; margin-left: 6px; }
-    .rejilla .cab { padding: 0 2px 2px; font-size: .8rem; }
-    .celda { min-height: 64px; padding: 6px 7px; }
-    .celda .p { font-size: 1.35rem; }
-    .titular { margin-top: 28px; }
+  /* Cabeza: estado ahora + resumen */
+  .cabeza { display: grid; grid-template-columns: minmax(0, 5fr) minmax(0, 7fr); gap: 16px; margin-bottom: 16px; }
+  .ahora { border-top: 4px solid var(--estado); }
+  .ahora .cuando { color: var(--tinta-2); font-size: .92rem; }
+  .estado {
+    margin: 6px 0 18px;
   }
-  @media (prefers-reduced-motion: no-preference) {
-    .celda::before { transition: background .6s ease; }
+  .estado .nombre { display: block; font: 700 2.3rem/1.05 "Barlow Condensed", sans-serif; color: var(--estado); }
+  .estado .def { display: block; color: var(--tinta-3); font-size: .88rem; line-height: 1.3; }
+  .instr { display: grid; grid-template-columns: 92px minmax(0, 1fr); gap: 4px 14px; align-items: center; margin-bottom: 12px; }
+  .instr .et { color: var(--tinta-2); font-size: .92rem; }
+  .instr .val { font-size: 1.6rem; font-weight: 600; line-height: 1; }
+  .instr .val small { font-size: .95rem; font-weight: 500; color: var(--tinta-2); margin-left: 3px; }
+  .escala { grid-column: 2; position: relative; height: 8px; border-radius: 4px; display: flex; overflow: visible; margin: 4px 0 14px; }
+  .escala i { display: block; height: 100%; opacity: .55; }
+  .escala i:first-child { border-radius: 4px 0 0 4px; }
+  .escala i:last-of-type { border-radius: 0 4px 4px 0; }
+  .escala .marca-v { position: absolute; top: -5px; width: 4px; height: 18px; margin-left: -2px; border-radius: 2px; background: var(--tinta); box-shadow: 0 0 0 2px var(--panel); }
+  .escala .tk { position: absolute; top: 11px; font-size: .74rem; color: var(--tinta-3); transform: translateX(-50%); white-space: nowrap; }
+  .mini { display: flex; gap: 22px; flex-wrap: wrap; padding-top: 12px; border-top: 1px solid var(--linea); }
+  .mini div { font-size: .9rem; color: var(--tinta-2); }
+  .mini b { display: block; font: 600 1.3rem/1.1 "Barlow Condensed", sans-serif; color: var(--tinta); }
+
+  .resumen h1 { margin: 2px 0 12px; font: 600 clamp(1.45rem, 2.6vw, 2rem)/1.18 "Barlow", sans-serif; letter-spacing: -.01em; max-width: 30ch; }
+  .resumen ul { list-style: none; margin: 0 0 14px; padding: 0; display: grid; gap: 8px; }
+  .resumen li { position: relative; padding-left: 18px; color: var(--tinta-2); max-width: 70ch; }
+  .resumen li::before { content: ""; position: absolute; left: 0; top: .62em; width: 7px; height: 7px; border-radius: 2px; background: var(--tinta-3); }
+  .resumen li.c-minimos::before { background: var(--minimos); }
+  .resumen li.c-niebla::before { background: var(--niebla); }
+  .resumen li.c-aviso::before { background: var(--aviso); }
+  .modelo { display: flex; gap: 8px; flex-wrap: wrap; }
+  .repeticion { margin: 12px 0 0; padding: 10px 12px; border-radius: 8px; background: var(--panel-2); color: var(--tinta-2); font-size: .88rem; }
+
+  /* Meteograma */
+  .meteo { margin-bottom: 16px; }
+  .meteo svg { display: block; width: 100%; height: auto; overflow: visible; }
+  .meteo svg text { font-family: "Barlow", sans-serif; }
+  .leyenda { display: flex; flex-wrap: wrap; gap: 6px 18px; margin-top: 10px; color: var(--tinta-2); font-size: .86rem; }
+  .leyenda span { display: inline-flex; align-items: center; gap: 7px; }
+  .leyenda i { display: inline-block; width: 18px; height: 10px; border-radius: 2px; }
+  .leyenda i.linea { height: 0; border-top: 3px solid var(--cielo); border-radius: 0; }
+  .leyenda i.disc { height: 0; border-top: 2px dashed var(--taf); border-radius: 0; }
+
+  /* Horizontes */
+  .horizontes { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; margin-bottom: 16px; }
+  .hz { position: relative; padding: 16px 16px 14px; border-top: 4px solid var(--c, var(--linea)); }
+  .hz .cab { display: flex; align-items: baseline; justify-content: space-between; gap: 8px; }
+  .hz .cab b { font: 700 1.9rem/1 "Barlow Condensed", sans-serif; }
+  .hz .cab span { color: var(--tinta-2); font-size: .88rem; text-align: right; line-height: 1.25; }
+  .anillos { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; margin: 14px 0 12px; }
+  .anillo { text-align: center; }
+  .anillo svg { width: 84px; height: 84px; display: block; margin: 0 auto 2px; }
+  .anillo .arco { transition: stroke-dashoffset 1.1s cubic-bezier(.2, .7, .2, 1); }
+  .anillo .q { font: 600 1.35rem/1 "Barlow Condensed", sans-serif; fill: var(--tinta); }
+  .anillo .et { font-size: .86rem; color: var(--tinta-2); line-height: 1.2; }
+  .anillo .nv { font-size: .8rem; font-weight: 600; }
+  .marca-aviso {
+    position: absolute; top: 12px; right: 12px; display: none;
+  }
+  .avisos { display: flex; gap: 6px; flex-wrap: wrap; min-height: 24px; margin-bottom: 10px; }
+  .aviso { display: inline-flex; align-items: center; gap: 5px; font-size: .78rem; font-weight: 600; padding: 2px 8px; border-radius: 999px;
+    color: var(--aviso); background: color-mix(in srgb, var(--aviso) 14%, transparent); border: 1px solid color-mix(in srgb, var(--aviso) 45%, transparent); }
+  .hz .taf { border-top: 1px dashed var(--linea); padding-top: 10px; font-size: .88rem; color: var(--tinta-2); line-height: 1.35; }
+  .hz .taf b { color: var(--tinta); font-weight: 600; }
+  .hz .taf .dif { color: var(--aviso); font-weight: 600; }
+
+  /* Detalles */
+  .detalles { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px; margin-bottom: 16px; }
+  .grande { font: 700 2.6rem/1 "Barlow Condensed", sans-serif; margin: 6px 0 2px; }
+  .grande small { font-size: 1.1rem; font-weight: 500; color: var(--tinta-2); margin-left: 6px; }
+  .rango { position: relative; height: 34px; margin: 18px 0 6px; }
+  .rango .pista-t { position: absolute; left: 0; right: 0; top: 13px; height: 8px; border-radius: 4px; background: var(--panel-2); border: 1px solid var(--linea); }
+  .rango .banda { position: absolute; top: 9px; height: 16px; border-radius: 4px; background: color-mix(in srgb, var(--ok) 45%, transparent); border: 1px solid var(--ok); }
+  .rango .med { position: absolute; top: 3px; width: 4px; height: 28px; margin-left: -2px; border-radius: 2px; background: var(--tinta); }
+  .rango-ejes { display: flex; justify-content: space-between; color: var(--tinta-3); font-size: .82rem; }
+  .vacio { color: var(--tinta-2); }
+  .vacio .icono { font-size: 2rem; line-height: 1; margin-bottom: 6px; color: var(--ok); }
+
+  .viento-fig { display: grid; grid-template-columns: 130px minmax(0, 1fr); gap: 14px; align-items: center; }
+  .viento-fig svg { width: 130px; height: 130px; }
+  dl.datos { margin: 0; display: grid; grid-template-columns: auto 1fr; white-space: nowrap; gap: 4px 12px; font-size: .92rem; }
+  dl.datos dt { color: var(--tinta-2); }
+  dl.datos dd { margin: 0; font-weight: 600; font-variant-numeric: tabular-nums; }
+  .cruzado { margin-top: 12px; }
+  .cruzado .et { font-size: .84rem; color: var(--tinta-3); margin-bottom: 4px; }
+
+  ul.checks { list-style: none; margin: 0; padding: 0; display: grid; gap: 10px; }
+  ul.checks li { display: grid; grid-template-columns: 22px minmax(0, 1fr); gap: 8px; font-size: .93rem; }
+  ul.checks .ic { width: 20px; height: 20px; border-radius: 50%; display: grid; place-items: center; font-size: .75rem; font-weight: 700; color: var(--fondo); background: var(--ok); margin-top: 1px; }
+  ul.checks .ic.no { background: var(--aviso); }
+  ul.checks .ic.med { background: var(--niebla); }
+  ul.checks small { display: block; color: var(--tinta-3); }
+
+  /* Códigos */
+  .codigos { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 16px; margin-bottom: 16px; }
+  .codigos .codigo { margin: 0; font-size: .92rem; line-height: 1.6; white-space: pre-wrap; word-break: break-word; color: var(--tinta); }
+
+  .bloqueo { border-left: 4px solid var(--aviso); margin-bottom: 16px; }
+  .bloqueo h2 { color: var(--aviso); }
+
+  .pie { border-top: 1px solid var(--linea); padding-top: 18px; margin-top: 8px; color: var(--tinta-2); font-size: .9rem; max-width: 82ch; }
+  .pie p { margin: 0 0 8px; }
+  .pie strong { color: var(--tinta); }
+
+  @media (max-width: 980px) {
+    .cabeza { grid-template-columns: 1fr; }
+    .horizontes { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .detalles { grid-template-columns: 1fr 1fr; }
+    .detalles > :last-child { grid-column: 1 / -1; }
+  }
+  @media (max-width: 640px) {
+    .pagina { padding: 0 14px 40px; }
+    .reloj .z { font-size: 1.4rem; }
+    .detalles, .codigos { grid-template-columns: 1fr; }
+    .horizontes { gap: 10px; }
+    .hz { padding: 14px 12px 12px; }
+    .anillo svg { width: 70px; height: 70px; }
+    .viento-fig { grid-template-columns: 120px minmax(0, 1fr); }
+    .viento-fig svg { width: 120px; height: 120px; }
+    .instr { grid-template-columns: 78px minmax(0, 1fr); }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .anillo .arco { transition: none; }
   }
 </style>
 </head>
 <body>
 <div class="pagina">
-  <header class="cabecera">
+  <header class="barra">
     <div class="marca">
       <img src="novok-logo.png" alt="NOVOK">
-      <span class="lugar">Aeropuerto de Asturias · LEAS</span>
+      <div class="aero"><b>Aeropuerto de Asturias</b><span>LEAS, pista 11/29</span></div>
     </div>
-    <div class="estado-datos" id="estado-datos"><span class="punto"></span><span>Cargando datos…</span></div>
+    <div class="reloj" aria-label="Hora actual"><span class="z num" id="reloj-z">--:--:--Z</span><span class="l num" id="reloj-l"></span></div>
+    <span class="chip" id="chip-modo"><span class="led"></span><span>Cargando</span></span>
   </header>
 
-  <main id="contenido" aria-live="polite">
-    <h1 class="titular">Cargando el briefing…</h1>
-  </main>
+  <main id="contenido" aria-live="polite"></main>
 
-  <footer class="pie" id="pie">
+  <footer class="pie">
     <p><strong>Prototipo educativo de apoyo a la decisión, complementario al TAF de AEMET. No apto para decisiones de vuelo ni para uso operativo.</strong></p>
     <p>NOVOK predice niebla y techo bajo con modelos entrenados con METAR de LEAS (2017–2025) y pronósticos numéricos emitidos 24 h antes.
       Bajo mínimos tipo CAT I: visibilidad &lt; 550 m o techo ≤ 200 ft (aproximación; los mínimos reales dependen del procedimiento publicado).
@@ -166,143 +247,399 @@
 
 <script>
 const ZONA = "Europe/Madrid";
+const ms = iso => new Date(iso).getTime();
 const fmtZ = iso => iso ? new Date(iso).toISOString().slice(11, 16) + "Z" : "—";
-const fmtLocal = iso => iso ? new Date(iso).toLocaleTimeString("es-ES", { timeZone: ZONA, hour: "2-digit", minute: "2-digit" }) : "—";
-const hora = iso => `${fmtZ(iso)} <span style="color:var(--tinta-3)">(${fmtLocal(iso)} local)</span>`;
+const fmtL = iso => iso ? new Date(iso).toLocaleTimeString("es-ES", { timeZone: ZONA, hour: "2-digit", minute: "2-digit" }) : "—";
+const fmtDia = iso => iso ? `${new Date(iso).getUTCDate()} a las ${fmtZ(iso)}` : "—";
 const pct = p => (p == null ? "—" : Math.round(p * 100) + " %");
 const esc = s => String(s ?? "").replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+const visTxt = v => v == null ? "—" : v >= 10000 ? "≥ 10 km" : v >= 5000 ? (v / 1000).toFixed(0) + " km" : Math.round(v) + " m";
 const NIVEL = { alto: "Alto", moderado: "Moderado", bajo: "Bajo" };
+const COLOR_NIVEL = { alto: "var(--minimos)", moderado: "var(--niebla)", bajo: "var(--ok)" };
+const ORDEN = { bajo: 0, moderado: 1, alto: 2 };
 
-function celda(pr) {
-  const alerta = pr.alerta ? " alerta" : "";
-  return `<div class="celda${alerta}" style="--p:${Math.min(1, pr.p * 1.4).toFixed(2)}" title="Umbral de aviso del modelo: ${pct(pr.umbral)}${pr.alerta ? " (superado)" : ""}">
-    <span class="p">${pct(pr.p)}</span><span class="nivel ${pr.nivel}">${NIVEL[pr.nivel]}</span></div>`;
+/* ---------- reloj ---------- */
+function reloj() {
+  const d = new Date();
+  document.getElementById("reloj-z").textContent = d.toISOString().slice(11, 19) + "Z";
+  document.getElementById("reloj-l").textContent = d.toLocaleTimeString("es-ES", { timeZone: ZONA, hour: "2-digit", minute: "2-digit" }) + " local";
+}
+reloj(); setInterval(reloj, 1000);
+
+/* ---------- estado actual ---------- */
+function estadoDe(a) {
+  if (!a) return { id: "ok", nombre: "Sin datos", def: "" };
+  if (a.bajo_minimos) return { id: "minimos", nombre: "Bajo mínimos", def: "Visibilidad &lt; 550 m o techo ≤ 200 ft" };
+  if (a.niebla) return { id: "niebla", nombre: "Niebla", def: "Visibilidad &lt; 1000 m, por encima de mínimos CAT I" };
+  return { id: "ok", nombre: "Por encima de mínimos", def: "Sin niebla ni techo bajo" };
 }
 
-function celdaTaf(t) {
-  if (!t) return `<div class="celda taf">Sin TAF</div>`;
-  const vis = t.vis_predominante_m >= 10000 ? "≥10 km" : `${t.vis_predominante_m} m`;
-  const peor = t.vis_peor_m != null && t.vis_peor_m < t.vis_predominante_m ? `<br>temporal ${t.vis_peor_m} m` : "";
-  return `<div class="celda taf"><span><b>${vis}</b>${peor}</span><span>bajo mín. ${pct(t.p_bajo_minimos)}</span></div>`;
+// escala horizontal logarítmica con zonas de color y marca del valor
+function escala(valor, min, max, zonas, ticks, aria) {
+  const pos = v => Math.max(0, Math.min(100, (Math.log10(v) - Math.log10(min)) / (Math.log10(max) - Math.log10(min)) * 100));
+  let prev = 0;
+  const tramos = zonas.map(([hasta, color]) => { const w = pos(hasta) - prev; prev = pos(hasta); return `<i style="width:${w}%;background:${color}"></i>`; }).join("");
+  const marca = valor == null ? "" : `<span class="marca-v" style="left:${pos(Math.max(min, Math.min(max, valor)))}%"></span>`;
+  const tks = ticks.map(([v, t]) => `<span class="tk" style="left:${pos(v)}%">${t}</span>`).join("");
+  return `<div class="escala" role="img" aria-label="${aria}">${tramos}${marca}${tks}</div>`;
 }
 
-function pasado(hist) {
-  const barras = hist.map(h => {
-    const v = h.vis_m ?? 0; const alto = Math.max(6, Math.min(100, (Math.log10(Math.max(v, 50)) - 1.7) / 2.3 * 100));
-    const cls = h.bajo_minimos ? "min" : h.niebla ? "niebla" : "";
-    return `<span class="${cls}" style="height:${alto}%" title="${fmtZ(h.hora_utc)}: ${v >= 10000 ? "≥10 km" : v + " m"}${h.techo_ft != null ? ", techo " + h.techo_ft + " ft" : ""}"></span>`;
-  }).join("");
-  return `<div class="pasado" role="img" aria-label="Visibilidad observada en las últimas 12 horas">${barras}</div>`;
+function bloqueAhora(b) {
+  const a = b.ahora; const e = estadoDe(a);
+  if (!a) return `<section class="panel ahora"><h2>Condiciones actuales</h2><p class="vacio">Sin observación reciente.</p></section>`;
+  const sinTecho = a.techo_ft == null;
+  const dif = a.temp_c != null && a.rocio_c != null ? a.temp_c - a.rocio_c : null;
+  const difTxt = dif == null ? "" : dif <= 1 ? "aire saturado" : dif <= 3 ? "casi saturado" : "aire seco";
+  const viento = a.viento_kt === 0 ? "Calma" : `${a.viento_dir != null ? String(Math.round(a.viento_dir)).padStart(3, "0") + "°" : "VRB"} ${a.viento_kt ?? "—"} kt${a.racha_kt ? " G" + a.racha_kt : ""}`;
+  return `<section class="panel ahora" aria-labelledby="t-ahora">
+    <div class="cuando" id="t-ahora">Ahora, según el METAR de las <span class="num">${fmtZ(b.calidad?.metar_ultimo_utc)}</span> (${fmtL(b.calidad?.metar_ultimo_utc)} local)</div>
+    <div class="estado"><span class="nombre">${e.nombre}</span><span class="def">${e.def}</span></div>
+    <div class="instr">
+      <span class="et">Visibilidad</span><span class="val num">${visTxt(a.vis_m)}${a.rvr_min_m ? `<small>RVR ${Math.round(a.rvr_min_m)} m</small>` : ""}</span>
+      ${escala(a.vis_m, 50, 10000, [[550, "var(--minimos)"], [1000, "var(--niebla)"], [10000, "var(--ok)"]],
+               [[550, "550 m"], [5000, "5 km"]], "Visibilidad " + visTxt(a.vis_m))}
+      <span class="et">Techo</span><span class="val num">${sinTecho ? "Sin techo" : Math.round(a.techo_ft) + "<small>ft</small>"}</span>
+      ${escala(sinTecho ? 5000 : a.techo_ft, 50, 5000, [[200, "var(--minimos)"], [500, "var(--niebla)"], [5000, "var(--ok)"]],
+               [[200, "200 ft"], [500, "500"], [2000, "2000"]], "Techo " + (sinTecho ? "sin techo" : a.techo_ft + " pies"))}
+    </div>
+    <div class="mini">
+      <div>Temperatura / rocío<b class="num">${a.temp_c ?? "—"} / ${a.rocio_c ?? "—"} °C</b>${difTxt}</div>
+      <div>Viento<b class="num">${viento}</b>pista favorable ${b.viento_pista?.ahora?.pista_favorable ?? "—"}</div>
+    </div>
+  </section>`;
 }
 
-function pista(v) {
-  // Pista 11/29 a 110°; flecha del viento hacia donde sopla
-  const dir = v.dir; const r = 70;
-  const flecha = dir == null || !v.kt ? "" : (() => {
-    const a = (dir + 180) * Math.PI / 180;  // hacia donde va
-    const x1 = 90 - Math.sin(a) * r, y1 = 90 + Math.cos(a) * r, x2 = 90 + Math.sin(a) * 26, y2 = 90 - Math.cos(a) * 26;
-    return `<line x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}" stroke="var(--foco)" stroke-width="4" stroke-linecap="round" marker-end="url(#punta)"/>`;
+function claseFrase(f) {
+  if (/^Riesgo alto/.test(f)) return "c-minimos";
+  if (/^Niebla/.test(f)) return "c-niebla";
+  if (/^Discrepancia|^Sin pronóstico/.test(f)) return "c-aviso";
+  return "";
+}
+
+function bloqueResumen(b) {
+  const fr = (b.resumen || []).filter(f => !f.startsWith("Ahora:"));
+  const esTitular = f => /^(Riesgo|Sin riesgo|Sin pronóstico)/.test(f);
+  const tit = fr.find(esTitular) || fr[0] || "";
+  const resto = fr.filter(f => f !== tit);
+  const nwp = b.version_modelo === "v2";
+  return `<section class="panel resumen" aria-labelledby="t-resumen">
+    <h1 id="t-resumen">${esc(tit)}</h1>
+    <ul>${resto.map(f => `<li class="${claseFrase(f)}">${esc(f)}</li>`).join("")}</ul>
+    <div class="modelo">
+      <span class="chip">Modelo NOVOK ${esc(b.version_modelo || "—")}: ${nwp ? "METAR + pronóstico numérico" : "solo METAR"}</span>
+      ${b.calidad?.pronostico_emitido ? `<span class="chip">Pronóstico emitido ${fmtZ(b.generado_utc)}</span>` : ""}
+    </div>
+    ${b.nota_repeticion ? `<p class="repeticion">${esc(b.nota_repeticion)}</p>` : ""}
+  </section>`;
+}
+
+/* ---------- meteograma: 12 h observadas + 12 h previstas ---------- */
+function meteograma(b, ancho) {
+  const W = Math.max(320, ancho), estrecho = W < 600;
+  const L = estrecho ? 40 : 58, R = 14;
+  const y1a = 30, y1b = 176, y2a = 196, y2b = 276, H = 306;
+  const base = ms(b.calidad.hora_base_utc);
+  const t0 = base - 11.5 * 3600e3, t1 = base + 13.5 * 3600e3;
+  const x = t => L + (t - t0) / (t1 - t0) * (W - L - R);
+  const paso = x(t0 + 3600e3) - x(t0);
+  const lv = v => Math.log10(Math.max(50, Math.min(10000, v)));
+  const yv = v => y1b - (lv(v) - lv(50)) / (lv(10000) - lv(50)) * (y1b - y1a);
+  const yp = p => y2b - p * (y2b - y2a);
+  let s = "";
+
+  // zonas de visibilidad
+  s += `<rect x="${L}" y="${yv(550)}" width="${W - L - R}" height="${y1b - yv(550)}" fill="var(--minimos)" opacity=".10"/>`;
+  s += `<rect x="${L}" y="${yv(1000)}" width="${W - L - R}" height="${yv(550) - yv(1000)}" fill="var(--niebla)" opacity=".10"/>`;
+  for (const [v, t] of [[100, "100 m"], [300, "300 m"], [3000, "3 km"], [10000, "10 km"]]) {
+    s += `<line x1="${L}" x2="${W - R}" y1="${yv(v)}" y2="${yv(v)}" stroke="var(--linea)"/>`;
+    s += `<text x="${L - 6}" y="${yv(v) + 4}" text-anchor="end" font-size="11" fill="var(--tinta-3)">${t}</text>`;
+  }
+  for (const [v, c, t] of [[1000, "var(--niebla)", "1000 m"], [550, "var(--minimos)", "550 m"]]) {
+    s += `<line x1="${L}" x2="${W - R}" y1="${yv(v)}" y2="${yv(v)}" stroke="${c}" stroke-dasharray="4 4" opacity=".8"/>`;
+    s += `<text x="${L - 6}" y="${yv(v) + 4}" text-anchor="end" font-size="11" font-weight="600" fill="${c}">${t}</text>`;
+  }
+  s += `<text x="${L}" y="${y1a - 12}" font-size="12" font-weight="600" fill="var(--tinta-2)">Visibilidad</text>`;
+
+  // disipación prevista: banda del 80 % arriba del panel
+  const d = b.episodio?.disipacion;
+  if (d) {
+    const xa = x(ms(d.despeja_utc_q10) - 1800e3), xb = x(ms(d.despeja_utc_q90) + 1800e3), xm = x(ms(d.despeja_utc_q50));
+    s += `<rect x="${xa}" y="${y1a}" width="${xb - xa}" height="${y1b - y1a}" fill="var(--ok)" opacity=".10"/>`;
+    s += `<line x1="${xm}" x2="${xm}" y1="${y1a}" y2="${y1b}" stroke="var(--ok)" stroke-width="2" stroke-dasharray="2 3"/>`;
+    s += `<text x="${Math.min(xm + 5, W - R - 4)}" y="${y1a + (estrecho ? 30 : 14)}" font-size="12" font-weight="600" fill="var(--ok)" text-anchor="${xm > W - 140 ? "end" : "start"}">Despeja ~${fmtZ(d.despeja_utc_q50)}</text>`;
+  }
+
+  // TAF: visibilidad predominante (discontinua) y peor (TEMPO/PROB, punteada)
+  const th = b.taf_horas || [];
+  const escalon = (pts, campo) => {
+    let p = "";
+    pts.forEach((h, k) => {
+      const v = h[campo]; if (v == null) return;
+      const xa = x(ms(h.hora_utc) - 1800e3), xb = x(ms(h.hora_utc) + 1800e3), y = yv(v);
+      p += (p && pts[k - 1]?.[campo] != null ? `L${xa},${y}` : `M${xa},${y}`) + `L${xb},${y}`;
+    });
+    return p;
+  };
+  if (th.length) {
+    const peor = escalon(th.map(h => ({ ...h, vis_peor_m: h.vis_peor_m != null && h.vis_peor_m < h.vis_predominante_m ? h.vis_peor_m : null })), "vis_peor_m");
+    if (peor) s += `<path d="${peor}" fill="none" stroke="var(--taf)" stroke-width="1.6" stroke-dasharray="1 4" stroke-linecap="round"/>`;
+    s += `<path d="${escalon(th, "vis_predominante_m")}" fill="none" stroke="var(--taf)" stroke-width="2" stroke-dasharray="7 5"/>`;
+  }
+
+  // observado
+  const hist = (b.historial || []).filter(h => h.vis_m != null);
+  if (hist.length) {
+    const pts = hist.map(h => [x(ms(h.hora_utc)), yv(h.vis_m)]);
+    const linea = pts.map((p, k) => (k ? "L" : "M") + p[0].toFixed(1) + "," + p[1].toFixed(1)).join("");
+    s += `<defs><linearGradient id="g-vis" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="var(--cielo)" stop-opacity=".35"/><stop offset="1" stop-color="var(--cielo)" stop-opacity="0"/></linearGradient></defs>`;
+    s += `<path d="${linea}L${pts.at(-1)[0]},${y1b}L${pts[0][0]},${y1b}Z" fill="url(#g-vis)"/>`;
+    s += `<path d="${linea}" fill="none" stroke="var(--cielo)" stroke-width="2.5" stroke-linejoin="round"/>`;
+    hist.forEach(h => {
+      const c = h.bajo_minimos ? "var(--minimos)" : h.niebla ? "var(--niebla)" : "var(--cielo)";
+      s += `<circle cx="${x(ms(h.hora_utc))}" cy="${yv(h.vis_m)}" r="${estrecho ? 2.6 : 3.4}" fill="${c}" stroke="var(--panel)" stroke-width="1.5"><title>${fmtZ(h.hora_utc)}: visibilidad ${visTxt(h.vis_m)}${h.techo_ft != null ? ", techo " + h.techo_ft + " ft" : ""}</title></circle>`;
+    });
+  }
+
+  // panel de probabilidad
+  s += `<text x="${L}" y="${y2a - 6}" font-size="12" font-weight="600" fill="var(--tinta-2)">Observado / probabilidad prevista</text>`;
+  for (const [p, t] of [[0, ""], [.1, "10 %"], [.3, "30 %"], [1, "100 %"]]) {
+    s += `<line x1="${L}" x2="${W - R}" y1="${yp(p)}" y2="${yp(p)}" stroke="var(--linea)" ${p && p < 1 ? 'stroke-dasharray="2 4"' : ""}/>`;
+    s += `<text x="${L - 6}" y="${yp(p) + 4}" text-anchor="end" font-size="11" fill="var(--tinta-3)">${t}</text>`;
+  }
+  const bw = Math.max(3, paso * .36);
+  (b.historial || []).forEach(h => {
+    const cx = x(ms(h.hora_utc));
+    if (h.bajo_minimos) s += `<rect x="${cx - bw}" y="${y2a}" width="${bw * 2}" height="${y2b - y2a}" rx="2" fill="var(--minimos)" opacity=".45"><title>${fmtZ(h.hora_utc)}: bajo mínimos observado</title></rect>`;
+    else if (h.niebla) s += `<rect x="${cx - bw}" y="${y2a}" width="${bw * 2}" height="${y2b - y2a}" rx="2" fill="var(--niebla)" opacity=".45"><title>${fmtZ(h.hora_utc)}: niebla observada</title></rect>`;
+  });
+  (b.pronostico || []).forEach(p => {
+    const cx = x(ms(p.hora_utc));
+    const barra = (pr, dx, c, nombre) => {
+      const h = Math.max(1.5, (y2b - y2a) * pr.p);
+      return `<rect x="${cx + dx}" y="${y2b - h}" width="${bw}" height="${h}" rx="2" fill="${c}"><title>${fmtZ(p.hora_utc)}: ${nombre} ${pct(pr.p)}</title></rect>`
+        + `<line x1="${cx + dx - 2}" x2="${cx + dx + bw + 2}" y1="${yp(pr.umbral)}" y2="${yp(pr.umbral)}" stroke="var(--tinta)" stroke-width="1.5" opacity=".7"/>`;
+    };
+    s += barra(p.bajo_minimos, -bw - 1, "var(--minimos)", "bajo mínimos") + barra(p.niebla, 1, "var(--niebla)", "niebla");
+    if (!estrecho) s += `<text x="${cx}" y="${Math.min(y2b - Math.max(p.bajo_minimos.p, p.niebla.p, p.bajo_minimos.umbral, p.niebla.umbral) * (y2b - y2a) - 7, y2b - 8)}" text-anchor="middle" font-size="11" font-weight="600" fill="var(--tinta)">+${p.horizonte_h} h</text>`;
+  });
+
+  // ahora
+  const xn = x(ms(b.generado_utc));
+  s += `<rect x="${xn}" y="${y1a - 4}" width="${W - R - xn}" height="${y2b - y1a + 4}" fill="var(--tinta)" opacity=".03"/>`;
+  s += `<line x1="${xn}" x2="${xn}" y1="${y1a - 6}" y2="${y2b}" stroke="var(--tinta)" stroke-width="1.5"/>`;
+  if (!estrecho) s += `<text x="${xn - 6}" y="${y1a - 12}" text-anchor="end" font-size="12" fill="var(--tinta-3)">observado</text>`;
+  s += `<text x="${xn + 6}" y="${y1a - 12}" font-size="12" font-weight="600" fill="var(--tinta)">Ahora ${fmtZ(b.generado_utc)}</text>`;
+
+  // eje de horas
+  const cada = estrecho ? 6 : 3;
+  for (let t = Math.ceil(t0 / 3600e3) * 3600e3; t <= t1; t += 3600e3) {
+    const hh = new Date(t).getUTCHours();
+    if (hh % cada) continue;
+    s += `<line x1="${x(t)}" x2="${x(t)}" y1="${y2b}" y2="${y2b + 5}" stroke="var(--tinta-3)"/>`;
+    s += `<text x="${x(t)}" y="${y2b + 19}" text-anchor="middle" font-size="11.5" fill="var(--tinta-2)">${String(hh).padStart(2, "0")}Z</text>`;
+  }
+  return `<svg viewBox="0 0 ${W} ${H}" width="${W}" height="${H}" role="img" aria-label="Visibilidad observada en las últimas 12 horas, visibilidad del TAF y probabilidades de NOVOK para las próximas 12 horas">${s}</svg>`;
+}
+
+function bloqueMeteo(b) {
+  const hayTaf = (b.taf_horas || []).length > 0;
+  return `<section class="panel meteo" aria-labelledby="t-meteo">
+    <h2 id="t-meteo">Las últimas 12 horas y las próximas 12</h2>
+    <p class="nota">A la izquierda, lo observado; a la derecha, lo que prevén el TAF de AEMET y NOVOK. La raya horizontal sobre cada barra es el umbral de aviso del modelo.</p>
+    <div id="meteo-svg"></div>
+    <div class="leyenda">
+      <span><i class="linea"></i>visibilidad observada</span>
+      ${hayTaf ? `<span><i class="disc"></i>TAF (punteado: TEMPO o PROB)</span>` : `<span class="apagado">TAF no disponible</span>`}
+      <span><i style="background:var(--minimos)"></i>bajo mínimos</span>
+      <span><i style="background:var(--niebla)"></i>niebla</span>
+      ${b.episodio?.disipacion ? `<span><i style="background:color-mix(in srgb,var(--ok) 35%,transparent);border:1px solid var(--ok)"></i>disipación, intervalo del 80 %</span>` : ""}
+    </div>
+  </section>`;
+}
+
+/* ---------- tarjetas por antelación ---------- */
+function anillo(pr, nombre) {
+  const r = 32, C = 2 * Math.PI * r, c = COLOR_NIVEL[pr.nivel];
+  return `<div class="anillo">
+    <svg viewBox="0 0 84 84" role="img" aria-label="${nombre}: ${pct(pr.p)}, nivel ${NIVEL[pr.nivel]}">
+      <circle cx="42" cy="42" r="${r}" fill="none" stroke="var(--panel-2)" stroke-width="8"/>
+      <circle class="arco" cx="42" cy="42" r="${r}" fill="none" stroke="${c}" stroke-width="8" stroke-linecap="round"
+        stroke-dasharray="${C.toFixed(1)}" stroke-dashoffset="${C.toFixed(1)}" data-fin="${(C * (1 - Math.max(.015, pr.p))).toFixed(1)}" transform="rotate(-90 42 42)"/>
+      <text class="q" x="42" y="48" text-anchor="middle">${Math.round(pr.p * 100)}%</text>
+    </svg>
+    <div class="et">${nombre}</div><div class="nv" style="color:${c}">${NIVEL[pr.nivel]}</div>
+  </div>`;
+}
+
+function tarjeta(p) {
+  const peor = ORDEN[p.bajo_minimos.nivel] >= ORDEN[p.niebla.nivel] ? p.bajo_minimos.nivel : p.niebla.nivel;
+  const avisos = [];
+  if (p.bajo_minimos.alerta) avisos.push(`<span class="aviso" title="Supera el umbral de aviso del modelo (${pct(p.bajo_minimos.umbral)})">Aviso bajo mínimos</span>`);
+  if (p.niebla.alerta) avisos.push(`<span class="aviso" title="Supera el umbral de aviso del modelo (${pct(p.niebla.umbral)})">Aviso niebla</span>`);
+  let taf = `<div class="taf">TAF: <span class="apagado">no disponible</span></div>`;
+  if (p.taf) {
+    const t = p.taf;
+    const tempo = t.vis_peor_m != null && t.vis_peor_m < t.vis_predominante_m ? `, temporal ${visTxt(t.vis_peor_m)}` : "";
+    const techo = t.techo_predominante_ft != null ? `, techo ${t.techo_predominante_ft} ft` : "";
+    const dif = t.p_bajo_minimos != null && Math.abs(p.bajo_minimos.p - t.p_bajo_minimos) >= .3 ? ` <span class="dif">discrepa</span>` : "";
+    taf = `<div class="taf">TAF: <b>${visTxt(t.vis_predominante_m)}</b>${tempo}${techo}<br>bajo mínimos según el TAF ${pct(t.p_bajo_minimos)}${dif}</div>`;
+  }
+  return `<article class="panel hz" style="--c:${COLOR_NIVEL[peor]}" aria-label="Dentro de ${p.horizonte_h} horas">
+    <div class="cab"><b>+${p.horizonte_h} h</b><span><span class="num">${fmtZ(p.hora_utc)}</span><br>${fmtL(p.hora_utc)} local</span></div>
+    <div class="anillos">${anillo(p.bajo_minimos, "Bajo mínimos")}${anillo(p.niebla, "Niebla")}</div>
+    <div class="avisos">${avisos.join("")}</div>
+    ${taf}
+  </article>`;
+}
+
+/* ---------- detalles ---------- */
+function bloqueDisipacion(b) {
+  const ep = b.episodio;
+  if (!ep) return `<section class="panel vacio"><h2>Sin niebla ahora</h2><p class="nota">Cuando haya niebla, aquí verás de qué tipo es y a qué hora se espera que se levante, con un intervalo del 80 %.</p></section>`;
+  const d = ep.disipacion;
+  if (!d) return `<section class="panel"><h2>Niebla de ${esc(ep.tipo)} en curso</h2><p class="nota">Desde las ${fmtZ(ep.inicio_utc)}, ${ep.transcurridas_h} h. Modelo de disipación no disponible.</p></section>`;
+  const ini = ms(b.ahora.hora_utc), fin = ms(d.despeja_utc_q90) + 3600e3;
+  const pos = iso => ((ms(iso) - ini) / (fin - ini) * 100).toFixed(1);
+  return `<section class="panel" aria-labelledby="t-dis">
+    <h2 id="t-dis">Niebla de ${esc(ep.tipo)} en curso</h2>
+    <p class="nota">Desde las ${fmtZ(ep.inicio_utc)} (${fmtL(ep.inicio_utc)} local), hace ${ep.transcurridas_h} h</p>
+    <div class="apagado">Se espera que despeje hacia las</div>
+    <div class="grande num">${fmtZ(d.despeja_utc_q50)}<small>${fmtL(d.despeja_utc_q50)} local</small></div>
+    <div class="rango" role="img" aria-label="Intervalo del 80 % entre ${fmtZ(d.despeja_utc_q10)} y ${fmtZ(d.despeja_utc_q90)}">
+      <div class="pista-t"></div>
+      <div class="banda" style="left:${pos(d.despeja_utc_q10)}%;right:${100 - pos(d.despeja_utc_q90)}%"></div>
+      <div class="med" style="left:${pos(d.despeja_utc_q50)}%"></div>
+    </div>
+    <div class="rango-ejes"><span>ahora</span><span>80 % entre ${fmtZ(d.despeja_utc_q10)} y ${fmtZ(d.despeja_utc_q90)}</span></div>
+  </section>`;
+}
+
+function rosa(v) {
+  const c = 75, r = 64;
+  const flecha = v.dir == null || !v.kt ? "" : (() => {
+    const a = v.dir * Math.PI / 180;      // de donde viene
+    const xa = c + Math.sin(a) * r, ya = c - Math.cos(a) * r, xb = c + Math.sin(a) * 18, yb = c - Math.cos(a) * 18;
+    return `<line x1="${xa}" y1="${ya}" x2="${xb}" y2="${yb}" stroke="var(--cielo)" stroke-width="4" stroke-linecap="round" marker-end="url(#punta)"/>`;
   })();
-  return `<svg width="180" height="180" viewBox="0 0 180 180" role="img" aria-label="Pista 11/29 y viento ${v.dir ?? "variable"} grados ${v.kt ?? 0} nudos">
-    <defs><marker id="punta" markerWidth="7" markerHeight="7" refX="3.5" refY="3.5" orient="auto"><path d="M0,0 L7,3.5 L0,7 z" fill="var(--foco)"/></marker></defs>
-    <circle cx="90" cy="90" r="84" fill="none" stroke="var(--linea)"/>
-    <text x="90" y="16" text-anchor="middle" font-size="12" fill="var(--tinta-3)">N</text>
-    <g transform="rotate(20 90 90)">
-      <rect x="20" y="82" width="140" height="16" rx="2" fill="var(--nube)"/>
-      <line x1="28" y1="90" x2="152" y2="90" stroke="var(--superficie)" stroke-dasharray="8 6" stroke-width="2"/>
-      <text x="30" y="77" font-size="13" font-weight="600" fill="var(--tinta)" transform="rotate(-20 30 77)">11</text>
-      <text x="150" y="112" font-size="13" font-weight="600" fill="var(--tinta)" text-anchor="end" transform="rotate(-20 150 112)">29</text>
-    </g>${flecha}</svg>`;
+  const marcas = Array.from({ length: 36 }, (_, k) => {
+    const a = k * 10 * Math.PI / 180, l = k % 9 === 0 ? 8 : 4;
+    return `<line x1="${c + Math.sin(a) * (r + 6)}" y1="${c - Math.cos(a) * (r + 6)}" x2="${c + Math.sin(a) * (r + 6 - l)}" y2="${c - Math.cos(a) * (r + 6 - l)}" stroke="var(--tinta-3)" stroke-width="${k % 9 === 0 ? 1.5 : 1}"/>`;
+  }).join("");
+  return `<svg viewBox="0 0 150 150" role="img" aria-label="Pista 11/29 y viento de ${v.dir ?? "dirección variable"} grados, ${v.kt ?? 0} nudos">
+    <defs><marker id="punta" markerWidth="7" markerHeight="7" refX="3.5" refY="3.5" orient="auto"><path d="M0,0 L7,3.5 L0,7 z" fill="var(--cielo)"/></marker></defs>
+    <circle cx="${c}" cy="${c}" r="${r + 6}" fill="var(--panel-2)" stroke="var(--linea)"/>${marcas}
+    <text x="${c}" y="20" text-anchor="middle" font-size="11" font-weight="600" fill="var(--tinta-2)">N</text>
+    <g transform="rotate(20 ${c} ${c})">
+      <rect x="${c - 52}" y="${c - 7}" width="104" height="14" rx="2" fill="var(--tinta-3)"/>
+      <line x1="${c - 44}" y1="${c}" x2="${c + 44}" y2="${c}" stroke="var(--panel)" stroke-dasharray="7 5" stroke-width="2"/>
+    </g>
+    <text x="${c - 50}" y="${c - 24}" font-size="12" font-weight="700" fill="var(--tinta)" text-anchor="middle">11</text>
+    <text x="${c + 50}" y="${c + 34}" font-size="12" font-weight="700" fill="var(--tinta)" text-anchor="middle">29</text>
+    ${flecha}</svg>`;
+}
+
+function cruzadoMini(prev) {
+  if (!prev?.length) return "";
+  const W = 260, H = 46, max = Math.max(22, ...prev.map(r => r.cruzado_kt ?? 0));
+  const bw = W / prev.length;
+  const barras = prev.map((r, k) => {
+    const h = (r.cruzado_kt ?? 0) / max * (H - 4), c = (r.cruzado_kt ?? 0) >= 20 ? "var(--aviso)" : "var(--cielo)";
+    return `<rect x="${k * bw + 1.5}" y="${H - h}" width="${bw - 3}" height="${Math.max(1, h)}" rx="1.5" fill="${c}" opacity=".85"><title>${fmtZ(r.hora_utc)}: cruzado ${r.cruzado_kt} kt, pista ${r.pista_favorable}</title></rect>`;
+  }).join("");
+  const y20 = H - 20 / max * (H - 4);
+  return `<div class="cruzado"><div class="et">Viento cruzado previsto, próximas 12 h (${esc(prev[0].fuente)}); línea: 20 kt</div>
+    <svg viewBox="0 0 ${W} ${H}" width="100%" height="${H}" preserveAspectRatio="none" role="img" aria-label="Viento cruzado previsto">${barras}
+    <line x1="0" x2="${W}" y1="${y20}" y2="${y20}" stroke="var(--aviso)" stroke-dasharray="3 3" vector-effect="non-scaling-stroke"/></svg></div>`;
+}
+
+function bloqueViento(b) {
+  const v = b.viento_pista || {}, va = v.ahora || {};
+  const txt = va.kt === 0 ? "Calma" : `${va.dir != null ? String(Math.round(va.dir)).padStart(3, "0") + "°" : "VRB"} ${va.kt ?? "—"} kt${va.racha_kt ? " G" + va.racha_kt : ""}`;
+  return `<section class="panel" aria-labelledby="t-viento">
+    <h2 id="t-viento">Viento en pista</h2>
+    <p class="nota">Componentes sobre la pista 11/29 con el último METAR</p>
+    <div class="viento-fig">${rosa(va)}
+      <dl class="datos">
+        <dt>Viento</dt><dd>${txt}</dd>
+        <dt>Pista favorable</dt><dd>${va.pista_favorable ?? "—"}</dd>
+        <dt>Cruzado</dt><dd>${va.cruzado_kt ?? "—"} kt</dd>
+        <dt>Cola en 11</dt><dd>${va.cola_kt_11 ?? "—"} kt</dd>
+        <dt>Cola en 29</dt><dd>${va.cola_kt_29 ?? "—"} kt</dd>
+      </dl></div>
+    ${va.aviso_cruzado ? `<p class="aviso" style="margin-top:10px">Cruzado con racha por encima de 20 kt</p>` : ""}
+    ${cruzadoMini(v.previsto)}
+  </section>`;
+}
+
+function bloqueCalidad(b) {
+  const cal = b.calidad || {};
+  const item = (estado, titulo, detalle) => `<li><span class="ic ${estado}" aria-hidden="true">${estado === "no" ? "✕" : estado === "med" ? "!" : "✓"}</span><span>${titulo}<small>${detalle}</small></span></li>`;
+  const edad = cal.metar_edad_min;
+  return `<section class="panel" aria-labelledby="t-cal">
+    <h2 id="t-cal">Calidad de los datos</h2>
+    <p class="nota">NOVOK no pronostica si los datos no son recientes y completos</p>
+    <ul class="checks">
+      ${item(edad != null && edad <= 90 ? "" : "no", "METAR de LEAS", cal.metar_ultimo_utc ? `último ${fmtZ(cal.metar_ultimo_utc)}, hace ${edad} min` : "sin observación")}
+      ${item(cal.nwp ? "" : "med", "Pronóstico numérico", cal.nwp ? "ECMWF y JMA disponibles" : "no disponible: se usa el modelo v1")}
+      ${item(cal.taf ? "" : "med", "TAF de AEMET", cal.taf ? `emitido ${fmtZ(b.taf?.emision_utc)}${b.taf?.enmienda ? " (enmienda)" : ""}` : "no disponible: sin comparación")}
+      ${item(cal.pronostico_emitido ? "" : "no", "Pronóstico emitido", cal.pronostico_emitido ? `modelo ${b.version_modelo}` : "no se emite")}
+    </ul>
+    ${(cal.mensajes || []).length ? `<p class="nota" style="margin:12px 0 0">${cal.mensajes.map(esc).join("; ")}</p>` : ""}
+  </section>`;
+}
+
+function bloqueCodigos(b) {
+  return `<div class="codigos">
+    <section class="panel"><h2>Último METAR</h2><p class="nota">Mensaje original, sin procesar</p><p class="codigo">${esc(b.ahora?.metar || "—")}</p></section>
+    <section class="panel"><h2>TAF vigente</h2><p class="nota">${b.taf ? `Válido del ${fmtDia(b.taf.valido_desde_utc)} al ${fmtDia(b.taf.valido_hasta_utc)}` : "No disponible"}</p><p class="codigo">${esc(b.taf?.texto || "—")}</p></section>
+  </div>`;
+}
+
+/* ---------- montaje ---------- */
+let ultimo = null;
+function dibujarMeteo() {
+  const cont = document.getElementById("meteo-svg");
+  if (cont && ultimo) cont.innerHTML = meteograma(ultimo, cont.clientWidth);
 }
 
 function render(b) {
-  const c = document.getElementById("contenido");
-  const cal = b.calidad || {};
-  const ok = cal.pronostico_emitido;
-  const ed = document.getElementById("estado-datos");
-  ed.innerHTML = `<span class="punto ${ok ? "ok" : "mal"}"></span><span>${b.modo === "repeticion" ? "Repetición de " : "Generado "}${hora(b.generado_utc)} · modelo ${b.version_modelo || "—"}</span>`;
+  ultimo = b;
+  const cal = b.calidad || {}, ok = cal.pronostico_emitido;
+  document.body.dataset.estado = estadoDe(b.ahora).id;
+  const chip = document.getElementById("chip-modo");
+  const rep = b.modo === "repeticion";
+  chip.className = "chip" + (rep ? " rep" : ok ? "" : " mal");
+  chip.innerHTML = `<span class="led"></span><span>${rep ? "Repetición del " + new Date(b.generado_utc).toLocaleDateString("es-ES", { timeZone: "UTC", day: "numeric", month: "short", year: "numeric" }) : ok ? "En directo, actualizado " + fmtZ(b.generado_utc) : "Sin pronóstico"}</span>`;
 
-  const resumen = b.resumen || [];
-  let html = `<h1 class="titular">${esc(resumen.find(f => f.startsWith("Riesgo") || f.startsWith("Sin riesgo") || f.startsWith("Sin pronóstico")) || resumen[0] || "")}</h1>
-    <div class="subtitular">${resumen.filter(f => !(f.startsWith("Riesgo") || f.startsWith("Sin riesgo") || f.startsWith("Sin pronóstico"))).map(f => `<p>${esc(f)}</p>`).join("")}</div>`;
-
-  if (b.nota_repeticion) html += `<p class="subtitular" style="font-size:.95rem">${esc(b.nota_repeticion)}</p>`;
+  let html = `<div class="cabeza">${bloqueAhora(b)}${bloqueResumen(b)}</div>`;
   if (!ok) {
-    html += `<section class="bloqueo"><h2>No se emite pronóstico</h2><p>${esc((cal.mensajes || []).join("; "))}. NOVOK solo pronostica con datos recientes y completos.</p></section>`;
+    html += `<section class="panel bloqueo"><h2>No se emite pronóstico</h2><p>${esc((cal.mensajes || []).join("; ").replace(/^./, c => c.toUpperCase()))}. NOVOK solo pronostica con datos recientes y completos.</p></section>`;
   } else {
-    const pr = b.pronostico;
-    html += `<section class="tiempo" aria-labelledby="t-tiempo">
-      <h2 id="t-tiempo">Próximas 12 horas</h2>
-      <p class="nota">Cuanto más cubierta de niebla está una casilla, más probable es el suceso. Nivel: bajo &lt; 10 %, moderado 10–30 %, alto ≥ 30 %. Recuadro rojo: supera el umbral de aviso del modelo para esa antelación.</p>
-      <div class="rejilla">
-        <div class="esquina"></div><div class="cab col-pasado"><strong>Últimas 12 h</strong>observado</div>
-        ${pr.map(p => `<div class="cab"><strong>+${p.horizonte_h} h</strong>${fmtZ(p.hora_utc)} · ${fmtLocal(p.hora_utc)}</div>`).join("")}
-        <div class="fila">Bajo mínimos<small>vis &lt; 550 m o techo ≤ 200 ft</small></div>
-        <div class="col-pasado">${pasado(b.historial || [])}</div>
-        ${pr.map(p => celda(p.bajo_minimos)).join("")}
-        <div class="fila">Niebla<small>vis &lt; 1000 m</small></div>
-        <div class="col-pasado"></div>
-        ${pr.map(p => celda(p.niebla)).join("")}
-        <div class="fila">TAF de AEMET<small>${b.taf ? "emitido " + fmtZ(b.taf.emision_utc) + (b.taf.enmienda ? " (AMD)" : "") : "no disponible"}</small></div>
-        <div class="col-pasado"></div>
-        ${pr.map(p => celdaTaf(p.taf)).join("")}
-      </div>
-      <div class="leyenda">
-        <span><i style="background:color-mix(in srgb,var(--cielo) 55%,transparent)"></i>visible</span>
-        <span><i style="background:rgb(var(--niebla))"></i>niebla observada</span>
-        <span><i style="background:var(--alto)"></i>bajo mínimos observado</span>
-      </div>
-    </section>`;
+    html += bloqueMeteo(b);
+    html += `<div class="horizontes">${b.pronostico.map(tarjeta).join("")}</div>`;
   }
-
-  const ep = b.episodio;
-  let bloqueEp;
-  if (ep && ep.disipacion) {
-    const d = ep.disipacion, ini = new Date(b.ahora.hora_utc).getTime(), fin = new Date(d.despeja_utc_q90).getTime() + 3600e3;
-    const pos = iso => ((new Date(iso).getTime() - ini) / (fin - ini) * 100).toFixed(1);
-    bloqueEp = `<h2>Niebla en curso</h2>
-      <p class="nota">Desde las ${hora(ep.inicio_utc)} · tipo ${esc(ep.tipo)} · ${ep.transcurridas_h} h</p>
-      <div>Se espera que despeje hacia las</div><div class="grande">${fmtZ(d.despeja_utc_q50)} <span style="font-size:1.2rem;color:var(--tinta-2)">${fmtLocal(d.despeja_utc_q50)} local</span></div>
-      <div class="barra" role="img" aria-label="Intervalo del 80 % entre ${fmtZ(d.despeja_utc_q10)} y ${fmtZ(d.despeja_utc_q90)}">
-        <div class="rango" style="left:${pos(d.despeja_utc_q10)}%;right:${100 - pos(d.despeja_utc_q90)}%"></div>
-        <div class="mediana" style="left:${pos(d.despeja_utc_q50)}%"></div></div>
-      <div class="ejes"><span>ahora</span><span>80 %: ${fmtZ(d.despeja_utc_q10)} – ${fmtZ(d.despeja_utc_q90)}</span></div>`;
-  } else if (ep) {
-    bloqueEp = `<h2>Niebla en curso</h2><p class="nota">Desde las ${hora(ep.inicio_utc)} · tipo ${esc(ep.tipo)}</p><p>Modelo de disipación no disponible.</p>`;
-  } else {
-    bloqueEp = `<h2>Sin niebla ahora</h2><p class="nota">Cuando haya niebla, aquí aparecerán su tipo y la hora estimada a la que se levantará, con un intervalo del 80 %.</p>`;
-  }
-
-  const v = b.viento_pista || {};
-  const va = v.ahora || {};
-  const maxCruz = (v.previsto || []).reduce((m, r) => (r.cruzado_kt ?? 0) > (m?.cruzado_kt ?? -1) ? r : m, null);
-  const bloqueViento = `<h2>Viento en pista 11/29</h2>
-    <p class="nota">Ahora (${fmtZ(va.hora_utc)}), según el METAR. ${v.previsto?.length ? "Previsión: pronóstico numérico " + esc(v.previsto[0].fuente) + "." : "Sin previsión de viento: pronóstico numérico no disponible."}</p>
-    <div class="pista-fig">${pista(va)}
-      <dl class="datos-viento">
-        <dt>Viento</dt><dd>${va.kt === 0 ? "en calma" : (va.dir ?? "VRB") + "° " + (va.kt ?? "—") + " kt" + (va.racha_kt ? " G" + va.racha_kt : "")}</dd>
-        <dt>Pista favorable</dt><dd>${va.pista_favorable ?? "—"}</dd>
-        <dt>Cruzado</dt><dd>${va.cruzado_kt ?? "—"} kt${va.cruzado_racha_kt && va.cruzado_racha_kt > va.cruzado_kt ? " (racha " + va.cruzado_racha_kt + ")" : ""}</dd>
-        <dt>Cola en 11 / 29</dt><dd>${va.cola_kt_11 ?? "—"} / ${va.cola_kt_29 ?? "—"} kt</dd>
-        ${maxCruz ? `<dt>Máx. cruzado 12 h</dt><dd>${maxCruz.cruzado_kt} kt a las ${fmtZ(maxCruz.hora_utc)}</dd>` : ""}
-      </dl></div>
-    ${va.aviso_cruzado ? `<p class="aviso-viento">Viento cruzado con racha por encima de 20 kt.</p>` : ""}`;
-
-  html += `<div class="dos"><section class="bloque">${bloqueEp}</section><section class="bloque">${bloqueViento}</section></div>`;
-  if (b.ahora) html += `<div class="metar" aria-label="Último METAR">${esc(b.ahora.metar)}</div>`;
-  html += `<div class="calidad"><strong>Calidad de los datos.</strong> Último METAR ${hora(cal.metar_ultimo_utc)} (hace ${cal.metar_edad_min ?? "—"} min) ·
-    pronóstico numérico ${cal.nwp ? "disponible" : "no disponible"} · TAF ${cal.taf ? "disponible" : "no disponible"}
-    ${(cal.mensajes || []).length ? `<ul>${cal.mensajes.map(m => `<li>${esc(m)}</li>`).join("")}</ul>` : ""}</div>`;
-  c.innerHTML = html;
+  html += `<div class="detalles">${bloqueDisipacion(b)}${bloqueViento(b)}${bloqueCalidad(b)}</div>`;
+  html += bloqueCodigos(b);
+  document.getElementById("contenido").innerHTML = html;
+  dibujarMeteo();
+  requestAnimationFrame(() => requestAnimationFrame(() =>
+    document.querySelectorAll(".anillo .arco").forEach(a => a.style.strokeDashoffset = a.dataset.fin)));
 }
 
-fetch("briefing.json", { cache: "no-store" })
-  .then(r => { if (!r.ok) throw new Error(r.status); return r.json(); })
-  .then(render)
-  .catch(() => {
-    document.getElementById("contenido").innerHTML = `<section class="bloqueo"><h2>No se pudo cargar el briefing</h2><p>El fichero briefing.json no está disponible. Si lo estás viendo en local, genera uno con <code>python -m novok.app.briefing</code> y abre la página con <code>python -m http.server -d web</code>.</p></section>`;
-    document.getElementById("estado-datos").innerHTML = `<span class="punto mal"></span><span>Sin datos</span>`;
-  });
+function cargar() {
+  return fetch("briefing.json", { cache: "no-store" })
+    .then(r => { if (!r.ok) throw new Error(r.status); return r.json(); })
+    .then(render)
+    .catch(() => {
+      if (ultimo) return;
+      document.getElementById("contenido").innerHTML = `<section class="panel bloqueo"><h2>No se pudo cargar el briefing</h2><p>El fichero briefing.json no está disponible. En local, genera uno con <code>python -m novok.app.briefing</code> y abre la página con <code>python -m http.server -d web</code>.</p></section>`;
+      const chip = document.getElementById("chip-modo");
+      chip.className = "chip mal"; chip.innerHTML = `<span class="led"></span><span>Sin datos</span>`;
+    });
+}
+cargar();
+setInterval(() => { if (!ultimo || ultimo.modo !== "repeticion") cargar(); }, 5 * 60e3);
+let espera; addEventListener("resize", () => { clearTimeout(espera); espera = setTimeout(dibujarMeteo, 120); });
 </script>
 </body>
 </html>

@@ -131,6 +131,7 @@ def _taf_vigente(tafs: list[tuple[pd.Timestamp, str]], ahora: pd.Timestamp, obje
     for marca, texto in tafs:
         t = parsear(texto, marca)
         if t is not None and t.emision <= ahora and t.estacion == ESTACION:
+            t.texto = texto
             validos.append(t)
     if not validos:
         return None, {}
@@ -204,6 +205,10 @@ def _viento(h: pd.DataFrame, nwp: pd.DataFrame | None, i: pd.Timestamp) -> dict:
     return {"ahora": fila(ahora, i), "previsto": previsto}
 
 
+def _pct(p: float) -> str:
+    return f"{p * 100:.0f} %"
+
+
 def _resumen(b: dict) -> list[str]:
     """Frases en lenguaje claro, cada una derivada de un campo del briefing."""
     if not b["calidad"]["pronostico_emitido"]:
@@ -215,7 +220,7 @@ def _resumen(b: dict) -> list[str]:
     frases.append(f"Ahora: visibilidad {vis}, {techo}, viento {a['viento_texto']}.")
     ep = b.get("episodio")
     if ep:
-        texto = f"Niebla en curso desde las {_hora(ep['inicio_utc'])} (tipo: {ep['tipo']})."
+        texto = f"Niebla de {ep['tipo']} en curso desde las {_hora(ep['inicio_utc'])}."
         d = ep.get("disipacion")
         if d:
             texto += (f" Se espera que despeje hacia las {_hora(d['despeja_utc_q50'])}; "
@@ -224,11 +229,12 @@ def _resumen(b: dict) -> list[str]:
         frases.append(texto)
     altos = [p for p in b["pronostico"] if p["bajo_minimos"]["nivel"] == "alto"]
     if altos:
-        hs = ", ".join(f"{p['horizonte_h']} h" for p in altos)
-        frases.append(f"Riesgo alto de condiciones bajo mínimos tipo CAT I a {hs} vista.")
+        hs = [f"+{p['horizonte_h']} h" for p in altos]
+        hs = hs[0] if len(hs) == 1 else ", ".join(hs[:-1]) + " y " + hs[-1]
+        frases.append(f"Riesgo alto de bajo mínimos tipo CAT I a {hs}.")
     else:
         mx = max(b["pronostico"], key=lambda p: p["bajo_minimos"]["p"])
-        frases.append(f"Sin riesgo alto de bajo mínimos en 12 h (máximo {mx['bajo_minimos']['p']:.0%} "
+        frases.append(f"Sin riesgo alto de bajo mínimos en 12 h (máximo {_pct(mx['bajo_minimos']['p'])} "
                       f"a {mx['horizonte_h']} h).")
     difs = [p for p in b["pronostico"] if p.get("taf") and p["taf"]["p_bajo_minimos"] is not None
             and abs(p["bajo_minimos"]["p"] - p["taf"]["p_bajo_minimos"]) >= 0.3]
@@ -236,7 +242,7 @@ def _resumen(b: dict) -> list[str]:
         p = difs[0]
         lado = "más" if p["bajo_minimos"]["p"] > p["taf"]["p_bajo_minimos"] else "menos"
         frases.append(f"Discrepancia con el TAF a las {_hora(p['hora_utc'])}: NOVOK ve {lado} riesgo "
-                      f"({p['bajo_minimos']['p']:.0%} frente a {p['taf']['p_bajo_minimos']:.0%}).")
+                      f"({_pct(p['bajo_minimos']['p'])} frente a {_pct(p['taf']['p_bajo_minimos'])}).")
     v = b["viento_pista"]
     if v["previsto"]:
         mx = max(v["previsto"], key=lambda r: r["cruzado_kt"] or 0)
@@ -288,10 +294,11 @@ def generar(fuentes, ahora: pd.Timestamp) -> dict:
                   "racha_kt": _num(f["racha_kt"], 0),
                   "viento_texto": "en calma" if vkt == 0 else (f"{vdir:03.0f}° {vkt:.0f} kt" if vdir is not None
                                                                else f"variable {vkt:.0f} kt"),
-                  "niebla": f["obs_niebla"] == 1, "bajo_minimos": f["obs_bajo_minimos_cat1"] == 1}
+                  "niebla": bool(f["obs_niebla"] == 1), "bajo_minimos": bool(f["obs_bajo_minimos_cat1"] == 1)}
     hist = h.loc[i - pd.Timedelta(hours=11): i]
     b["historial"] = [{"hora_utc": _iso(t), "vis_m": _num(r["vis_m"], 0), "techo_ft": _num(r["techo_ft"], 0),
-                       "niebla": r["obs_niebla"] == 1, "bajo_minimos": r["obs_bajo_minimos_cat1"] == 1}
+                       "temp_c": _num(r["temp_c"]), "rocio_c": _num(r["rocio_c"]),
+                       "niebla": bool(r["obs_niebla"] == 1), "bajo_minimos": bool(r["obs_bajo_minimos_cat1"] == 1)}
                       for t, r in hist.iterrows()]
 
     try:
@@ -308,14 +315,18 @@ def generar(fuentes, ahora: pd.Timestamp) -> dict:
     b["version_modelo"] = version
 
     objetivos = [i + pd.Timedelta(hours=L + 1) for L in HORIZONTES_H]
+    horas_taf = list(pd.date_range(i + pd.Timedelta(hours=1), i + pd.Timedelta(hours=max(HORIZONTES_H) + 1), freq="1h"))
     try:
-        taf, taf_por_hora = _taf_vigente(fuentes.taf(), ahora, objetivos)
+        taf, taf_por_hora = _taf_vigente(fuentes.taf(), ahora, horas_taf)
     except Exception as e:  # noqa: BLE001
         taf, taf_por_hora = None, {}
         cal["mensajes"].append(f"TAF no disponible ({e.__class__.__name__})")
     cal["taf"] = taf is not None
     b["taf"] = None if taf is None else {"emision_utc": _iso(taf.emision), "enmienda": taf.enmienda,
-                                         "valido_desde_utc": _iso(taf.inicio), "valido_hasta_utc": _iso(taf.fin)}
+                                         "valido_desde_utc": _iso(taf.inicio), "valido_hasta_utc": _iso(taf.fin),
+                                         "texto": getattr(taf, "texto", None)}
+    # TAF hora a hora para la línea de tiempo de la página
+    b["taf_horas"] = [{"hora_utc": _iso(t), **taf_por_hora[t]} for t in horas_taf if t in taf_por_hora]
 
     base = variables_base(h)
     b["viento_pista"] = _viento(h, nwp, i)
