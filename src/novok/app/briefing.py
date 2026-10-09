@@ -206,7 +206,7 @@ def _viento(h: pd.DataFrame, nwp: pd.DataFrame | None, i: pd.Timestamp) -> dict:
 
 
 def _pct(p: float) -> str:
-    return f"{p * 100:.0f} %"
+    return f"{p * 100:.0f}\u00a0%"
 
 
 def _resumen(b: dict) -> list[str]:

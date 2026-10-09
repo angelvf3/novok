@@ -211,6 +211,8 @@ NWP (Open-Meteo) ───┘        │
 - **Incertidumbre visible:** probabilidad, nivel (bajo < 10 %, moderado 10–30 %, alto ≥ 30 %), aviso cuando se
   supera el umbral del modelo e intervalo del 80 % para la disipación.
 - **Comparación en directo con el TAF** de AEMET para las mismas horas.
+- **Visor 3D del aeropuerto** (MapLibre + three.js) sobre el relieve real y la ortofoto PNOA del IGN: dibuja la niebla
+  observada o prevista y la mueve con el viento. Es una ilustración de la previsión, no una simulación física.
 
 ## Puesta en marcha
 
