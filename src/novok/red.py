@@ -6,7 +6,8 @@ Uso:
     python -m novok.red preparar --sin-nwp LELO      # solo modelo v1 (sin pronóstico numérico)
     python -m novok.red estado                       # qué tiene cada aeropuerto (datos, modelos, cobertura)
     python -m novok.red elegir                       # v1 o v2 por suceso y antelación, según la validación
-    python -m novok.red terreno                      # relieve de cada aeropuerto para el visor 3D (una vez)
+    python -m novok.red terreno                      # relieve y ortofoto de cada aeropuerto, visor 3D (una vez)
+    python -m novok.red mapa                         # mapa de relieve de España para el mapa 2D (una vez)
     python -m novok.red briefing                     # briefing en directo de toda la red -> web/datos/
     python -m novok.red briefing --repetir 2025-06-30T04:40
 
@@ -154,75 +155,12 @@ def estado() -> None:
               f"{'sí' if (dir_proc(icao) / 'nwp.parquet').exists() else 'no':>4} {version:>8}")
 
 
-# ------------------------------------------------------------------ relieve para el visor 3D
+# ------------------------------------------------------------------ cartografía (una vez)
 
-DIR_TERRENO = RAIZ / "web" / "terreno"
-URL_TERRENO = "https://s3.amazonaws.com/elevation-tiles-prod/terrarium/{z}/{x}/{y}.png"  # AWS Terrain Tiles
-
-
-def _tesela(z: int, x: int, y: int):
-    """Altura (m) de una tesela 'terrarium' de 256x256 píxeles."""
-    import io
-
-    import numpy as np
-    import requests
-    from PIL import Image
-    try:
-        import truststore
-        truststore.inject_into_ssl()
-    except ImportError:
-        pass
-    r = requests.get(URL_TERRENO.format(z=z, x=x, y=y), timeout=60)
-    r.raise_for_status()
-    p = np.asarray(Image.open(io.BytesIO(r.content)).convert("RGB"), dtype=float)
-    return p[..., 0] * 256 + p[..., 1] + p[..., 2] / 256 - 32768
-
-
-def rejilla_relieve(lat0: float, lon0: float, alcance_m: float = 12000, n: int = 321, z: int = 12, tesela=_tesela):
-    """Alturas en una rejilla n x n de 2*alcance metros centrada en el aeropuerto (fila 0 = norte)."""
-    import math
-
-    import numpy as np
-    dlat = alcance_m / 111320
-    dlon = alcance_m / (111320 * math.cos(math.radians(lat0)))
-    lats = lat0 + dlat - 2 * dlat * np.arange(n) / (n - 1)
-    lons = lon0 - dlon + 2 * dlon * np.arange(n) / (n - 1)
-    escala = 2 ** z * 256
-    px = (lons + 180) / 360 * escala                                            # píxel global (Web Mercator)
-    py = (1 - np.log(np.tan(np.radians(lats)) + 1 / np.cos(np.radians(lats))) / math.pi) / 2 * escala
-    x0, x1 = int(px.min() // 256), int(px.max() // 256) + 1
-    y0, y1 = int(py.min() // 256), int(py.max() // 256) + 1
-    mosaico = np.zeros(((y1 - y0 + 1) * 256, (x1 - x0 + 1) * 256))
-    for ty in range(y0, y1 + 1):
-        for tx in range(x0, x1 + 1):
-            mosaico[(ty - y0) * 256:(ty - y0 + 1) * 256, (tx - x0) * 256:(tx - x0 + 1) * 256] = tesela(z, tx, ty)
-    gx, gy = np.meshgrid(px - x0 * 256 - .5, py - y0 * 256 - .5)                # bilineal sobre el mosaico
-    i, j = np.clip(gx.astype(int), 0, mosaico.shape[1] - 2), np.clip(gy.astype(int), 0, mosaico.shape[0] - 2)
-    u, v = np.clip(gx - i, 0, 1), np.clip(gy - j, 0, 1)
-    m = mosaico
-    return (m[j, i] * (1 - u) * (1 - v) + m[j, i + 1] * u * (1 - v) + m[j + 1, i] * (1 - u) * v
-            + m[j + 1, i + 1] * u * v)
-
-
-def guardar_relieve(alt, destino: Path) -> None:
-    """PNG con codificación 'terrarium' (la que lee el visor): altura = R*256 + G + B/256 - 32768."""
-    import numpy as np
-    from PIL import Image
-    v = np.clip(alt, -500, 9000) + 32768
-    r = np.floor(v / 256)
-    g = np.floor(v - r * 256)
-    b = np.round((v - r * 256 - g) * 256).clip(0, 255)
-    Image.fromarray(np.dstack([r, g, b]).astype("uint8"), "RGB").save(destino, optimize=True)
-
-
-def terreno(icao: str, alcance_m: float = 12000, n: int = 321) -> None:
+def terreno(icao: str) -> None:
+    from novok import cartografia
     a = catalogo()[icao]
-    alt = rejilla_relieve(a.lat, a.lon, alcance_m, n)
-    DIR_TERRENO.mkdir(parents=True, exist_ok=True)
-    guardar_relieve(alt, DIR_TERRENO / f"{icao}.png")
-    (DIR_TERRENO / f"{icao}.json").write_text(json.dumps(
-        {"alcance_m": alcance_m, "n": n, "fuente": "AWS Terrain Tiles (datos abiertos)"}), encoding="utf-8")
-    print(f"{icao}: relieve {n}x{n}, de {alt.min():.0f} a {alt.max():.0f} m -> web/terreno/{icao}.png")
+    cartografia.terreno(icao, a.lat, a.lon)
 
 
 # ------------------------------------------------------------------ briefing de la red
@@ -244,6 +182,9 @@ def resumen_red(b: dict) -> dict:
             "p": peor["bajo_minimos"]["p"], "nivel": peor["bajo_minimos"]["nivel"], "horizonte_h": peor["horizonte_h"],
             "alerta": any(p["bajo_minimos"]["alerta"] or p["niebla"]["alerta"] for p in pr)},
         "despeja_utc": (ep.get("disipacion") or {}).get("despeja_utc_q50"),
+        # serie para calcular el riesgo a la hora de llegada de cada vuelo (web/vuelos.js)
+        "serie": [{"hora_utc": p["hora_utc"], "p_bajo_minimos": p["bajo_minimos"]["p"], "p_niebla": p["niebla"]["p"]}
+                  for p in pr],
         "resumen": next((f for f in b.get("resumen", [])
                          if f.startswith(("Riesgo", "Sin riesgo", "Sin pronóstico"))), None),
     }
@@ -285,8 +226,9 @@ def main() -> None:
     sub = p.add_subparsers(dest="orden", required=True)
     sub.add_parser("migrar")
     sub.add_parser("estado")
-    pt = sub.add_parser("terreno", help="genera el relieve del visor 3D (una vez; se sube al repo)")
+    pt = sub.add_parser("terreno", help="relieve y ortofoto de cada aeropuerto para el visor 3D (una vez)")
     pt.add_argument("codigos", nargs="*")
+    sub.add_parser("mapa", help="teselas de relieve de España para el mapa 2D (una vez)")
     sub.add_parser("elegir", help="elige v1 o v2 por suceso y antelación con la validación ya hecha")
     pp = sub.add_parser("preparar")
     pp.add_argument("codigos", nargs="*")
@@ -308,6 +250,10 @@ def main() -> None:
                 terreno(icao)
             except Exception as e:  # noqa: BLE001
                 print(f"{icao}: no se pudo generar el relieve ({e.__class__.__name__}: {e})")
+    elif args.orden == "mapa":
+        from novok import cartografia
+        print("Mapa de relieve de España (AWS Terrain Tiles)...")
+        print(f"-> {cartografia.mapa_relieve()} teselas en web/mapa/relieve/")
     elif args.orden == "elegir":
         for icao in catalogo():
             e = elegir(icao)

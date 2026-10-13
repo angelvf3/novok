@@ -1,0 +1,10 @@
+{
+  "comentario": "Fuente de los vuelos en directo. Para cambiarla (antena propia, proveedor de pago) basta con editar este fichero.",
+  "proveedor": "adsb.lol",
+  "posiciones": "https://api.adsb.lol/v2/point/{lat}/{lon}/{radio}",
+  "rutas": "https://api.adsb.lol/api/0/routeset",
+  "atribucion": "Vuelos: adsb.lol (datos abiertos, ODbL)",
+  "centro": [42.9, -4.6],
+  "radio_nm": 250,
+  "refresco_s": 10
+}

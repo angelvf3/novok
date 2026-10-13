@@ -72,20 +72,21 @@ def test_resumen_de_red():
          "calidad": {"pronostico_emitido": True, "metar_ultimo_utc": "2025-06-30T04:30Z"}, "version_modelo": "v1",
          "ahora": {"vis_m": 150.0, "techo_ft": 100.0, "viento_texto": "300° 4 kt",
                    "niebla": True, "bajo_minimos": True},
-         "pronostico": [{"horizonte_h": L, "bajo_minimos": {"p": p, "nivel": n, "alerta": a},
-                         "niebla": {"alerta": False}}
+         "pronostico": [{"horizonte_h": L, "hora_utc": f"2025-06-30T0{4 + L}:00Z",
+                         "bajo_minimos": {"p": p, "nivel": n, "alerta": a}, "niebla": {"p": .1, "alerta": False}}
                         for L, p, n, a in [(1, .8, "alto", True), (3, .5, "alto", True), (6, .2, "moderado", False)]],
          "episodio": {"disipacion": {"despeja_utc_q50": "2025-06-30T09:00Z"}},
          "resumen": ["Ahora: ...", "Riesgo alto de bajo mínimos tipo CAT I a +1 h y +3 h."]}
     r = resumen_red(b)
     assert r["categoria"] == "LIFR" and r["riesgo"] == {"p": .8, "nivel": "alto", "horizonte_h": 1, "alerta": True}
     assert r["despeja_utc"] == "2025-06-30T09:00Z" and r["resumen"].startswith("Riesgo alto")
+    assert [x["p_bajo_minimos"] for x in r["serie"]] == [.8, .5, .2]
 
 
 def test_relieve_rejilla_y_codificacion(tmp_path):
     from PIL import Image
 
-    from novok.red import guardar_relieve, rejilla_relieve
+    from novok.cartografia import guardar_alturas, rejilla_relieve
 
     def tesela(z, x, y):  # rampa este-oeste: la altura crece hacia el este, 1 m por píxel global
         return np.tile(np.arange(256, dtype=float) + x * 256, (256, 1))
@@ -94,7 +95,43 @@ def test_relieve_rejilla_y_codificacion(tmp_path):
     assert alt.shape == (33, 33)
     assert (np.diff(alt, axis=1) > 0).all() and np.allclose(alt[0], alt[-1])   # crece al este, igual en N y S
     alt = alt - alt.min() - 50                                                # de -50 m a unos cientos
-    guardar_relieve(alt, tmp_path / "r.png")
+    guardar_alturas(alt, tmp_path / "r.png")
     p = np.asarray(Image.open(tmp_path / "r.png"), dtype=float)
     leido = p[..., 0] * 256 + p[..., 1] + p[..., 2] / 256 - 32768
     assert np.abs(leido - alt).max() < 0.01                          # ida y vuelta, incluso bajo cero
+
+
+def test_mapa_relieve_teselas(tmp_path):
+    from PIL import Image
+
+    from novok.cartografia import colorear, mapa_relieve
+
+    def tesela(z, x, y):  # media tesela de mar y media de montaña
+        a = np.zeros((256, 256))
+        a[:, 128:] = np.linspace(0, 1500, 128)
+        return a
+    n = mapa_relieve(caja=(-6.5, 43.0, -5.5, 43.8), zmin=6, zmax=7, destino=tmp_path, tesela=tesela)
+    assert n >= 2 and (tmp_path / "info.json").exists()
+    img = np.asarray(Image.open(next(tmp_path.glob("7/*/*.jpg"))))
+    assert img.shape == (256, 256, 3)
+    rgb = colorear(np.array([[0.0, 0.0], [800.0, 800.0]]), 100)
+    assert tuple(rgb[0, 0]) == (170, 211, 236) and rgb[1, 0, 2] < 200       # mar azul; tierra en tonos cálidos
+
+
+def test_ortofoto_por_trozos():
+    import io
+
+    from PIL import Image
+
+    from novok.cartografia import pnoa
+    pedidas = []
+
+    def pedir(params):
+        pedidas.append(params["BBOX"])
+        b = io.BytesIO()
+        Image.new("RGB", (64, 64), (len(pedidas) * 40, 0, 0)).save(b, "JPEG")
+        return b.getvalue()
+    img = pnoa(43.56, -6.03, 3000, px=128, trozo=64, pedir=pedir)
+    assert img.size == (128, 128) and len(pedidas) == 4
+    sur, oeste, norte, este = map(float, pedidas[0].split(","))
+    assert norte > sur and este > oeste and abs(norte - 43.56 - 3000 / 111320) < 1e-6   # primer trozo: esquina NO

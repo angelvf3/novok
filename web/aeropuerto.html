@@ -43,6 +43,15 @@
   .tab { font-variant-numeric: tabular-nums; }
   .mono { font-family: "Roboto Mono", ui-monospace, monospace; }
   .gris { color: var(--tinta-3); }
+  .llegadas { margin-top: 20px; }
+  .llegadas table { width: 100%; border-collapse: collapse; font-size: 14px; }
+  .llegadas th, .llegadas td { padding: 10px 16px; text-align: left; border-bottom: 1px solid var(--borde-suave); }
+  .llegadas thead th { font-size: 12px; font-weight: 600; color: var(--tinta-3); }
+  .llegadas td.num { font-variant-numeric: tabular-nums; }
+  .llegadas .p { font-weight: 700; font-size: 16px; }
+  .llegadas .vacio { padding: 14px 16px; margin: 0; color: var(--tinta-3); }
+  .nota-lleg { margin: 0; padding: 10px 16px 14px; font-size: 12.5px; color: var(--tinta-3); }
+  @media (max-width: 640px) { .llegadas .op { display: none; } .llegadas th, .llegadas td { padding: 9px 10px; } }
   .ancho { max-width: 1200px; margin: 0 auto; padding: 0 20px; }
 
   /* Barra superior */
@@ -171,6 +180,7 @@
   .hud-tiempo .play { width: 36px; padding: 9px 0; font-size: 12px; }
   .hud-vistas { top: 14px; right: 54px; display: flex; flex-direction: column; gap: 2px; padding: 5px; }
   .visor .nota-visor { position: absolute; z-index: 2; left: 14px; bottom: 16px; max-width: 280px; font-size: 11.5px; line-height: 1.35; color: #d5e0ec; text-shadow: 0 1px 2px rgb(0 0 0 / .6); }
+  .visor .creditos-3d { position: absolute; z-index: 2; right: 10px; bottom: 6px; font-size: 10.5px; color: #fff; text-shadow: 0 1px 2px rgb(0 0 0 / .7); }
   .visor .sin-relieve { position: absolute; z-index: 2; left: 50%; top: 14px; transform: translateX(-50%); background: rgb(11 25 45 / .78); color: #fff; font-size: 12.5px; padding: 6px 10px; border-radius: 8px; }
   .visor .sin-3d { position: absolute; inset: 0; display: grid; place-items: center; text-align: center; color: #c9d6e6; padding: 30px; }
   .marca-pista { font: 800 12px/1 "Public Sans", sans-serif; color: #fff; background: var(--azul-noche); border: 1.5px solid #fff; border-radius: 5px; padding: 4px 6px; box-shadow: 0 2px 6px rgb(0 0 0 / .35); }
@@ -211,6 +221,7 @@
     .seccion-tit { flex-direction: column; gap: 2px; }
     .hud-tiempo button { padding: 9px 8px; }
     .visor .nota-visor { display: none; }
+    .visor .creditos-3d { bottom: 120px; }
   }
   @media (max-width: 620px) {
     table.pron-movil { display: table; }
@@ -259,6 +270,11 @@
     </div>
   </section>
   <div id="contenido" aria-live="polite"></div>
+  <section class="caja llegadas" aria-labelledby="t-lleg" id="caja-llegadas" hidden>
+    <h2 id="t-lleg">Llegadas en el aire <span id="estado-lleg">cargando vuelos…</span></h2>
+    <div id="lista-lleg"></div>
+    <p class="nota-lleg">Vuelos con destino a este aeropuerto que ya están en el aire. El riesgo es la probabilidad de bajo mínimos CAT I aquí a su hora estimada de llegada; el alternativo, el aeropuerto de la red con mejor previsión cerca (orientativo: cada aerolínea fija los suyos).</p>
+  </section>
 </main>
 
 <footer class="pie">
@@ -271,6 +287,7 @@
   </div>
 </footer>
 
+<script src="vuelos.js"></script>
 <script>
 const ZONA = "Europe/Madrid";
 const ms = iso => new Date(iso).getTime();
@@ -667,7 +684,7 @@ async function leerRelieve(icao) {
     const g = cv.getContext("2d", { willReadFrequently: true }); g.drawImage(img, 0, 0);
     const px = g.getImageData(0, 0, img.width, img.height).data, n = img.width, alt = new Float32Array(n * n);
     for (let k = 0; k < n * n; k++) alt[k] = px[k * 4] * 256 + px[k * 4 + 1] + px[k * 4 + 2] / 256 - 32768;
-    return { n, alt, alcance: meta.alcance_m || ALCANCE };
+    return { n, alt, alcance: meta.alcance_m || ALCANCE, meta };
   } catch { return null; }
 }
 
@@ -738,6 +755,15 @@ async function iniciarVisor() {
     }
     colores.set([tmp.r, tmp.g, tmp.b], k * 3);
   }
+  // Ortofoto PNOA (si se generó con python -m novok.red terreno): dos texturas, toda la zona y detalle del aeropuerto
+  const cargarTextura = url => new Promise(res => new THREE.TextureLoader().load(url, t => {
+    t.colorSpace = THREE.SRGBColorSpace; t.anisotropy = renderer.capabilities.getMaxAnisotropy(); res(t);
+  }, undefined, () => res(null)));
+  const conOrto = !!relieve?.meta?.orto;
+  const [orto, ortoDetalle] = conOrto ? await Promise.all([cargarTextura(`terreno/${AERO.icao}_orto.jpg`),
+    cargarTextura(`terreno/${AERO.icao}_orto_detalle.jpg`)]) : [null, null];
+  if (orto) { escena.children.filter(o => o.isLight).forEach(l => l.intensity *= .72); }
+
   // Explanada del aeropuerto: el relieve se aplana alrededor de cada pista (a su altura media en el relieve)
   const segmentos = paresPista((AERO.pistas || []).filter(p => p.lat != null)).filter(par => par.length === 2).map(([a, b]) => {
     const [ax, az] = local(a.lat, a.lon), [bx, bz] = local(b.lat, b.lon);
@@ -748,15 +774,27 @@ async function iniciarVisor() {
     const vx = g.bx - g.ax, vz = g.bz - g.az, f = Math.max(0, Math.min(1, ((x - g.ax) * vx + (z - g.az) * vz) / (vx * vx + vz * vz)));
     return Math.hypot(x - g.ax - f * vx, z - g.az - f * vz);
   };
-  for (let k = 0; k < pos.count && relieve; k++) {
+  const aplanar = (x, z, y) => {
     for (const g of segmentos) {
-      const d = distSeg(pos.getX(k), pos.getZ(k), g);
-      if (d < 700) { const w = d < 250 ? 1 : 1 - (d - 250) / 450; pos.setY(k, pos.getY(k) * (1 - w) + g.y * w); }
+      const d = distSeg(x, z, g);
+      if (d < 700) { const w = d < 250 ? 1 : 1 - (d - 250) / 450; y = y * (1 - w) + g.y * w; }
     }
-  }
+    return y;
+  };
+  const suelo = (x, z) => aplanar(x, z, altura(x, z));     // altura del suelo tal como se dibuja
+  for (let k = 0; k < pos.count && relieve; k++) pos.setY(k, aplanar(pos.getX(k), pos.getZ(k), pos.getY(k)));
   geo.setAttribute("color", new THREE.BufferAttribute(colores, 3));
   geo.computeVertexNormals();
-  escena.add(new THREE.Mesh(geo, new THREE.MeshLambertMaterial({ vertexColors: true })));
+  escena.add(new THREE.Mesh(geo, orto ? new THREE.MeshLambertMaterial({ map: orto }) : new THREE.MeshLambertMaterial({ vertexColors: true })));
+  if (ortoDetalle) {                          // parche de más resolución alrededor del aeropuerto
+    const D = relieve.meta.detalle_m || 3000, segs = 150;
+    const det = new THREE.PlaneGeometry(2 * D, 2 * D, segs, segs); det.rotateX(-Math.PI / 2);
+    const pd = det.attributes.position;
+    for (let k = 0; k < pd.count; k++) pd.setY(k, suelo(pd.getX(k), pd.getZ(k)) + .6);
+    det.computeVertexNormals();
+    const malla = new THREE.Mesh(det, new THREE.MeshLambertMaterial({ map: ortoDetalle, polygonOffset: true, polygonOffsetFactor: -2, polygonOffsetUnits: -2 }));
+    malla.renderOrder = 1; escena.add(malla);
+  }
 
   // Pistas, con su línea central, y etiquetas
   const etiqueta = (texto, clase, x, y, z) => {
@@ -767,8 +805,9 @@ async function iniciarVisor() {
   for (const par of paresPista((AERO.pistas || []).filter(p => p.lat != null))) {
     const [a, b] = par;
     const [ax, az] = local(a.lat, a.lon);
-    etiqueta(a.ident, "marca-pista", ax, altura(ax, az) + 40, az);
+    etiqueta(a.ident, "marca-pista", ax, suelo(ax, az) + 40, az);
     if (!b) continue;
+    if (orto) { const [bx, bz] = local(b.lat, b.lon); etiqueta(b.ident, "marca-pista", bx, suelo(bx, bz) + 40, bz); continue; }
     const [bx, bz] = local(b.lat, b.lon), largo = Math.hypot(bx - ax, bz - az), ang = Math.atan2(bx - ax, bz - az);
     const seg = segmentos.find(g => Math.abs(g.ax - ax) < 1 && Math.abs(g.az - az) < 1);
     const y = (seg ? seg.y : elevPista) + 3;
@@ -842,7 +881,7 @@ async function iniciarVisor() {
       const borde = Math.min(1, (R - Math.abs(d.x)) / 1800, (R - Math.abs(d.z)) / 1800);
       const op = d.u < estado.densidad ? d.a * Math.min(1, (estado.densidad - d.u) * 5) * borde : 0;
       m.material.opacity = op; m.visible = op > .004;
-      if (m.visible) m.position.set(d.x, altura(d.x, d.z) + (4 + d.h * estado.espesor) * EXAG, d.z);
+      if (m.visible) m.position.set(d.x, suelo(d.x, d.z) + (4 + d.h * estado.espesor) * EXAG, d.z);
     }
     if (vuelo) {
       const f = Math.min(1, (ahora - vuelo.t0) / vuelo.dur), e = f < .5 ? 2 * f * f : 1 - (-2 * f + 2) ** 2 / 2;
@@ -863,6 +902,7 @@ async function iniciarVisor() {
       estado.viento = [-Math.sin(ang) * vel, Math.cos(ang) * vel];
     },
   };
+  cont.insertAdjacentHTML("beforeend", `<div class="creditos-3d">${orto ? "Ortofoto PNOA © Instituto Geográfico Nacional (CC BY 4.0) · " : ""}Relieve: AWS Terrain Tiles</div>`);
   if (!relieve) cont.insertAdjacentHTML("beforeend", `<div class="sin-relieve">Relieve no disponible: genera los mapas de alturas con <code>python -m novok.red terreno</code></div>`);
   elegirEscenario(visor.actual);
 }
@@ -929,7 +969,48 @@ function cargar() {
       document.getElementById("modo").innerHTML = `<span class="punto mal"></span><b>Sin datos</b>`;
     });
 }
-cargar();
+/* ---------- llegadas en el aire ---------- */
+const lleg = { cfg: null, red: null, temporizador: null };
+async function llegadas() {
+  const V = window.NovokVuelos, caja = document.getElementById("caja-llegadas"), estado = document.getElementById("estado-lleg");
+  if (!V || !ultimo) return;
+  try {
+    if (!lleg.cfg) {
+      lleg.cfg = await V.config();
+      caja.hidden = false;
+    }
+    if (!lleg.red) lleg.red = await fetch("datos/red.json", { cache: "no-store" }).then(r => r.ok ? r.json() : null).catch(() => null);
+    const a = ultimo.aeropuerto || {};
+    // la propia previsión del aeropuerto (más fina que la de red.json) y la de la red para los alternativos
+    const propia = { icao: ultimo.estacion, nombre: a.nombre, lat: a.lat, lon: a.lon,
+      bajo_minimos: !!ultimo.ahora?.bajo_minimos, niebla: !!ultimo.ahora?.niebla,
+      serie: (ultimo.pronostico || []).map(p => ({ hora_utc: p.hora_utc, p_bajo_minimos: p.bajo_minimos?.p ?? p.bajo_minimos })) };
+    const otros = (lleg.red?.aeropuertos || []).filter(x => x.icao !== propia.icao);
+    const cfg = { ...lleg.cfg, centro: [a.lat, a.lon], radio_nm: Math.min(lleg.cfg.radio_nm || 250, 200) };
+    const aviones = await V.posiciones(cfg);
+    const rutas = await V.rutas(cfg, aviones);
+    const ahora = Date.now();
+    const vuelos = V.analizar(aviones, rutas, [propia, ...otros], ahora)
+      .filter(v => v.destino === propia.icao && v.llegada).sort((x, y) => x.llegada.ms - y.llegada.ms);
+    estado.textContent = `${vuelos.length} ${vuelos.length === 1 ? "vuelo" : "vuelos"} · ${lleg.cfg.atribucion || ""}`;
+    document.getElementById("lista-lleg").innerHTML = vuelos.length ? `<table>
+      <thead><tr><th>Vuelo</th><th class="op">Origen</th><th>Llega</th><th>Riesgo a su llegada</th><th class="op">Alternativo</th></tr></thead>
+      <tbody>${vuelos.map(v => `<tr>
+        <td><b>${esc(v.indicativo || v.hex)}</b> <span class="gris">${esc(v.tipo || "")}</span></td>
+        <td class="op">${esc(v.ruta?.origen || (v.destino_inferido ? "en aproximación" : "—"))}</td>
+        <td class="num">${fmtZ(new Date(v.llegada.ms).toISOString())} <span class="gris">(${Math.round(v.llegada.min)} min)</span></td>
+        <td>${v.riesgo ? `<span class="p" style="color:${COLOR_NIVEL[v.riesgo.nivel]}">${pct(v.riesgo.p)}</span> <span class="gris">${NIVEL[v.riesgo.nivel]}</span>` : '<span class="gris">sin previsión</span>'}</td>
+        <td class="op">${v.alternativo ? `${esc(v.alternativo.icao)} ${esc(v.alternativo.nombre || "")} <span class="gris">(${pct(v.alternativo.p)})</span>` : '<span class="gris">—</span>'}</td>
+      </tr>`).join("")}</tbody></table>`
+      : `<p class="vacio">Ahora no hay vuelos en el aire con destino a ${esc(propia.icao)} dentro del alcance.</p>`;
+  } catch (e) {
+    if (lleg.cfg) estado.textContent = "no se pudieron cargar los vuelos; se reintenta";
+  }
+  clearTimeout(lleg.temporizador);
+  lleg.temporizador = setTimeout(llegadas, Math.max(15, lleg.cfg?.refresco_s || 30) * 1000);
+}
+
+cargar().then(llegadas);
 setInterval(() => { if (!ultimo || ultimo.modo !== "repeticion") cargar(); }, 5 * 60e3);
 let espera; addEventListener("resize", () => { clearTimeout(espera); espera = setTimeout(dibujarTiempo, 120); });
 </script>

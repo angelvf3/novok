@@ -36,7 +36,7 @@ jobs:
       - name: Generar briefings de la red
         run: |
           mkdir -p _site
-          cp -r web/index.html web/aeropuerto.html web/novok-logo.png web/vendor web/mapa _site/
+          cp -r web/index.html web/aeropuerto.html web/vuelos.js web/vuelos.json web/novok-logo.png web/vendor web/mapa _site/
           if [ -d web/terreno ]; then cp -r web/terreno _site/; fi
           python -m novok.red briefing --salida _site/datos
       - uses: actions/upload-pages-artifact@v3

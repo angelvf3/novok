@@ -8,4 +8,9 @@ Componentes de terceros que usa la web de NOVOK. Todos tienen licencias abiertas
 - Mapa base (web/mapa/base.geojson): Natural Earth, dominio público, a través de world-atlas (ISC, world-atlas.txt)
 - Relieve del visor 3D (web/terreno/): AWS Terrain Tiles, datos abiertos; fuentes y atribución en
   https://github.com/tilezen/joerd/blob/master/docs/attribution.md
+- Relieve del mapa 2D (web/mapa/relieve/): generado a partir de AWS Terrain Tiles (misma atribución)
+- Ortofoto del visor 3D (web/terreno/*_orto*.jpg): PNOA © Instituto Geográfico Nacional de España, CC BY 4.0
+  https://www.ign.es  (uso comercial permitido citando la fuente)
+- Vuelos en directo (web/vuelos.json): adsb.lol, datos abiertos bajo ODbL 1.0 https://adsb.lol
+  (uso comercial permitido citando la fuente; la fuente se puede cambiar por una antena propia o un proveedor de pago)
 - Aeropuertos (config/aeropuertos.json): OurAirports, dominio público

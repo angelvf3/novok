@@ -36,8 +36,9 @@ y un marcador público contra el TAF.
 | F3 | Modelo: niebla + techo de nubes | ✅ v1 (METAR) y v2 (METAR + pronóstico numérico) |
 | F4 | Hora de disipación y tipo de niebla | ✅ |
 | F5 | Briefing web en directo (niebla, techo, disipación, viento en pista, comparación con el TAF) | ✅ |
-| F6 | Red del norte: 13 aeropuertos, mapa 2D de la red y briefing por aeropuerto | ✅ código · 🔄 entrenando aeropuertos |
-| F7 | Vuelos: programación y vuelos en el aire, riesgo de desvío por vuelo e histórico de desvíos | ⏳ |
+| F6 | Red del norte: 13 aeropuertos, mapa 2D de la red y briefing por aeropuerto | ✅ |
+| F7 | Vuelos en el aire con riesgo a su llegada y alternativo; mapa con relieve y ortofoto en 3D | ✅ |
+| F7b | Histórico de desvíos reales para validar el riesgo por vuelo | ⏳ |
 | F8 | Más fenómenos: viento cruzado y cizalladura (Canarias), tormentas; restricciones de tráfico aéreo | ⏳ |
 
 ## Primeros resultados (METAR 2017–2025)
@@ -257,6 +258,23 @@ NWP (Open-Meteo) ────────┘        │                         
                            modelos/<OACI>/
 ```
 
+## Vuelos en directo y cartografía (F7)
+
+- **Vuelos en el aire** en el mapa de la red y en cada aeropuerto: posición, altitud, velocidad y ruta. Para cada
+  vuelo que va a un aeropuerto de la red se calcula la **hora estimada de llegada**, la **probabilidad de bajo
+  mínimos CAT I en el destino a esa hora** (interpolando la previsión de NOVOK) y un **alternativo orientativo**
+  (el aeropuerto cercano con mejor previsión). Si no se conoce la ruta, un avión bajo, descendiendo y apuntando a
+  un aeropuerto de la red se asigna a ese aeropuerto.
+- **Fuente intercambiable** (`web/vuelos.json`): hoy [adsb.lol](https://adsb.lol), gratuita y con datos abiertos
+  (ODbL, uso comercial permitido citando la fuente). Para un cliente se cambia por una antena ADS-B propia
+  (readsb/tar1090, mismo formato) o un proveedor de pago editando solo ese fichero.
+- **Mapa 2D con relieve** (`python -m novok.red mapa`): teselas de relieve sombreado con tintas hipsométricas
+  generadas a partir de AWS Terrain Tiles y servidas desde el propio sitio.
+- **Visor 3D con ortofoto** (`python -m novok.red terreno`): el relieve de cada aeropuerto cubierto con la ortofoto
+  del PNOA del Instituto Geográfico Nacional (CC BY 4.0, uso comercial permitido citando la fuente), descargada
+  una vez y servida desde el sitio. Se descartó Google Earth (Photorealistic 3D Tiles): es de pago a partir de
+  1.000 cargas al mes, exige cuenta de facturación y prohíbe guardar las teselas.
+
 ## Puesta en marcha
 
 ```bash
@@ -269,7 +287,8 @@ python -m novok.aeropuertos --descargar
 python -m novok.red preparar                    # o solo algunos: python -m novok.red preparar LEXJ LEBB
 python -m novok.red estado
 python -m novok.red elegir                      # v1 o v2 por suceso y antelación (con la validación ya hecha)
-python -m novok.red terreno                     # relieve para el visor 3D (una vez; se sube al repo)
+python -m novok.red terreno                     # relieve + ortofoto PNOA para el visor 3D (una vez; se sube al repo)
+python -m novok.red mapa                        # teselas de relieve del mapa 2D (una vez, ~5 min; se suben al repo)
 python -m novok.red briefing                    # en directo -> web/datos/
 python -m novok.red briefing --repetir 2025-06-30T04:40
 python -m http.server 8000 -d web               # abre http://localhost:8000
