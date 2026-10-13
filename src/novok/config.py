@@ -2,7 +2,7 @@
 
 from pathlib import Path
 
-# Estación: Aeropuerto de Asturias (código OACI)
+# Aeropuerto por defecto. El aeropuerto activo se elige en novok.aeropuertos (activa / usar / estacion).
 ESTACION = "LEAS"
 
 # Rutas
@@ -10,6 +10,29 @@ RAIZ = Path(__file__).resolve().parents[2]
 DATA_RAW = RAIZ / "data" / "raw"
 DATA_PROCESSED = RAIZ / "data" / "processed"
 REPORTS = RAIZ / "reports"
+
+
+
+def dir_proc(icao: str | None = None) -> Path:
+    """Datos procesados de un aeropuerto (por defecto, el activo)."""
+    from novok.aeropuertos import activa
+    return DATA_PROCESSED / (icao or activa().icao)
+
+
+def dir_modelos(icao: str | None = None) -> Path:
+    """Modelos entrenados de un aeropuerto (se suben al repo: los usa el briefing en directo)."""
+    from novok.aeropuertos import activa
+    return RAIZ / "modelos" / (icao or activa().icao)
+
+
+def dir_informes(icao: str | None = None) -> Path:
+    """Informes y gráficos. LEAS se queda en reports/ (los enlaza el README); el resto, en reports/<OACI>/."""
+    from novok.aeropuertos import activa
+    icao = icao or activa().icao
+    d = REPORTS if icao == "LEAS" else REPORTS / icao
+    d.mkdir(parents=True, exist_ok=True)  # la carpeta de un aeropuerto nuevo aún no existe
+    return d
+
 
 # Fuente: archivo ASOS/METAR de Iowa Environmental Mesonet
 IEM_URL = "https://mesonet.agron.iastate.edu/cgi-bin/request/asos.py"
@@ -41,10 +64,7 @@ UMBRALES_TECHO_FT = {
 # Coberturas que forman techo (BKN, OVC y cielo invisible VV)
 COBERTURAS_TECHO = {"BKN", "OVC", "VV"}
 
-# Pista de LEAS (11/29) y rumbo aproximado en grados.
-# El viento del METAR es geográfico y la pista se designa por rumbo magnético;
-# en Asturias la declinación es ~1°, despreciable para este cálculo.
-PISTAS = {"11": 110, "29": 290}
+# Las pistas de cada aeropuerto están en novok.aeropuertos (rumbo verdadero, de OurAirports).
 
 # Umbrales de referencia de viento (nudos). Los límites reales dependen del avión
 # y del operador; estos sirven para marcar condiciones exigentes, no prohibidas.

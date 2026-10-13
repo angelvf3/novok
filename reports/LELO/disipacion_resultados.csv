@@ -1,0 +1,7 @@
+muestra,metodo,n,MAE_h,acierto_±1h,cobertura_intervalo_80,anchura_intervalo_h
+todas las horas,NOVOK,195,2.308,0.492,0.744,3.766
+todas las horas,climatología,195,2.59,0.467,0.856,8.189
+1.ª hora del episodio,NOVOK,60,2.017,0.55,0.85,3.515
+1.ª hora del episodio,climatología,60,2.133,0.717,0.867,5.183
+episodios de 3 h o más,NOVOK,145,2.731,0.414,0.655,4.162
+episodios de 3 h o más,climatología,145,3.228,0.338,0.814,9.334

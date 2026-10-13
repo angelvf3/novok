@@ -1,0 +1,343 @@
+{
+ "LEAS": {
+  "icao": "LEAS",
+  "nombre": "Asturias",
+  "lat": 43.563599,
+  "lon": -6.03462,
+  "elev_ft": 416.0,
+  "pistas": [
+   {
+    "ident": "11",
+    "rumbo": 109.0,
+    "lat": 43.56660079956055,
+    "lon": -6.0475897789001465,
+    "longitud_m": 2200
+   },
+   {
+    "ident": "29",
+    "rumbo": 289.0,
+    "lat": 43.56050109863281,
+    "lon": -6.0216498374938965,
+    "longitud_m": 2200
+   }
+  ]
+ },
+ "LEXJ": {
+  "icao": "LEXJ",
+  "nombre": "Santander",
+  "lat": 43.427101,
+  "lon": -3.82001,
+  "elev_ft": 16.0,
+  "pistas": [
+   {
+    "ident": "11",
+    "rumbo": 110.1,
+    "lat": 43.43080139160156,
+    "lon": -3.8339200019836426,
+    "longitud_m": 2320
+   },
+   {
+    "ident": "29",
+    "rumbo": 290.1,
+    "lat": 43.42359924316406,
+    "lon": -3.8070199489593506,
+    "longitud_m": 2320
+   }
+  ]
+ },
+ "LEBB": {
+  "icao": "LEBB",
+  "nombre": "Bilbao",
+  "lat": 43.301102,
+  "lon": -2.91061,
+  "elev_ft": 138.0,
+  "pistas": [
+   {
+    "ident": "10",
+    "rumbo": 97.0,
+    "lat": 43.303299,
+    "lon": -2.93703,
+    "longitud_m": 1910
+   },
+   {
+    "ident": "28",
+    "rumbo": 277.0,
+    "lat": 43.3013,
+    "lon": -2.91254,
+    "longitud_m": 1910
+   },
+   {
+    "ident": "12",
+    "rumbo": 116.6,
+    "lat": 43.30630111694336,
+    "lon": -2.9249401092529297,
+    "longitud_m": 2600
+   },
+   {
+    "ident": "30",
+    "rumbo": 296.6,
+    "lat": 43.295799255371094,
+    "lon": -2.8963000774383545,
+    "longitud_m": 2600
+   }
+  ]
+ },
+ "LESO": {
+  "icao": "LESO",
+  "nombre": "San Sebastián",
+  "lat": 43.356499,
+  "lon": -1.79061,
+  "elev_ft": 16.0,
+  "pistas": [
+   {
+    "ident": "04",
+    "rumbo": 39.0,
+    "lat": 43.350399,
+    "lon": -1.7974,
+    "longitud_m": 1754
+   },
+   {
+    "ident": "22",
+    "rumbo": 219.0,
+    "lat": 43.362701,
+    "lon": -1.78382,
+    "longitud_m": 1754
+   }
+  ]
+ },
+ "LEVT": {
+  "icao": "LEVT",
+  "nombre": "Vitoria",
+  "lat": 42.882801,
+  "lon": -2.72447,
+  "elev_ft": 1682.0,
+  "pistas": [
+   {
+    "ident": "04",
+    "rumbo": 35.9,
+    "lat": 42.87009811401367,
+    "lon": -2.737030029296875,
+    "longitud_m": 3500
+   },
+   {
+    "ident": "22",
+    "rumbo": 215.9,
+    "lat": 42.895599365234375,
+    "lon": -2.7118899822235107,
+    "longitud_m": 3500
+   }
+  ]
+ },
+ "LEPP": {
+  "icao": "LEPP",
+  "nombre": "Pamplona",
+  "lat": 42.77,
+  "lon": -1.64633,
+  "elev_ft": 1504.0,
+  "pistas": [
+   {
+    "ident": "03",
+    "rumbo": 30.0,
+    "lat": null,
+    "lon": null,
+    "longitud_m": 1
+   },
+   {
+    "ident": "21",
+    "rumbo": 210.0,
+    "lat": null,
+    "lon": null,
+    "longitud_m": 1
+   },
+   {
+    "ident": "15",
+    "rumbo": 152.0,
+    "lat": 42.77949905395508,
+    "lon": -1.653249979019165,
+    "longitud_m": 2207
+   },
+   {
+    "ident": "33",
+    "rumbo": 332.0,
+    "lat": 42.762001037597656,
+    "lon": -1.6404999494552612,
+    "longitud_m": 2207
+   }
+  ]
+ },
+ "LELO": {
+  "icao": "LELO",
+  "nombre": "Logroño",
+  "lat": 42.460953,
+  "lon": -2.322235,
+  "elev_ft": 1161.0,
+  "pistas": [
+   {
+    "ident": "11",
+    "rumbo": 110.0,
+    "lat": 42.463726,
+    "lon": -2.332505,
+    "longitud_m": 2200
+   },
+   {
+    "ident": "29",
+    "rumbo": 290.0,
+    "lat": 42.45702,
+    "lon": -2.307331,
+    "longitud_m": 2200
+   }
+  ]
+ },
+ "LEBG": {
+  "icao": "LEBG",
+  "nombre": "Burgos",
+  "lat": 42.357601,
+  "lon": -3.62076,
+  "elev_ft": 2962.0,
+  "pistas": [
+   {
+    "ident": "04",
+    "rumbo": 45.0,
+    "lat": 42.350498,
+    "lon": -3.62235,
+    "longitud_m": 2100
+   },
+   {
+    "ident": "22",
+    "rumbo": 225.0,
+    "lat": 42.364246,
+    "lon": -3.60499,
+    "longitud_m": 2100
+   }
+  ]
+ },
+ "LELN": {
+  "icao": "LELN",
+  "nombre": "León",
+  "lat": 42.590709,
+  "lon": -5.653406,
+  "elev_ft": 3006.0,
+  "pistas": [
+   {
+    "ident": "05",
+    "rumbo": 46.0,
+    "lat": 42.582001,
+    "lon": -5.66528,
+    "longitud_m": 3000
+   },
+   {
+    "ident": "23",
+    "rumbo": 227.0,
+    "lat": 42.600911,
+    "lon": -5.639317,
+    "longitud_m": 3000
+   }
+  ]
+ },
+ "LEVD": {
+  "icao": "LEVD",
+  "nombre": "Valladolid",
+  "lat": 41.7061,
+  "lon": -4.85194,
+  "elev_ft": 2776.0,
+  "pistas": [
+   {
+    "ident": "05",
+    "rumbo": 45.2,
+    "lat": 41.69702911376953,
+    "lon": -4.864785194396973,
+    "longitud_m": 3000
+   },
+   {
+    "ident": "23",
+    "rumbo": 225.2,
+    "lat": 41.71601867675781,
+    "lon": -4.839037895202637,
+    "longitud_m": 3000
+   },
+   {
+    "ident": "15",
+    "rumbo": 144.0,
+    "lat": 41.71329879760742,
+    "lon": -4.861810207366943,
+    "longitud_m": 907
+   },
+   {
+    "ident": "33",
+    "rumbo": 324.0,
+    "lat": 41.70669937133789,
+    "lon": -4.855420112609863,
+    "longitud_m": 907
+   }
+  ]
+ },
+ "LEST": {
+  "icao": "LEST",
+  "nombre": "Santiago",
+  "lat": 42.896301,
+  "lon": -8.41514,
+  "elev_ft": 1213.0,
+  "pistas": [
+   {
+    "ident": "17",
+    "rumbo": 166.0,
+    "lat": 42.911800384521484,
+    "lon": -8.420430183410645,
+    "longitud_m": 3200
+   },
+   {
+    "ident": "35",
+    "rumbo": 346.0,
+    "lat": 42.8838005065918,
+    "lon": -8.41094970703125,
+    "longitud_m": 3200
+   }
+  ]
+ },
+ "LECO": {
+  "icao": "LECO",
+  "nombre": "A Coruña",
+  "lat": 43.302101,
+  "lon": -8.37726,
+  "elev_ft": 326.0,
+  "pistas": [
+   {
+    "ident": "03",
+    "rumbo": 31.0,
+    "lat": 43.29169845581055,
+    "lon": -8.385761260986328,
+    "longitud_m": 2188
+   },
+   {
+    "ident": "21",
+    "rumbo": 211.0,
+    "lat": 43.30858612060547,
+    "lon": -8.371899604797363,
+    "longitud_m": 2188
+   }
+  ]
+ },
+ "LEVX": {
+  "icao": "LEVX",
+  "nombre": "Vigo",
+  "lat": 42.2318,
+  "lon": -8.62677,
+  "elev_ft": 856.0,
+  "pistas": [
+   {
+    "ident": "01",
+    "rumbo": 11.4,
+    "lat": 42.22129821777344,
+    "lon": -8.629659652709961,
+    "longitud_m": 2400
+   },
+   {
+    "ident": "19",
+    "rumbo": 191.4,
+    "lat": 42.24250030517578,
+    "lon": -8.623889923095703,
+    "longitud_m": 2400
+   }
+  ]
+ }
+}

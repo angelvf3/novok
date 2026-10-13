@@ -25,7 +25,8 @@ import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 
-from novok.config import ANIO_INICIO_FIABLE, DATA_PROCESSED, REPORTS
+from novok.aeropuertos import activa, cli_estacion
+from novok.config import ANIO_INICIO_FIABLE, dir_informes, dir_proc
 from novok.taf.parser import a_horario, parsear, probabilidad
 from novok.verificacion.metricas import brier, brier_skill, deterministas
 
@@ -60,7 +61,7 @@ def evento(vis, techo, umbral_vis, umbral_techo) -> pd.Series:
 
 def cargar_observado() -> pd.DataFrame:
     """Tabla horaria en rejilla regular (para desplazar exactamente L horas)."""
-    return preparar_observado(pd.read_parquet(DATA_PROCESSED / "horario.parquet"))
+    return preparar_observado(pd.read_parquet(dir_proc() / "horario.parquet"))
 
 
 def preparar_observado(horario: pd.DataFrame, hasta: pd.Timestamp | None = None) -> pd.DataFrame:
@@ -99,8 +100,8 @@ def climatologia(h: pd.DataFrame, nombre: str) -> pd.Series:
 
 def taf_horario() -> pd.DataFrame | None:
     """Expande todos los TAF a filas (emisión, hora) con condiciones y probabilidades por suceso."""
-    ruta_taf = DATA_PROCESSED / "taf.parquet"
-    cache = DATA_PROCESSED / "taf_horario.parquet"
+    ruta_taf = dir_proc() / "taf.parquet"
+    cache = dir_proc() / "taf_horario.parquet"
     if not ruta_taf.exists():
         return None
     if cache.exists() and cache.stat().st_mtime >= ruta_taf.stat().st_mtime:
@@ -110,7 +111,7 @@ def taf_horario() -> pd.DataFrame | None:
     partes, fallidos = [], 0
     for marca, texto in zip(crudos["marca_ogimet"], crudos["taf"], strict=True):
         taf = parsear(texto, marca)
-        if taf is None or taf.estacion != "LEAS":
+        if taf is None or taf.estacion != activa().icao:
             fallidos += 1
             continue
         df = a_horario(taf)
@@ -208,7 +209,7 @@ def grafico_csi(res: pd.DataFrame, destino, sucesos=("niebla", "bajo_minimos_cat
     np.atleast_1d(axes)[0].set_ylim(0, None)
     if len(np.atleast_1d(axes)[0].get_lines()) > 1:  # una sola serie: el título basta
         np.atleast_1d(axes)[0].legend(frameon=False, loc="upper right", fontsize=8.5)
-    fig.suptitle("LEAS · Índice de éxito crítico por antelación (2017–2025)", x=0.01, ha="left",
+    fig.suptitle(f"{activa().icao} · Índice de éxito crítico por antelación (2017–2025)", x=0.01, ha="left",
                  fontsize=12, color="#0b0b0b")
     fig.tight_layout()
     fig.savefig(destino, dpi=150, facecolor=fig.get_facecolor())
@@ -216,22 +217,23 @@ def grafico_csi(res: pd.DataFrame, destino, sucesos=("niebla", "bajo_minimos_cat
 
 
 def main() -> None:
+    cli_estacion()
     h = cargar_observado()
     th = taf_horario()
     if th is None:
         print("Sin TAF (data/processed/taf.parquet). Ejecuta: python -m novok.data.descargar_taf\n"
               "Evalúo solo persistencia y climatología.")
     res = evaluar(h, th)
-    REPORTS.mkdir(parents=True, exist_ok=True)
-    res.round(4).to_csv(REPORTS / "verificacion_baselines.csv", index=False)
-    grafico_csi(res, REPORTS / "verificacion_csi.png")
+    dir_informes().mkdir(parents=True, exist_ok=True)
+    res.round(4).to_csv(dir_informes() / "verificacion_baselines.csv", index=False)
+    grafico_csi(res, dir_informes() / "verificacion_csi.png")
 
     cols = ["horizonte_h", "metodo", "n_horas", "POD", "FAR", "CSI", "brier_skill_vs_clima"]
     for suc in ("niebla", "bajo_minimos_cat1"):
         d = res[res["suceso"] == suc]
         print(f"\n{NOMBRES[suc]} · frecuencia observada = {d['frecuencia_obs'].iloc[0]:.2%}")
         print(d[cols].round(3).to_string(index=False))
-    print(f"\nInformes en {REPORTS}")
+    print(f"\nInformes en {dir_informes()}")
 
 
 if __name__ == "__main__":

@@ -5,7 +5,7 @@
   (mínima visibilidad y mínimo techo), que serán las etiquetas del modelo.
 
 Uso:
-    python -m novok.data.limpiar_metar
+    python -m novok.data.limpiar_metar [--estacion LEXJ]
 """
 
 from __future__ import annotations
@@ -17,12 +17,11 @@ import pandas as pd
 
 from novok.config import (
     COBERTURAS_TECHO,
-    DATA_PROCESSED,
     DATA_RAW,
-    ESTACION,
     MILLA_A_METROS,
     UMBRALES_TECHO_FT,
     UMBRALES_VIS_M,
+    dir_proc,
 )
 from novok.data.viento import viento_en_pista
 
@@ -144,19 +143,29 @@ def a_horario(obs: pd.DataFrame) -> pd.DataFrame:
 
 
 def main() -> None:
-    ficheros = sorted(DATA_RAW.glob(f"metar_{ESTACION}_*.csv"))
+    from novok.aeropuertos import cli_estacion
+    procesar(cli_estacion().icao)
+
+
+def procesar(est: str) -> pd.DataFrame:
+    """Limpia los METAR descargados de un aeropuerto y guarda sus tablas en data/processed/<OACI>/."""
+    ficheros = sorted(DATA_RAW.glob(f"metar_{est}_*.csv"))
     if not ficheros:
         raise SystemExit("No hay CSV en data/raw. Ejecuta antes: python -m novok.data.descargar_metar")
 
     crudo = pd.concat((pd.read_csv(f, dtype=str) for f in ficheros), ignore_index=True)
-    obs = limpiar(crudo)
-    hor = a_horario(obs)
+    from novok.aeropuertos import estacion
+    with estacion(est):  # las componentes del viento usan las pistas de este aeropuerto
+        obs = limpiar(crudo)
+        hor = a_horario(obs)
 
-    DATA_PROCESSED.mkdir(parents=True, exist_ok=True)
-    obs.to_parquet(DATA_PROCESSED / "observaciones.parquet", index=False)
-    hor.to_parquet(DATA_PROCESSED / "horario.parquet", index=False)
-    print(f"Observaciones: {len(obs):,} | Horas: {len(hor):,} "
+    destino = dir_proc(est)
+    destino.mkdir(parents=True, exist_ok=True)
+    obs.to_parquet(destino / "observaciones.parquet", index=False)
+    hor.to_parquet(destino / "horario.parquet", index=False)
+    print(f"{est} · Observaciones: {len(obs):,} | Horas: {len(hor):,} "
           f"| {hor['fecha_utc'].min():%Y-%m-%d} -> {hor['fecha_utc'].max():%Y-%m-%d}")
+    return hor
 
 
 if __name__ == "__main__":

@@ -1,0 +1,5 @@
+tipo,episodios_por_anio,duracion_mediana_h,duracion_p90_h,vis_min_mediana_m
+advección,0.5,4.0,4.6,200.0
+radiación,1.9,1.0,4.2,300.0
+descenso de nubes,2.7,2.0,6.4,300.0
+llovizna o lluvia,3.1,1.0,2.0,700.0

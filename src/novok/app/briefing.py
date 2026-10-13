@@ -1,18 +1,18 @@
-"""F5 · Briefing operativo de NOVOK para el Aeropuerto de Asturias (LEAS).
+"""Briefing operativo de NOVOK para un aeropuerto de la red.
 
 Genera un JSON con:
 - estado actual (último METAR) y controles de calidad de los datos,
 - probabilidad de niebla y de bajo mínimos tipo CAT I a 1, 3, 6 y 12 h, junto a lo que dice el TAF en vigor,
 - si hay niebla: tipo y hora estimada de disipación con intervalo del 80 %,
-- viento en la pista 11/29 ahora y previsto,
+- viento en las pistas del aeropuerto ahora y previsto,
 - un resumen en texto generado por reglas (trazable: cada frase sale de un dato del propio briefing).
 
 Prototipo de apoyo a la decisión, complementario al TAF de AEMET. NO apto para decisiones de vuelo.
 
 Uso:
-    python -m novok.app.briefing                              # en directo
-    python -m novok.app.briefing --repetir 2024-06-12T05:40   # lo que habría dicho en esa fecha (UTC)
-    python -m novok.app.briefing --salida web/briefing.json
+    python -m novok.app.briefing --estacion LEAS                              # en directo
+    python -m novok.app.briefing --estacion LEAS --repetir 2024-06-12T05:40   # esa fecha (UTC), datos locales
+Por defecto escribe web/datos/<OACI>.json. Para toda la red: python -m novok.red briefing
 """
 
 from __future__ import annotations
@@ -27,8 +27,9 @@ import numpy as np
 import pandas as pd
 
 from novok import __version__
+from novok.aeropuertos import activa, usar
 from novok.app.fuentes import FuentesEnDirecto, FuentesRepeticion
-from novok.config import ESTACION, PISTAS, RAIZ
+from novok.config import RAIZ, dir_modelos
 from novok.data.limpiar_metar import a_horario, limpiar
 from novok.data.metar_texto import leer_varios
 from novok.data.viento import viento_en_pista
@@ -39,7 +40,7 @@ from novok.taf.parser import a_horario as taf_a_horario
 from novok.taf.parser import parsear, probabilidad
 from novok.verificacion.baselines import EVENTOS, preparar_observado
 
-DIR_MODELOS = RAIZ / "modelos"
+DIR_MODELOS = None  # solo para pruebas: si se fija, se usa en lugar de modelos/<OACI>
 ZONA_LOCAL = "Europe/Madrid"
 HORIZONTES_H = [1, 3, 6, 12]
 SUCESOS = ["niebla", "bajo_minimos_cat1"]
@@ -73,15 +74,19 @@ def _hora(t) -> str:
     return f"{t.tz_convert('UTC'):%H:%M}Z ({t.tz_convert(ZONA_LOCAL):%H:%M} local)"
 
 
+def _dir() -> Path:
+    return Path(DIR_MODELOS) if DIR_MODELOS else dir_modelos()
+
+
 def _cargar_modelos(version: str) -> tuple[dict, dict] | None:
-    umbrales_f = DIR_MODELOS / "umbrales.json"
+    umbrales_f = _dir() / "umbrales.json"
     if not umbrales_f.exists():
         return None
     umbrales = json.loads(umbrales_f.read_text())
     modelos = {}
     for s in SUCESOS:
         for L in HORIZONTES_H:
-            f = DIR_MODELOS / f"novok_{version}_{s}_{L}h.txt"
+            f = _dir() / f"novok_{version}_{s}_{L}h.txt"
             clave = f"{version}_{s}_{L}h"
             if not f.exists() or clave not in umbrales:
                 return None
@@ -130,7 +135,7 @@ def _taf_vigente(tafs: list[tuple[pd.Timestamp, str]], ahora: pd.Timestamp, obje
     validos = []
     for marca, texto in tafs:
         t = parsear(texto, marca)
-        if t is not None and t.emision <= ahora and t.estacion == ESTACION:
+        if t is not None and t.emision <= ahora and t.estacion == activa().icao:
             t.texto = texto
             validos.append(t)
     if not validos:
@@ -165,7 +170,7 @@ def _disipacion(h: pd.DataFrame, base: pd.DataFrame, i: pd.Timestamp) -> dict | 
                      index=pd.DatetimeIndex([i], name="hora_obs_utc"))
     x = completar_variables(d, base)
     out = {"inicio_utc": _iso(inicio), "transcurridas_h": transcurridas, "tipo": tipo, "disipacion": None}
-    ficheros = {q: DIR_MODELOS / f"disipacion_q{int(q * 100)}.txt" for q in CUANTILES}
+    ficheros = {q: _dir() / f"disipacion_q{int(q * 100)}.txt" for q in CUANTILES}
     if all(f.exists() for f in ficheros.values()):
         qs = []
         for f in ficheros.values():
@@ -188,7 +193,7 @@ def _viento(h: pd.DataFrame, nwp: pd.DataFrame | None, i: pd.Timestamp) -> dict:
                 "racha_kt": _num(f.get("racha_kt"), 0), "pista_favorable": f["pista_favorable"],
                 "cruzado_kt": _num(f["cruzado_kt"]), "cruzado_racha_kt": _num(f["cruzado_racha_kt"]),
                 **{f"cola_kt_{c}": _num(max(0.0, -f[f"cara_kt_{c}"]) if pd.notna(f[f"cara_kt_{c}"]) else None)
-                   for c in PISTAS},
+                   for c in activa().rumbos},
                 "aviso_cruzado": bool(f["aviso_cruzado"])}
 
     previsto = []
@@ -256,7 +261,8 @@ def _resumen(b: dict) -> list[str]:
 # ------------------------------------------------------------------ motor
 
 def generar(fuentes, ahora: pd.Timestamp) -> dict:
-    b = {"estacion": ESTACION, "generado_utc": _iso(ahora), "version_software": __version__, "aviso": AVISO,
+    b = {"estacion": activa().icao, "aeropuerto": activa().a_dict(),
+         "generado_utc": _iso(ahora), "version_software": __version__, "aviso": AVISO,
          "modo": "repeticion" if isinstance(fuentes, FuentesRepeticion) else "directo",
          "nota_repeticion": ("Repetición de una fecha pasada: los modelos finales se entrenaron con datos que "
                              "pueden incluir esa fecha; para medir el acierto real están las métricas del README.")
@@ -358,8 +364,10 @@ def generar(fuentes, ahora: pd.Timestamp) -> dict:
 def main() -> None:
     p = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     p.add_argument("--repetir", metavar="FECHA_UTC", help="p. ej. 2024-06-12T05:40 (usa los datos locales)")
-    p.add_argument("--salida", default=str(RAIZ / "web" / "briefing.json"))
+    p.add_argument("--estacion", help="código OACI (por defecto, el aeropuerto activo)")
+    p.add_argument("--salida", help="por defecto web/datos/<OACI>.json")
     args = p.parse_args()
+    usar(args.estacion)
     if args.repetir:
         ahora = pd.Timestamp(args.repetir, tz="UTC")
         fuentes = FuentesRepeticion(ahora)
@@ -367,7 +375,7 @@ def main() -> None:
         ahora = pd.Timestamp.now(tz="UTC")
         fuentes = FuentesEnDirecto(ahora)
     b = generar(fuentes, ahora)
-    salida = Path(args.salida)
+    salida = Path(args.salida or RAIZ / "web" / "datos" / f"{activa().icao}.json")
     salida.parent.mkdir(parents=True, exist_ok=True)
     salida.write_text(json.dumps(b, ensure_ascii=False, indent=2, default=str), encoding="utf-8")
     print("\n".join(b["resumen"]))

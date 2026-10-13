@@ -7,7 +7,7 @@
 # NOVOK
 
 **NOwcasting Of Visibility & Overcast Kit** — predicción de niebla y techo de nubes con IA
-para el Aeropuerto de Asturias (LEAS).
+para los aeropuertos del norte de España. Empezó en el Aeropuerto de Asturias (LEAS) y desde F6 cubre toda la red.
 
 El nombre juega con **CAVOK** (*Ceiling And Visibility OK*), el código aeronáutico de
 «techo y visibilidad bien». NOVOK predice justo lo contrario: cuándo **no** lo estarán.
@@ -23,7 +23,7 @@ y un marcador público contra el TAF.
 > vuelo ni para uso operativo.** En la UE, la información meteorológica aeronáutica solo la pueden proporcionar
 > proveedores certificados (Reglamento (UE) 2017/373); en LEAS, AEMET.
 
-**Briefing en directo:** https://gelan03.github.io/novok/
+**Mapa de la red en directo:** https://gelan03.github.io/novok/
 
 ## Estado
 
@@ -35,6 +35,9 @@ y un marcador público contra el TAF.
 | F3 | Modelo: niebla + techo de nubes | ✅ v1 (METAR) y v2 (METAR + pronóstico numérico) |
 | F4 | Hora de disipación y tipo de niebla | ✅ |
 | F5 | Briefing web en directo (niebla, techo, disipación, viento en pista, comparación con el TAF) | ✅ |
+| F6 | Red del norte: 13 aeropuertos, mapa 2D de la red y briefing por aeropuerto | ✅ código · 🔄 entrenando aeropuertos |
+| F7 | Vuelos: programación y vuelos en el aire, riesgo de desvío por vuelo e histórico de desvíos | ⏳ |
+| F8 | Más fenómenos: viento cruzado y cizalladura (Canarias), tormentas; restricciones de tráfico aéreo | ⏳ |
 
 ## Primeros resultados (METAR 2017–2025)
 
@@ -214,6 +217,38 @@ NWP (Open-Meteo) ───┘        │
 - **Visor 3D del aeropuerto** (MapLibre + three.js) sobre el relieve real y la ortofoto PNOA del IGN: dibuja la niebla
   observada o prevista y la mueve con el viento. Es una ilustración de la previsión, no una simulación física.
 
+## Red del norte (F6)
+
+NOVOK pasa de un aeropuerto a una red. Todo el código trabaja con un **aeropuerto activo**: sus datos van en
+`data/processed/<OACI>/`, sus modelos en `modelos/<OACI>/` y sus pistas (rumbos y umbrales) salen de
+[OurAirports](https://ourairports.com/data/), una base de datos abierta, guardada en `config/aeropuertos.json`.
+
+| OACI | Aeropuerto | OACI | Aeropuerto | OACI | Aeropuerto |
+|---|---|---|---|---|---|
+| LEAS | Asturias | LEVT | Vitoria | LELN | León |
+| LEXJ | Santander | LEPP | Pamplona | LEVD | Valladolid |
+| LEBB | Bilbao | LELO | Logroño | LEST | Santiago |
+| LESO | San Sebastián | LEBG | Burgos | LECO | A Coruña |
+| | | | | LEVX | Vigo |
+
+- **Un modelo por aeropuerto**, con el mismo método y la misma validación por años que LEAS. Cada aeropuerto
+  tiene su clima: no se mezclan.
+- **Control de cobertura:** algunos aeropuertos cierran de noche y no emiten METAR de madrugada, justo cuando
+  más niebla hay. `python -m novok.red estado` lo muestra y el entrenamiento avisa.
+- **Mapa de la red** (`web/index.html`): cada aeropuerto con su categoría de vuelo actual y la probabilidad máxima
+  de bajo mínimos en 12 h; banda de aviso con los aeropuertos en riesgo alto; lista ordenada por riesgo.
+- **Briefing por aeropuerto** (`web/aeropuerto.html?a=LEXJ`): el de F5, con el visor 3D y la rosa de vientos
+  generados a partir de las pistas reales de cada aeropuerto.
+- **Un solo proceso para todos:** cada 30 min, GitHub Actions genera los 13 briefings y `red.json`; si un aeropuerto
+  falla, el resto se publica igual.
+
+```
+config/aeropuertos.json ─┐
+METAR + TAF (NOAA) ──────┼─► novok.red briefing ─► datos/<OACI>.json + datos/red.json ─► index.html (mapa)
+NWP (Open-Meteo) ────────┘        │                                                    └► aeropuerto.html
+                           modelos/<OACI>/
+```
+
 ## Puesta en marcha
 
 ```bash
@@ -221,6 +256,15 @@ python -m venv .venv
 source .venv/bin/activate          # Windows: .venv\Scripts\activate
 pip install -e ".[dev]"
 
+# Toda la red (F6): datos de aeropuertos, y preparar cada uno (descarga, limpieza, modelos; ~15-20 min por aeropuerto)
+python -m novok.aeropuertos --descargar
+python -m novok.red preparar                    # o solo algunos: python -m novok.red preparar LEXJ LEBB
+python -m novok.red estado
+python -m novok.red briefing                    # en directo -> web/datos/
+python -m novok.red briefing --repetir 2025-06-30T04:40
+python -m http.server 8000 -d web               # abre http://localhost:8000
+
+# Paso a paso para un aeropuerto (todas las órdenes aceptan --estacion; por defecto LEAS)
 # 1. Descargar el histórico de METAR (un CSV por año en data/raw/)
 python -m novok.data.descargar_metar --inicio 2010 --fin 2025
 
@@ -251,10 +295,9 @@ python -m novok.modelo.entrenar_nwp
 # 9. Tipos de niebla y modelo de disipación (~10 s)
 python -m novok.episodios.disipacion
 
-# 10. Briefing: en directo o repitiendo una fecha pasada con tus datos, y verlo en el navegador
-python -m novok.app.briefing
-python -m novok.app.briefing --repetir 2025-06-30T04:40
-python -m http.server 8000 -d web     # abre http://localhost:8000
+# 10. Briefing de un aeropuerto: en directo o repitiendo una fecha pasada con tus datos
+python -m novok.app.briefing --estacion LEAS
+python -m novok.app.briefing --estacion LEAS --repetir 2025-06-30T04:40
 
 # Tests y lint
 pytest -q
@@ -297,10 +340,12 @@ Los límites reales dependen del avión y del operador.
 
 ```
 src/novok/
-  config.py                 # estación, rutas y umbrales
+  config.py                 # rutas por aeropuerto y umbrales
+  aeropuertos.py            # red de aeropuertos, datos de OurAirports y aeropuerto activo
+  red.py                    # preparar la red, estado y briefings de todos los aeropuertos
   data/descargar_metar.py   # descarga año a año desde IEM
   data/limpiar_metar.py     # unidades métricas, techo, agregación horaria
-  data/viento.py            # viento cruzado y de cola sobre la pista 11/29
+  data/viento.py            # viento cruzado y de cola sobre las pistas del aeropuerto
   data/grabar_taf_vivo.py   # TAF en directo desde aviationweather.gov (GitHub Actions)
   data/descargar_taf.py     # histórico de Ogimet (no disponible) y unión de TAF
   data/descargar_nwp.py     # pronósticos de 24 h antes (ECMWF, JMA) desde Open-Meteo
@@ -310,8 +355,10 @@ src/novok/
   episodios/                # episodios, tipo de niebla y predicción de la hora de disipación
   app/                      # briefing en directo: fuentes de datos, modelos y controles de calidad
   data/metar_texto.py       # METAR en texto -> formato de entrenamiento
-web/index.html              # página del briefing (GitHub Pages)
-modelos/                    # modelos entrenados que usa el briefing
+web/index.html              # mapa de la red (GitHub Pages)
+web/aeropuerto.html         # briefing de un aeropuerto, con visor 3D
+config/aeropuertos.json     # coordenadas, elevación y pistas de cada aeropuerto (OurAirports)
+modelos/<OACI>/             # modelos entrenados que usa el briefing
   analysis/resumen_niebla.py
 tests/
 ```

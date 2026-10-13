@@ -20,7 +20,8 @@ try:  # certificados del sistema (redes con inspección HTTPS)
 except ImportError:
     pass
 
-from novok.config import DATA_PROCESSED, DATA_RAW, ESTACION
+from novok.aeropuertos import activa
+from novok.config import DATA_RAW, dir_proc
 
 AWC = "https://aviationweather.gov/api/data"
 CABECERA = {"User-Agent": "novok (prototipo educativo de apoyo a la decision)"}
@@ -29,9 +30,10 @@ CABECERA = {"User-Agent": "novok (prototipo educativo de apoyo a la decision)"}
 class FuentesEnDirecto:
     def __init__(self, ahora: pd.Timestamp | None = None):
         self.ahora = ahora or pd.Timestamp.now(tz="UTC")
+        self.icao = activa().icao
 
     def metar(self) -> list[str]:
-        r = requests.get(f"{AWC}/metar", params={"ids": ESTACION, "format": "raw", "hours": 48}, timeout=30,
+        r = requests.get(f"{AWC}/metar", params={"ids": self.icao, "format": "raw", "hours": 48}, timeout=30,
                          headers=CABECERA)
         r.raise_for_status()
         return [ln.strip() for ln in r.text.splitlines() if ln.strip()]
@@ -39,7 +41,7 @@ class FuentesEnDirecto:
     def taf(self) -> list[tuple[pd.Timestamp, str]]:
         from novok.data.grabar_taf_vivo import tafs_actuales
 
-        return [(self.ahora, t) for t in tafs_actuales(ESTACION)]
+        return [(self.ahora, t) for t in tafs_actuales(self.icao)]
 
     def nwp(self) -> pd.DataFrame | None:
         from novok.data.descargar_nwp import FICH_VARIABLES, MODELOS, VARIABLES, a_tabla, pedir
@@ -66,16 +68,17 @@ class FuentesRepeticion:
 
     def __init__(self, ahora: pd.Timestamp):
         self.ahora = ahora
+        self.icao = activa().icao
 
     def metar(self) -> list[str]:
         anios = {self.ahora.year, (self.ahora - pd.Timedelta(days=2)).year}
-        raw = pd.concat(pd.read_csv(DATA_RAW / f"metar_{ESTACION}_{a}.csv", dtype=str) for a in sorted(anios))
+        raw = pd.concat(pd.read_csv(DATA_RAW / f"metar_{self.icao}_{a}.csv", dtype=str) for a in sorted(anios))
         t = pd.to_datetime(raw["valid"], utc=True)
         sel = raw[(t <= self.ahora) & (t > self.ahora - pd.Timedelta(hours=48))]
         return sel["metar"].dropna().tolist()
 
     def taf(self) -> list[tuple[pd.Timestamp, str]]:
-        f = DATA_PROCESSED / "taf.parquet"
+        f = dir_proc(self.icao) / "taf.parquet"
         if not f.exists():
             return []
         d = pd.read_parquet(f)
@@ -83,7 +86,7 @@ class FuentesRepeticion:
         return list(zip(d["marca_ogimet"], d["taf"], strict=True))
 
     def nwp(self) -> pd.DataFrame | None:
-        f = DATA_PROCESSED / "nwp.parquet"
+        f = dir_proc(self.icao) / "nwp.parquet"
         if not f.exists():
             return None
         n = pd.read_parquet(f)

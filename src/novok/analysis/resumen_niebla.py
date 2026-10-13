@@ -1,4 +1,4 @@
-"""Primer análisis: cuánta niebla hay en LEAS y cuándo aparece.
+"""Primer análisis: cuánta niebla hay en un aeropuerto y cuándo aparece.
 
 Genera en reports/:
 - horas_por_anio.csv: horas al año por debajo de cada umbral
@@ -17,7 +17,8 @@ matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 import pandas as pd
 
-from novok.config import ANIO_INICIO_FIABLE, DATA_PROCESSED, REPORTS
+from novok.aeropuertos import activa, cli_estacion
+from novok.config import ANIO_INICIO_FIABLE, dir_informes, dir_proc
 
 ZONA_LOCAL = "Europe/Madrid"
 
@@ -46,7 +47,7 @@ def mapa_calor(h: pd.DataFrame, destino, desde: int, hasta: int) -> None:
     ax.set_yticks(range(len(tabla.index)), [meses[m - 1] for m in tabla.index])
     ax.set_xticks(range(0, 24, 2), [f"{x:02d}" for x in range(0, 24, 2)])
     ax.set_xlabel("Hora local")
-    ax.set_title(f"LEAS · % de horas con visibilidad < 1000 m ({desde}–{hasta})")
+    ax.set_title(f"{activa().icao} · % de horas con visibilidad < 1000 m ({desde}–{hasta})")
     fig.colorbar(im, ax=ax, label="% de horas")
     for s in ax.spines.values():
         s.set_visible(False)
@@ -56,24 +57,25 @@ def mapa_calor(h: pd.DataFrame, destino, desde: int, hasta: int) -> None:
 
 
 def main() -> None:
-    h = pd.read_parquet(DATA_PROCESSED / "horario.parquet")
-    REPORTS.mkdir(parents=True, exist_ok=True)
+    cli_estacion()
+    h = pd.read_parquet(dir_proc() / "horario.parquet")
+    dir_informes().mkdir(parents=True, exist_ok=True)
 
     t = horas_por_anio(h)
     t["fiable"] = t.index >= ANIO_INICIO_FIABLE
-    t.to_csv(REPORTS / "horas_por_anio.csv")
-    cobertura(h).rename("pct_horas_con_dato").to_csv(REPORTS / "cobertura.csv")
+    t.to_csv(dir_informes() / "horas_por_anio.csv")
+    cobertura(h).rename("pct_horas_con_dato").to_csv(dir_informes() / "cobertura.csv")
 
     # Estadística y mapa solo con años de observación 24 h
     hf = h[h["fecha_utc"].dt.year >= ANIO_INICIO_FIABLE]
-    mapa_calor(hf, REPORTS / "frecuencia_mes_hora.png", ANIO_INICIO_FIABLE, hf["fecha_utc"].dt.year.max())
+    mapa_calor(hf, dir_informes() / "frecuencia_mes_hora.png", ANIO_INICIO_FIABLE, hf["fecha_utc"].dt.year.max())
 
     media = t[t["fiable"]].drop(columns="fiable").mean().round(0).astype(int)
     print(f"Media anual {ANIO_INICIO_FIABLE}-{hf['fecha_utc'].dt.year.max()} de horas por debajo de cada umbral:")
     for col, v in media.items():
         if col != "horas_observadas":
             print(f"  {col:<28} {v:>5} h")
-    print(f"Informes en {REPORTS}")
+    print(f"Informes en {dir_informes()}")
 
 
 if __name__ == "__main__":

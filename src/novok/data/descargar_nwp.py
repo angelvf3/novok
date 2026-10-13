@@ -1,4 +1,4 @@
-"""Descarga pronósticos numéricos (NWP) para LEAS desde Open-Meteo, SIN fugas de información.
+"""Descarga pronósticos numéricos (NWP) para un aeropuerto desde Open-Meteo, SIN fugas de información.
 
 Se usa la API "Previous Runs" con el sufijo _previous_day1: para cada hora t devuelve lo que el
 modelo pronosticaba ~24 h antes. Ese pronóstico ya estaba publicado cuando NOVOK emite con 1-12 h de
@@ -11,7 +11,7 @@ Modelos:
 
 Uso:
     python -m novok.data.descargar_nwp --prueba        # 1 día: qué variables tienen datos (1 min)
-    python -m novok.data.descargar_nwp                 # descarga completa (año a año, reanudable)
+    python -m novok.data.descargar_nwp [--estacion LEXJ]   # descarga completa (año a año, reanudable)
 """
 
 from __future__ import annotations
@@ -31,10 +31,10 @@ try:  # certificados del sistema (redes con inspección HTTPS)
 except ImportError:
     pass
 
-from novok.config import DATA_PROCESSED, DATA_RAW
+from novok.aeropuertos import activa, usar
+from novok.config import DATA_RAW, dir_proc
 
 URL = "https://previous-runs-api.open-meteo.com/v1/forecast"
-LAT, LON = 43.5636, -6.0346  # Aeropuerto de Asturias
 DIR_NWP = DATA_RAW / "nwp"
 FICH_VARIABLES = DIR_NWP / "variables_ok.json"
 SUFIJO = "_previous_day1"
@@ -53,8 +53,9 @@ PAUSA_S = 3
 
 
 def pedir(modelo: str, variables: list[str], inicio: str, fin: str) -> dict:
+    a = activa()
     params = {
-        "latitude": LAT, "longitude": LON, "models": modelo, "timezone": "GMT", "wind_speed_unit": "kn",
+        "latitude": a.lat, "longitude": a.lon, "models": modelo, "timezone": "GMT", "wind_speed_unit": "kn",
         "hourly": ",".join(v + SUFIJO for v in variables), "start_date": inicio, "end_date": fin,
     }
     r = requests.get(URL, params=params, timeout=120,
@@ -108,7 +109,9 @@ def descargar() -> pd.DataFrame:
             print(f"{modelo}: sin variables válidas, se omite")
             continue
         for anio in range(desde, date.today().year + 1):
-            fichero = DIR_NWP / f"{modelo}_{anio}.parquet"
+            carpeta = DIR_NWP / activa().icao
+            carpeta.mkdir(parents=True, exist_ok=True)
+            fichero = carpeta / f"{modelo}_{anio}.parquet"
             if not fichero.exists():
                 fin = min(date(anio, 12, 31), date.today())
                 try:
@@ -128,15 +131,18 @@ def descargar() -> pd.DataFrame:
         por_modelo.setdefault(clave, []).append(p)
     nwp = pd.concat([pd.concat(v).sort_index() for v in por_modelo.values()], axis=1, sort=True)
     nwp = nwp[~nwp.index.duplicated()].sort_index()
-    nwp.to_parquet(DATA_PROCESSED / "nwp.parquet")
-    print(f"\nNWP: {len(nwp):,} horas · columnas: {', '.join(nwp.columns)}")
+    dir_proc().mkdir(parents=True, exist_ok=True)
+    nwp.to_parquet(dir_proc() / "nwp.parquet")
+    print(f"\n{activa().icao} · NWP: {len(nwp):,} horas · columnas: {', '.join(nwp.columns)}")
     return nwp
 
 
 def main() -> None:
     p = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     p.add_argument("--prueba", action="store_true", help="comprueba variables con 1 día de datos")
+    p.add_argument("--estacion", help="código OACI (por defecto, el aeropuerto activo)")
     args = p.parse_args()
+    usar(args.estacion)
     prueba() if args.prueba else descargar()
 
 

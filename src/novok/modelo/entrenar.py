@@ -22,7 +22,8 @@ import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 
-from novok.config import ANIO_INICIO_FIABLE, DATA_PROCESSED, RAIZ, REPORTS
+from novok.aeropuertos import activa, cli_estacion
+from novok.config import ANIO_INICIO_FIABLE, dir_informes, dir_modelos, dir_proc
 from novok.modelo.variables import matriz, variables_base
 from novok.verificacion.baselines import NOMBRES, cargar_observado, climatologia
 from novok.verificacion.metricas import brier, brier_skill, deterministas
@@ -30,7 +31,6 @@ from novok.verificacion.metricas import brier, brier_skill, deterministas
 SUCESOS = ["niebla", "bajo_minimos_cat1"]
 HORIZONTES_H = [1, 3, 6, 12]
 ANIOS_PRUEBA = list(range(ANIO_INICIO_FIABLE + 3, 2026))  # 2020-2025: al menos 2 años de entrenamiento
-DIR_MODELOS = RAIZ / "modelos"  # se sube al repo: lo usa el briefing en directo
 
 PARAMS = {
     "objective": "binary",
@@ -51,8 +51,8 @@ def guardar_umbral(clave: str, valor: float) -> None:
     """Guarda el umbral de decisión de un modelo en modelos/umbrales.json (lo usa el briefing)."""
     import json
 
-    DIR_MODELOS.mkdir(exist_ok=True)
-    f = DIR_MODELOS / "umbrales.json"
+    dir_modelos().mkdir(parents=True, exist_ok=True)
+    f = dir_modelos() / "umbrales.json"
     datos = json.loads(f.read_text()) if f.exists() else {}
     datos[clave] = round(float(valor), 3)
     f.write_text(json.dumps(dict(sorted(datos.items())), indent=2))
@@ -87,12 +87,18 @@ def validacion_temporal(x: pd.DataFrame, y: pd.Series) -> pd.DataFrame:
         tr_in = (anio >= ANIO_INICIO_FIABLE) & (anio < Y - 1)
         va = anio == Y - 1
         te = anio == Y
+        # Aeropuertos con menos historia: se saltan los años sin datos suficientes para entrenar
+        if tr_in.sum() < 2000 or va.sum() < 1000 or te.sum() == 0 or y[tr_in].sum() < 10:
+            continue
         m = entrenar(x[tr_in], y[tr_in], x[va], y[va])
         n = max(m.best_iteration, 50)
         umbral = umbral_csi(y[va].to_numpy(bool), m.predict(x[va], num_iteration=n))
         final = entrenar(x[tr_in | va], y[tr_in | va], n_arboles=n)
         salidas.append(pd.DataFrame({"y": y[te].astype(bool), "p": final.predict(x[te]), "umbral": umbral,
                                      "anio": Y, "arboles": n}, index=x.index[te]))
+    if not salidas:
+        raise SystemExit("Datos insuficientes para validar el modelo: hacen falta al menos 3 años de METAR "
+                         f"desde {ANIO_INICIO_FIABLE} con algún caso del suceso.")
     return pd.concat(salidas)
 
 
@@ -104,10 +110,11 @@ def importancia_shap(x: pd.DataFrame, y: pd.Series, n_arboles: int) -> pd.Series
 
 
 def main() -> None:
+    cli_estacion()
     h = cargar_observado()
     base = variables_base(h)
     filas, predicciones, importancias = [], [], {}
-    DIR_MODELOS.mkdir(exist_ok=True)
+    dir_modelos().mkdir(parents=True, exist_ok=True)
 
     for suceso in SUCESOS:
         clim_t = climatologia(h, suceso)  # indexada por hora objetivo t
@@ -142,17 +149,17 @@ def main() -> None:
             n_final = int(oos["arboles"].iloc[-1])
             imp, modelo = importancia_shap(x, y, n_final)
             importancias[(suceso, L)] = imp
-            modelo.save_model(str(DIR_MODELOS / f"novok_v1_{suceso}_{L}h.txt"))
+            modelo.save_model(str(dir_modelos() / f"novok_v1_{suceso}_{L}h.txt"))
             guardar_umbral(f"v1_{suceso}_{L}h", oos["umbral"].iloc[-1])
 
     res = pd.DataFrame(filas)
-    REPORTS.mkdir(exist_ok=True)
-    res.round(4).to_csv(REPORTS / "modelo_resultados.csv", index=False)
-    pd.concat(predicciones).to_parquet(DATA_PROCESSED / "predicciones_novok.parquet")
-    pd.DataFrame(importancias).round(5).to_csv(REPORTS / "modelo_importancia_shap.csv")
+    dir_informes().mkdir(parents=True, exist_ok=True)
+    res.round(4).to_csv(dir_informes() / "modelo_resultados.csv", index=False)
+    pd.concat(predicciones).to_parquet(dir_proc() / "predicciones_novok.parquet")
+    pd.DataFrame(importancias).round(5).to_csv(dir_informes() / "modelo_importancia_shap.csv")
 
     graficos(res, pd.concat(predicciones), importancias)
-    print(f"\nInformes en {REPORTS}")
+    print(f"\nInformes en {dir_informes()}")
 
 
 # ------------------------------------------------------------------ gráficos
@@ -206,10 +213,10 @@ def graficos(res, pred, importancias) -> None:
     axes[0].set_ylabel("CSI (1 = perfecto)", color=TINTA2)
     axes[0].set_ylim(0, None)
     axes[0].legend(frameon=False, fontsize=8.5, loc="upper right")
-    fig.suptitle("LEAS · NOVOK frente a persistencia (validación por años 2020–2025)", x=0.01, ha="left",
+    fig.suptitle(f"{activa().icao} · NOVOK frente a persistencia (validación por años 2020–2025)", x=0.01, ha="left",
                  fontsize=12, color=TINTA)
     fig.tight_layout()
-    fig.savefig(REPORTS / "modelo_csi.png", dpi=150, facecolor=FONDO)
+    fig.savefig(dir_informes() / "modelo_csi.png", dpi=150, facecolor=FONDO)
     plt.close(fig)
 
     # 2) Importancia de variables (niebla, 3 h)
@@ -222,7 +229,7 @@ def graficos(res, pred, importancias) -> None:
     ax.set_xlabel("Importancia media |SHAP|", color=TINTA2)
     ax.set_title("¿Qué mira NOVOK para predecir niebla a 3 h?", loc="left", fontsize=11, color=TINTA)
     fig.tight_layout()
-    fig.savefig(REPORTS / "modelo_importancia.png", dpi=150, facecolor=FONDO)
+    fig.savefig(dir_informes() / "modelo_importancia.png", dpi=150, facecolor=FONDO)
     plt.close(fig)
 
     # 3) Fiabilidad (niebla, 3 h): ¿el 30 % ocurre el 30 % de las veces?
@@ -245,7 +252,7 @@ def graficos(res, pred, importancias) -> None:
     ax.set_ylabel("Frecuencia observada", color=TINTA2)
     ax.set_title("Fiabilidad · niebla a 3 h", loc="left", fontsize=11, color=TINTA)
     fig.tight_layout()
-    fig.savefig(REPORTS / "modelo_fiabilidad.png", dpi=150, facecolor=FONDO)
+    fig.savefig(dir_informes() / "modelo_fiabilidad.png", dpi=150, facecolor=FONDO)
     plt.close(fig)
 
 

@@ -20,9 +20,9 @@ import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 
-from novok.config import ANIO_INICIO_FIABLE, DATA_PROCESSED, REPORTS
+from novok.aeropuertos import activa, cli_estacion
+from novok.config import ANIO_INICIO_FIABLE, dir_informes, dir_modelos, dir_proc
 from novok.modelo.entrenar import (
-    DIR_MODELOS,
     FONDO,
     HORIZONTES_H,
     REJILLA,
@@ -53,7 +53,8 @@ def metricas(oos: pd.DataFrame, columna_p: str, columna_u: str | None, bs_clim: 
 
 
 def main() -> None:
-    ruta = DATA_PROCESSED / "nwp.parquet"
+    cli_estacion()
+    ruta = dir_proc() / "nwp.parquet"
     if not ruta.exists():
         raise SystemExit("Falta data/processed/nwp.parquet: ejecuta python -m novok.data.descargar_nwp")
     nwp = pd.read_parquet(ruta)
@@ -94,20 +95,20 @@ def main() -> None:
 
             imp, modelo = importancia_shap(x2, y, int(o2["arboles"].iloc[-1]))
             importancias[(suceso, L)] = imp
-            DIR_MODELOS.mkdir(exist_ok=True)
-            modelo.save_model(str(DIR_MODELOS / f"novok_v2_{suceso}_{L}h.txt"))
+            dir_modelos().mkdir(parents=True, exist_ok=True)
+            modelo.save_model(str(dir_modelos() / f"novok_v2_{suceso}_{L}h.txt"))
             guardar_umbral(f"v2_{suceso}_{L}h", o2["umbral"].iloc[-1])
             # v1 final: respaldo del briefing cuando no hay pronóstico numérico
             entrenar(x1, y, n_arboles=int(o1["arboles"].iloc[-1])).save_model(
-                str(DIR_MODELOS / f"novok_v1_{suceso}_{L}h.txt"))
+                str(dir_modelos() / f"novok_v1_{suceso}_{L}h.txt"))
             guardar_umbral(f"v1_{suceso}_{L}h", o1["umbral"].iloc[-1])
 
     res = pd.DataFrame(filas)
-    res.round(4).to_csv(REPORTS / "modelo_v2_resultados.csv", index=False)
-    pd.concat(preds).to_parquet(DATA_PROCESSED / "predicciones_novok_v2.parquet")
-    pd.DataFrame(importancias).round(5).to_csv(REPORTS / "modelo_v2_importancia_shap.csv")
+    res.round(4).to_csv(dir_informes() / "modelo_v2_resultados.csv", index=False)
+    pd.concat(preds).to_parquet(dir_proc() / "predicciones_novok_v2.parquet")
+    pd.DataFrame(importancias).round(5).to_csv(dir_informes() / "modelo_v2_importancia_shap.csv")
     grafico(res)
-    print(f"\nInformes en {REPORTS}")
+    print(f"\nInformes en {dir_informes()}")
 
 
 def grafico(res: pd.DataFrame, periodo: str = "2024-2025") -> None:
@@ -131,10 +132,10 @@ def grafico(res: pd.DataFrame, periodo: str = "2024-2025") -> None:
     axes[0].set_ylabel("CSI (1 = perfecto)", color=TINTA2)
     axes[0].set_ylim(0, None)
     axes[0].legend(frameon=False, fontsize=8.5, loc="upper right")
-    fig.suptitle(f"LEAS · Efecto de añadir el pronóstico numérico ({periodo.replace('-', '–')})", x=0.01,
+    fig.suptitle(f"{activa().icao} · Efecto de añadir el pronóstico numérico ({periodo.replace('-', '–')})", x=0.01,
                  ha="left", fontsize=12, color=TINTA)
     fig.tight_layout()
-    fig.savefig(REPORTS / "modelo_v2_csi.png", dpi=150, facecolor=FONDO)
+    fig.savefig(dir_informes() / "modelo_v2_csi.png", dpi=150, facecolor=FONDO)
     plt.close(fig)
 
 

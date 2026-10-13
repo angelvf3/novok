@@ -1,0 +1,18 @@
+{
+  "v1_bajo_minimos_cat1_12h": 0.15,
+  "v1_bajo_minimos_cat1_1h": 0.28,
+  "v1_bajo_minimos_cat1_3h": 0.17,
+  "v1_bajo_minimos_cat1_6h": 0.15,
+  "v1_niebla_12h": 0.14,
+  "v1_niebla_1h": 0.3,
+  "v1_niebla_3h": 0.18,
+  "v1_niebla_6h": 0.15,
+  "v2_bajo_minimos_cat1_12h": 0.16,
+  "v2_bajo_minimos_cat1_1h": 0.33,
+  "v2_bajo_minimos_cat1_3h": 0.26,
+  "v2_bajo_minimos_cat1_6h": 0.2,
+  "v2_niebla_12h": 0.12,
+  "v2_niebla_1h": 0.23,
+  "v2_niebla_3h": 0.2,
+  "v2_niebla_6h": 0.21
+}

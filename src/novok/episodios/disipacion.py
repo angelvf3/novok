@@ -23,27 +23,27 @@ import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 
-from novok.config import ANIO_INICIO_FIABLE, RAIZ, REPORTS
+from novok.aeropuertos import activa, cli_estacion
+from novok.config import ANIO_INICIO_FIABLE, dir_informes, dir_modelos
 from novok.episodios.episodios import TIPOS, ZONA_LOCAL, episodios
 from novok.modelo.variables import variables_base
 from novok.verificacion.baselines import cargar_observado
 
-LAT, LON = 43.5636, -6.0346
 ANIOS_PRUEBA = list(range(ANIO_INICIO_FIABLE + 3, 2026))
 CUANTILES = (0.1, 0.5, 0.9)
 PARAMS = {"learning_rate": 0.05, "num_leaves": 7, "min_child_samples": 15, "feature_fraction": 0.8,
           "bagging_fraction": 0.8, "bagging_freq": 1, "verbose": -1, "seed": 42}
 N_ARBOLES = 250
-DIR_MODELOS = RAIZ / "modelos"
 
 
 def elevacion_solar(t_utc: pd.DatetimeIndex) -> np.ndarray:
-    """Altura del sol sobre el horizonte (grados) en LEAS. Aproximación suficiente para este uso."""
+    """Altura del sol sobre el horizonte (grados) en el aeropuerto activo. Aproximación suficiente para este uso."""
     dia = t_utc.dayofyear.to_numpy()
     hora = (t_utc.hour + t_utc.minute / 60).to_numpy()
     decl = np.deg2rad(23.44) * np.sin(2 * np.pi * (284 + dia) / 365)
-    angulo_horario = np.deg2rad(15 * (hora + LON / 15 - 12))
-    lat = np.deg2rad(LAT)
+    a = activa()
+    angulo_horario = np.deg2rad(15 * (hora + a.lon / 15 - 12))
+    lat = np.deg2rad(a.lat)
     s = np.sin(lat) * np.sin(decl) + np.cos(lat) * np.cos(decl) * np.cos(angulo_horario)
     return np.rad2deg(np.arcsin(np.clip(s, -1, 1)))
 
@@ -83,12 +83,12 @@ def completar_variables(d: pd.DataFrame, base: pd.DataFrame) -> pd.DataFrame:
 
 def entrenar_final(d: pd.DataFrame) -> None:
     """Modelos de cuantiles con todos los años, para el briefing en directo."""
-    DIR_MODELOS.mkdir(exist_ok=True)
+    dir_modelos().mkdir(parents=True, exist_ok=True)
     cols = columnas_x(d)
     for q in CUANTILES:
         m = lgb.train({**PARAMS, "objective": "quantile", "alpha": q}, lgb.Dataset(d[cols], d["restantes_h"]),
                       num_boost_round=N_ARBOLES)
-        m.save_model(str(DIR_MODELOS / f"disipacion_q{int(q * 100)}.txt"))
+        m.save_model(str(dir_modelos() / f"disipacion_q{int(q * 100)}.txt"))
 
 
 def columnas_x(d: pd.DataFrame) -> list[str]:
@@ -115,7 +115,7 @@ def validacion(d: pd.DataFrame) -> pd.DataFrame:
     salidas = []
     for Y in ANIOS_PRUEBA:
         tr, te = d[(d["anio"] >= ANIO_INICIO_FIABLE) & (d["anio"] < Y)], d[d["anio"] == Y]
-        if te.empty:
+        if te.empty or len(tr) < 200:  # años sin historia suficiente detrás
             continue
         o = te[["inicio", "tipo", "transcurridas_h", "restantes_h", "anio"]].copy()
         for q in CUANTILES:
@@ -126,6 +126,8 @@ def validacion(d: pd.DataFrame) -> pd.DataFrame:
         for c in clim:
             o[f"c_{c}"] = clim[c]
         salidas.append(o)
+    if not salidas:
+        raise SystemExit("Datos insuficientes para validar el modelo de disipación (pocos episodios de niebla).")
     o = pd.concat(salidas)
     # cuantiles ordenados (q10 <= q50 <= q90)
     o[["m_q10", "m_q50", "m_q90"]] = np.sort(o[["m_q10", "m_q50", "m_q90"]].to_numpy(), axis=1)
@@ -166,7 +168,8 @@ def grafico_tipos(ep: pd.DataFrame, destino) -> None:
                edgecolor=FONDO, linewidth=2)
         abajo += tabla[tipo].to_numpy()
     ax.set_ylabel("Episodios por año", color=TINTA2)
-    ax.set_title(f"LEAS · Episodios de niebla por tipo y mes ({c['inicio'].dt.year.min()}–{c['inicio'].dt.year.max()})",
+    anios = f"{c['inicio'].dt.year.min()}–{c['inicio'].dt.year.max()}"
+    ax.set_title(f"{activa().icao} · Episodios de niebla por tipo y mes ({anios})",
                  loc="left", fontsize=11.5, color=TINTA)
     ax.grid(axis="y", color=REJILLA, lw=0.8)
     ax.set_axisbelow(True)
@@ -180,11 +183,12 @@ def grafico_tipos(ep: pd.DataFrame, destino) -> None:
 
 
 def main() -> None:
+    cli_estacion()
     h = cargar_observado()
     h = h[h.index.year >= ANIO_INICIO_FIABLE]
     ep = episodios(h)
-    REPORTS.mkdir(exist_ok=True)
-    ep.to_csv(REPORTS / "episodios_niebla.csv", index=False)
+    dir_informes().mkdir(parents=True, exist_ok=True)
+    ep.to_csv(dir_informes() / "episodios_niebla.csv", index=False)
 
     c = ep[ep["completo"]]
     n_anios = c["inicio"].dt.year.nunique()
@@ -194,17 +198,20 @@ def main() -> None:
                                         vis_min_mediana_m=("vis_min_m", "median")).reindex(TIPOS).round(1)
     print("Tipos de niebla (2017-2025):")
     print(tabla_tipos.to_string())
-    tabla_tipos.to_csv(REPORTS / "tipos_niebla.csv")
-    grafico_tipos(ep, REPORTS / "tipos_niebla.png")
+    tabla_tipos.to_csv(dir_informes() / "tipos_niebla.csv")
+    grafico_tipos(ep, dir_informes() / "tipos_niebla.png")
 
     d = filas_episodios(h, ep)
-    o = validacion(d)
-    res = resumen(o)
-    res.round(3).to_csv(REPORTS / "disipacion_resultados.csv", index=False)
     entrenar_final(d)
+    try:
+        res = resumen(validacion(d))
+    except SystemExit as e:
+        print(f"\n{e} Se guarda el modelo, pero sin métricas de validación.")
+        return
+    res.round(3).to_csv(dir_informes() / "disipacion_resultados.csv", index=False)
     print("\nDisipación · validación por años 2020-2025 (horas restantes):")
     print(res.round(2).to_string(index=False))
-    print(f"\nInformes en {REPORTS}")
+    print(f"\nInformes en {dir_informes()}")
 
 
 if __name__ == "__main__":

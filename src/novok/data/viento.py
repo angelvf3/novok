@@ -1,4 +1,4 @@
-"""Componentes del viento sobre la pista de LEAS.
+"""Componentes del viento sobre las pistas del aeropuerto activo.
 
 No es un modelo de IA: convierte un viento (observado o pronosticado) en viento
 cruzado y de cara/cola para cada cabecera, y elige la cabecera más favorable.
@@ -9,7 +9,8 @@ from __future__ import annotations
 import numpy as np
 import pandas as pd
 
-from novok.config import LIMITE_COLA_KT, LIMITE_CRUZADO_KT, PISTAS
+from novok.aeropuertos import activa
+from novok.config import LIMITE_COLA_KT, LIMITE_CRUZADO_KT
 
 
 def componentes(direccion_deg, velocidad_kt, rumbo_pista_deg):
@@ -24,20 +25,21 @@ def componentes(direccion_deg, velocidad_kt, rumbo_pista_deg):
     return np.abs(v * np.sin(ang)), v * np.cos(ang)
 
 
-def viento_en_pista(h: pd.DataFrame) -> pd.DataFrame:
+def viento_en_pista(h: pd.DataFrame, pistas: dict[str, float] | None = None) -> pd.DataFrame:
     """Añade componentes por cabecera, la cabecera favorable y avisos de referencia.
 
     Usa viento medio y, si existe, la racha (lo que siente el avión en el peor momento).
     Con viento en calma (0 kt) las componentes son 0 aunque falte la dirección.
     """
+    pistas = pistas or activa().rumbos
     h = h.copy()
     calma = h["viento_kt"] == 0
-    for cab, rumbo in PISTAS.items():
+    for cab, rumbo in pistas.items():
         cru, cara = componentes(h["viento_dir"], h["viento_kt"], rumbo)
         h[f"cruzado_kt_{cab}"] = np.where(calma, 0.0, cru)
         h[f"cara_kt_{cab}"] = np.where(calma, 0.0, cara)
 
-    cabs = list(PISTAS)
+    cabs = list(pistas)
     caras = h[[f"cara_kt_{c}" for c in cabs]].to_numpy()
     sin_dato = np.isnan(caras).all(axis=1)
     idx = np.argmax(np.nan_to_num(caras, nan=-np.inf), axis=1)

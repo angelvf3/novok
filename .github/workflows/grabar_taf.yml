@@ -1,6 +1,6 @@
-name: Grabar TAF de LEAS
+name: Grabar TAF de la red
 
-# Guarda el TAF vigente cada 30 min en la rama "datos-vivo" (no en main, para no chocar con tus commits).
+# Guarda los TAF vigentes de todos los aeropuertos de la red cada 30 min en la rama "datos-vivo" (no en main, para no chocar con tus commits).
 # Para traerlos a tu copia local:
 #   git fetch origin datos-vivo
 #   git checkout origin/datos-vivo -- data/vivo

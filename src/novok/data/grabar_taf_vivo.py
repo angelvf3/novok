@@ -1,7 +1,7 @@
-"""Graba el TAF vigente de LEAS desde aviationweather.gov (servicio oficial de la NOAA).
+"""Graba los TAF vigentes de la red de NOVOK desde aviationweather.gov (servicio oficial de la NOAA).
 
 Plan B al histórico de Ogimet: guarda cada TAF nuevo (y cada enmienda) en
-data/vivo/taf_LEAS.txt con la misma forma que usa el resto del proyecto:
+data/vivo/taf_<OACI>.txt (un fichero por aeropuerto) con la misma forma que usa el resto del proyecto:
 
     202610071030 TAF AMD LEAS 071013Z 0710/0809 30009KT 9999 ... =
 
@@ -10,12 +10,14 @@ el fichero en la rama datos-vivo.
 Solo añade líneas si el TAF es nuevo, así que se puede lanzar tantas veces como se quiera.
 
 Uso:
-    python -m novok.data.grabar_taf_vivo
+    python -m novok.data.grabar_taf_vivo                 # toda la red (una sola petición)
+    python -m novok.data.grabar_taf_vivo --estaciones LEAS
 """
 
 from __future__ import annotations
 
 import argparse
+import re
 from datetime import UTC, datetime
 from pathlib import Path
 
@@ -28,14 +30,17 @@ try:  # certificados del sistema (redes con inspección HTTPS)
 except ImportError:
     pass
 
-from novok.config import ESTACION, RAIZ
+from novok.aeropuertos import RED
+from novok.config import RAIZ
 
 AWC_URL = "https://aviationweather.gov/api/data/taf"
 DIR_VIVO = RAIZ / "data" / "vivo"
 
 
-def tafs_actuales(estacion: str = ESTACION) -> list[str]:
-    """TAF vigentes de la estación, cada uno en una línea y terminado en '='."""
+def tafs_actuales(estacion: str | list[str] = "LEAS") -> list[str]:
+    """TAF vigentes de una o varias estaciones, cada uno en una línea y terminado en '='."""
+    if not isinstance(estacion, str):
+        estacion = ",".join(estacion)
     r = requests.get(AWC_URL, params={"ids": estacion, "format": "raw"}, timeout=30,
                      headers={"User-Agent": "novok (proyecto educativo de verificacion de TAF)"})
     r.raise_for_status()
@@ -49,6 +54,16 @@ def tafs_actuales(estacion: str = ESTACION) -> list[str]:
     if actual:
         tafs.append(actual)
     return [" ".join(" ".join(t).split()).rstrip("=") + "=" for t in tafs]
+
+
+def separar(tafs: list[str]) -> dict[str, list[str]]:
+    """Agrupa los TAF por estación (el código va tras "TAF", "TAF AMD" o "TAF COR")."""
+    salida: dict[str, list[str]] = {}
+    for t in tafs:
+        m = re.match(r"TAF(?:\s+(?:AMD|COR))*\s+([A-Z]{4})\b", t)
+        if m:
+            salida.setdefault(m.group(1), []).append(t)
+    return salida
 
 
 def grabar(tafs: list[str], fichero: Path, ahora: datetime | None = None) -> int:
@@ -68,10 +83,15 @@ def grabar(tafs: list[str], fichero: Path, ahora: datetime | None = None) -> int
 
 def main() -> None:
     p = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
-    p.add_argument("--dir", default=str(DIR_VIVO), help="carpeta donde se guarda taf_LEAS.txt")
-    fichero = Path(p.parse_args().dir) / f"taf_{ESTACION}.txt"
-    n = grabar(tafs_actuales(), fichero)
-    print(f"TAF nuevos: {n} -> {fichero}")
+    p.add_argument("--dir", default=str(DIR_VIVO), help="carpeta donde se guardan los taf_<OACI>.txt")
+    p.add_argument("--estaciones", default=",".join(RED), help="códigos OACI separados por comas")
+    args = p.parse_args()
+    estaciones = [e.strip().upper() for e in args.estaciones.split(",") if e.strip()]
+    por_estacion = separar(tafs_actuales(estaciones))
+    for est in estaciones:
+        fichero = Path(args.dir) / f"taf_{est}.txt"
+        n = grabar(por_estacion.get(est, []), fichero)
+        print(f"{est}: {n} TAF nuevos")
 
 
 if __name__ == "__main__":

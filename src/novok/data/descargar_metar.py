@@ -25,7 +25,8 @@ try:  # usa los certificados del sistema (necesario tras proxies corporativos co
 except ImportError:
     pass
 
-from novok.config import DATA_RAW, ESTACION, IEM_URL
+from novok.aeropuertos import activa
+from novok.config import DATA_RAW, IEM_URL
 
 PAUSA_ENTRE_PETICIONES_S = 5  # cortesía con el servidor de IEM
 REINTENTOS = 3
@@ -80,11 +81,12 @@ def descargar_anio(estacion: str, anio: int, destino: Path, forzar: bool = False
 
 def main() -> None:
     p = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
-    p.add_argument("--estacion", default=ESTACION)
+    p.add_argument("--estacion", help="código OACI (por defecto, el aeropuerto activo)")
     p.add_argument("--inicio", type=int, default=2010)
     p.add_argument("--fin", type=int, default=date.today().year)
     p.add_argument("--forzar", action="store_true", help="vuelve a descargar aunque exista")
     args = p.parse_args()
+    args.estacion = (args.estacion or activa().icao).upper()
 
     for anio in range(args.inicio, args.fin + 1):
         descargar_anio(args.estacion, anio, DATA_RAW, args.forzar)

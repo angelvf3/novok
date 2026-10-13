@@ -1,6 +1,6 @@
 name: Publicar briefing
 
-# Cada 30 min: genera el briefing con datos en directo y lo publica en GitHub Pages.
+# Cada 30 min: genera los briefings de toda la red con datos en directo y los publica en GitHub Pages.
 # Requiere una vez: Settings → Pages → Source: "GitHub Actions".
 on:
   schedule:
@@ -8,7 +8,7 @@ on:
   workflow_dispatch:
   push:
     branches: [main]
-    paths: ["web/**", "src/novok/app/**", "modelos/**"]
+    paths: ["web/**", "src/novok/**", "modelos/**", "config/**"]
 
 permissions:
   contents: read
@@ -33,11 +33,11 @@ jobs:
           cache: pip
       - name: Instalar
         run: pip install -e .
-      - name: Generar briefing
+      - name: Generar briefings de la red
         run: |
           mkdir -p _site
-          cp web/index.html web/novok-logo.png _site/
-          python -m novok.app.briefing --salida _site/briefing.json
+          cp web/index.html web/aeropuerto.html web/novok-logo.png _site/
+          python -m novok.red briefing --salida _site/datos
       - uses: actions/upload-pages-artifact@v3
         with:
           path: _site

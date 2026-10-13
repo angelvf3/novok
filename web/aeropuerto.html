@@ -1,0 +1,867 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>NOVOK · Briefing de aeropuerto</title>
+<meta name="description" content="Probabilidad de niebla y de condiciones bajo mínimos en un aeropuerto de la red de NOVOK para las próximas 12 horas, frente al TAF de AEMET. Prototipo educativo.">
+<meta name="theme-color" content="#0b2545">
+<link rel="icon" href="novok-logo.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Public+Sans:wght@400;500;600;700;800&family=Roboto+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.css">
+<script src="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.js"></script>
+<style>
+  /* Lenguaje visual de las herramientas meteorológicas aeronáuticas:
+     categorías de vuelo con sus colores estándar, tablas densas, avisos en banda. */
+  :root {
+    color-scheme: light;
+    --azul-noche: #0b2545;
+    --azul: #005ea2;
+    --azul-claro: #d9e8f6;
+    --fondo: #f2f4f7;
+    --blanco: #ffffff;
+    --tinta: #1b1b1b;
+    --tinta-2: #454545;
+    --tinta-3: #71767a;
+    --borde: #dbe1e8;
+    --borde-suave: #e9edf1;
+    /* categorías de vuelo */
+    --vfr: #2e8540;
+    --mvfr: #0071bc;
+    --ifr: #d83933;
+    --lifr: #b5179e;
+    /* riesgo */
+    --alto: #d83933;
+    --moderado: #c05600;
+    --bajo: #4d8055;
+    --niebla: #5c6b7a;
+  }
+  * { box-sizing: border-box; }
+  html { -webkit-text-size-adjust: 100%; }
+  body { margin: 0; background: var(--fondo); color: var(--tinta); font: 400 15px/1.5 "Public Sans", "Segoe UI", system-ui, sans-serif; }
+  a { color: var(--azul); }
+  :focus-visible { outline: 3px solid #2491ff; outline-offset: 2px; }
+  .tab { font-variant-numeric: tabular-nums; }
+  .mono { font-family: "Roboto Mono", ui-monospace, monospace; }
+  .gris { color: var(--tinta-3); }
+  .ancho { max-width: 1200px; margin: 0 auto; padding: 0 20px; }
+
+  /* Barra superior */
+  .cabecera { background: var(--azul-noche); color: #fff; }
+  .cabecera .ancho { display: flex; align-items: center; gap: 20px; min-height: 60px; flex-wrap: wrap; padding-top: 8px; padding-bottom: 8px; }
+  .logo { display: flex; align-items: center; gap: 12px; margin-right: auto; }
+  .logo img { height: 30px; background: #fff; border-radius: 3px; padding: 3px 7px; }
+  .logo span { font-weight: 600; font-size: 14px; color: #c5d4e6; border-left: 1px solid #2c4a70; padding-left: 12px; line-height: 1.25; }
+  .relojes { display: flex; gap: 22px; }
+  .relojes div { line-height: 1.1; }
+  .relojes b { display: block; font-size: 20px; font-weight: 700; letter-spacing: .02em; }
+  .relojes small { font-size: 11px; color: #9fb3cc; font-weight: 600; }
+
+  /* Franja de estación */
+  .estacion { background: var(--blanco); border-bottom: 1px solid var(--borde); }
+  .estacion .ancho { display: flex; align-items: center; gap: 16px; flex-wrap: wrap; padding-top: 14px; padding-bottom: 14px; }
+  .estacion h1 { margin: 0; font-size: 30px; font-weight: 800; letter-spacing: .01em; line-height: 1; }
+  .estacion .nombre { color: var(--tinta-2); font-size: 15px; line-height: 1.3; margin-right: auto; }
+  .estacion .nombre b { display: block; color: var(--tinta); }
+  .modo { font-size: 13px; color: var(--tinta-2); text-align: right; line-height: 1.35; }
+  .modo b { color: var(--tinta); }
+  .punto { display: inline-block; width: 8px; height: 8px; border-radius: 50%; background: var(--vfr); margin-right: 6px; vertical-align: 1px; }
+  .punto.rep { background: var(--azul); }
+  .punto.mal { background: var(--ifr); }
+
+  .cat { display: inline-block; min-width: 54px; text-align: center; padding: 3px 9px; border-radius: 6px; color: #fff; font-weight: 800; font-size: 14px; letter-spacing: .04em; }
+  .cat.grande { font-size: 22px; padding: 6px 14px; min-width: 84px; }
+  .cat.VFR { background: var(--vfr); } .cat.MVFR { background: var(--mvfr); } .cat.IFR { background: var(--ifr); } .cat.LIFR { background: var(--lifr); }
+  .cat.NA { background: #a9aeb1; }
+
+  /* Banda de aviso */
+  .aviso-banda { color: #fff; }
+  .aviso-banda .ancho { display: flex; gap: 14px; align-items: flex-start; padding-top: 14px; padding-bottom: 14px; }
+  .aviso-banda svg { flex: none; margin-top: 2px; }
+  .aviso-banda b { display: block; font-size: 19px; line-height: 1.25; }
+  .aviso-banda p { margin: 4px 0 0; font-size: 14.5px; opacity: .95; max-width: 95ch; }
+  .aviso-banda.alto { background: #b3261e; }
+  .aviso-banda.moderado { background: #a34a00; }
+  .aviso-banda.bajo { background: #2a5c37; }
+  .aviso-banda.sin { background: #5c5c5c; }
+
+  main { padding-top: 28px; padding-bottom: 40px; }
+  .rejilla-2 { display: grid; grid-template-columns: minmax(0, 5fr) minmax(0, 7fr); gap: 20px; margin-bottom: 20px; }
+  .rejilla-3 { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 20px; margin-bottom: 20px; }
+
+  /* Secciones: caja blanca con cabecera en banda */
+  .caja { background: var(--blanco); border: 1px solid var(--borde); border-radius: 12px; overflow: hidden; min-width: 0; box-shadow: 0 1px 2px rgb(16 24 40 / .04), 0 8px 24px -16px rgb(16 24 40 / .18); }
+  .caja > h2 { margin: 0; padding: 13px 16px; font-size: 15px; font-weight: 700; background: var(--blanco); border-bottom: 1px solid var(--borde-suave); display: flex; justify-content: space-between; gap: 10px; align-items: baseline; }
+  .caja > h2 span { font-weight: 400; color: var(--tinta-3); font-size: 13px; }
+  .cuerpo { padding: 14px; }
+
+  /* METAR descodificado */
+  .bruto { padding: 12px 16px; background: #f8fafc; border-bottom: 1px solid var(--borde-suave); font-size: 13.5px; line-height: 1.55; word-break: break-word; }
+  table.datos { width: 100%; border-collapse: collapse; font-size: 14.5px; }
+  table.datos th { text-align: left; font-weight: 500; color: var(--tinta-2); width: 42%; padding: 8px 14px; border-bottom: 1px solid var(--borde-suave); vertical-align: top; }
+  table.datos td { padding: 8px 14px; border-bottom: 1px solid var(--borde-suave); font-weight: 600; }
+  table.datos tr:last-child th, table.datos tr:last-child td { border-bottom: 0; }
+  table.datos td small { display: block; font-weight: 400; color: var(--tinta-3); font-size: 12.5px; }
+
+  /* Tabla de pronóstico */
+  .desliza { overflow-x: auto; }
+  table.pron { width: 100%; border-collapse: collapse; min-width: 560px; }
+  table.pron th, table.pron td { padding: 10px 12px; border-bottom: 1px solid var(--borde-suave); text-align: left; vertical-align: middle; }
+  table.pron thead th { background: #f8fafc; font-size: 13px; color: var(--tinta-2); font-weight: 500; border-bottom: 1px solid var(--borde); }
+  table.pron thead th b { display: block; font-size: 17px; color: var(--tinta); font-weight: 800; }
+  table.pron tbody th { font-size: 13.5px; font-weight: 600; width: 26%; }
+  table.pron tbody th small { display: block; font-weight: 400; color: var(--tinta-3); font-size: 12px; }
+  .prob { display: flex; align-items: baseline; gap: 6px; white-space: nowrap; }
+  .prob b { font-size: 22px; font-weight: 800; line-height: 1; }
+  .prob span { font-size: 12px; font-weight: 700; }
+  .barrita { height: 6px; border-radius: 3px; overflow: hidden; background: var(--borde-suave); margin-top: 6px; }
+  .barrita i { display: block; height: 100%; border-radius: 3px; }
+  .marca-aviso { display: inline-flex; align-items: center; gap: 4px; margin-top: 6px; font-size: 11.5px; font-weight: 700; color: var(--alto); }
+  .taf-celda { font-size: 13px; color: var(--tinta-2); }
+  .taf-celda .cat { margin-bottom: 4px; }
+  .difiere { color: var(--alto); font-weight: 700; }
+  .pie-tabla { padding: 10px 14px; font-size: 12.5px; color: var(--tinta-3); border-top: 1px solid var(--borde-suave); }
+  .resumen-lista { margin: 0; padding: 12px 14px 14px 32px; font-size: 14px; color: var(--tinta-2); }
+  .resumen-lista li { margin: 3px 0; }
+
+  /* Línea de tiempo */
+  .linea-tiempo svg { display: block; width: 100%; height: auto; }
+  .linea-tiempo svg text { font-family: "Public Sans", sans-serif; }
+  .leyenda { display: flex; flex-wrap: wrap; gap: 6px 18px; padding: 10px 14px; border-top: 1px solid var(--borde-suave); font-size: 12.5px; color: var(--tinta-2); }
+  .leyenda span { display: inline-flex; align-items: center; gap: 6px; }
+  .leyenda i { display: inline-block; width: 14px; height: 10px; }
+
+  /* Detalles */
+  .cifra { font-size: 36px; font-weight: 800; line-height: 1; margin: 4px 0; }
+  .cifra small { font-size: 15px; font-weight: 500; color: var(--tinta-2); margin-left: 6px; }
+  .intervalo { position: relative; height: 26px; margin: 16px 0 4px; background: repeating-linear-gradient(90deg, var(--borde-suave) 0 1px, transparent 1px 25%); border-bottom: 2px solid var(--borde); }
+  .intervalo .rango { position: absolute; top: 6px; bottom: 6px; background: var(--azul-claro); border: 1px solid var(--azul); }
+  .intervalo .med { position: absolute; top: 0; bottom: -2px; width: 3px; margin-left: -1.5px; background: var(--azul-noche); }
+  .ejes { display: flex; justify-content: space-between; font-size: 12px; color: var(--tinta-3); }
+  .viento { display: grid; grid-template-columns: 136px minmax(0, 1fr); gap: 12px; align-items: center; }
+  .viento svg { width: 136px; height: 136px; }
+  .viento table.datos th, .viento table.datos td { padding: 5px 0; }
+  .viento table.datos th { width: auto; }
+  .cruzado { margin-top: 12px; font-size: 12px; color: var(--tinta-3); }
+  ul.checks { list-style: none; margin: 0; padding: 0; }
+  ul.checks li { display: grid; grid-template-columns: 20px minmax(0, 1fr); gap: 8px; padding: 7px 0; border-bottom: 1px solid var(--borde-suave); font-size: 14px; }
+  ul.checks li:last-child { border-bottom: 0; }
+  ul.checks small { display: block; color: var(--tinta-3); font-size: 12.5px; }
+  .ic { width: 18px; height: 18px; border-radius: 50%; color: #fff; font-size: 11px; font-weight: 800; display: grid; place-items: center; margin-top: 2px; }
+  .ic.ok { background: var(--vfr); } .ic.med { background: var(--moderado); } .ic.no { background: var(--ifr); }
+
+  /* Visor 3D */
+  .visor { position: relative; height: 560px; border-radius: 14px; overflow: hidden; background: #1c2a3a; margin-bottom: 20px;
+    box-shadow: 0 20px 40px -24px rgb(11 37 69 / .55); }
+  #mapa3d { position: absolute; inset: 0; }
+  .hud { position: absolute; z-index: 2; color: #fff; background: rgb(11 25 45 / .72); backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px);
+    border: 1px solid rgb(255 255 255 / .14); border-radius: 12px; }
+  .hud-info { top: 14px; left: 14px; padding: 14px 16px; width: 290px; }
+  .hud-info .tit { font-size: 12px; color: #a9bdd6; font-weight: 600; }
+  .hud-info .esc { font-size: 26px; font-weight: 800; line-height: 1.1; margin: 2px 0 2px; display: flex; align-items: center; gap: 10px; }
+  .hud-info .hora { font-size: 13px; color: #c9d6e6; }
+  .hud-info dl { display: grid; grid-template-columns: auto 1fr; gap: 4px 12px; margin: 12px 0 0; font-size: 13.5px; }
+  .hud-info dt { color: #a9bdd6; }
+  .hud-info dd { margin: 0; font-weight: 700; font-variant-numeric: tabular-nums; }
+  .medidor { height: 6px; border-radius: 3px; background: rgb(255 255 255 / .15); margin-top: 10px; overflow: hidden; }
+  .medidor i { display: block; height: 100%; background: linear-gradient(90deg, #e8eef5, #ffffff); border-radius: 3px; transition: width .6s; }
+  .hud-tiempo { left: 50%; bottom: 16px; transform: translateX(-50%); display: flex; align-items: center; gap: 4px; padding: 5px; }
+  .hud-tiempo button, .hud-vistas button { font: 600 13.5px/1 "Public Sans", sans-serif; color: #dbe6f3; background: transparent; border: 0; border-radius: 8px; padding: 9px 13px; cursor: pointer; white-space: nowrap; }
+  .hud-tiempo button:hover, .hud-vistas button:hover { background: rgb(255 255 255 / .1); }
+  .hud-tiempo button[aria-pressed="true"], .hud-vistas button[aria-pressed="true"] { background: #fff; color: var(--azul-noche); }
+  .hud-tiempo .play { width: 36px; padding: 9px 0; font-size: 12px; }
+  .hud-vistas { top: 14px; right: 54px; display: flex; flex-direction: column; gap: 2px; padding: 5px; }
+  .visor .nota-visor { position: absolute; z-index: 2; left: 14px; bottom: 16px; max-width: 280px; font-size: 11.5px; line-height: 1.35; color: #d5e0ec; text-shadow: 0 1px 2px rgb(0 0 0 / .6); }
+  .visor .sin-3d { position: absolute; inset: 0; display: grid; place-items: center; text-align: center; color: #c9d6e6; padding: 30px; }
+  .marca-pista { font: 800 12px/1 "Public Sans", sans-serif; color: #fff; background: var(--azul-noche); border: 1.5px solid #fff; border-radius: 5px; padding: 4px 6px; box-shadow: 0 2px 6px rgb(0 0 0 / .35); }
+  .marca-pista.leas { background: #fff; color: var(--azul-noche); }
+  .maplibregl-ctrl-attrib { font-size: 10.5px; }
+  .seccion-tit { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; margin: 0 0 10px; }
+  .seccion-tit h2 { margin: 0; font-size: 18px; font-weight: 800; }
+  .seccion-tit span { color: var(--tinta-3); font-size: 13px; }
+
+  .bloqueo { border-left: 4px solid var(--ifr); }
+  .pie { border-top: 1px solid var(--borde); background: var(--blanco); color: var(--tinta-2); font-size: 13px; }
+  .pie .ancho { padding-top: 18px; padding-bottom: 26px; }
+  .pie p { margin: 0 0 8px; max-width: 100ch; }
+  .pie strong { color: var(--tinta); }
+
+  @media (max-width: 960px) {
+    .rejilla-2 { grid-template-columns: 1fr; }
+    .rejilla-3 { grid-template-columns: 1fr 1fr; }
+    .rejilla-3 > :last-child { grid-column: 1 / -1; }
+  }
+  table.pron-movil { display: none; width: 100%; border-collapse: collapse; }
+  table.pron-movil th, table.pron-movil td { padding: 9px 8px; border-bottom: 1px solid var(--borde-suave); text-align: left; vertical-align: top; }
+  table.pron-movil thead th { background: #f6f8fa; font-size: 12px; font-weight: 600; color: var(--tinta-2); border-bottom: 1px solid var(--borde); }
+  table.pron-movil tbody th b { display: block; font-size: 16px; font-weight: 800; }
+  table.pron-movil tbody th span { font-size: 12px; color: var(--tinta-3); font-weight: 400; }
+  table.pron-movil .prob { flex-wrap: wrap; gap: 0 4px; }
+  table.pron-movil .prob b { font-size: 19px; }
+  table.pron-movil .prob span { font-size: 10.5px; }
+  table.pron-movil .cat { min-width: 0; font-size: 12px; padding: 2px 6px; }
+  @media (max-width: 760px) {
+    .visor { height: 620px; }
+    .hud-info { width: auto; right: 54px; left: 10px; top: 10px; padding: 10px 12px; }
+    .hud-info .esc { font-size: 22px; }
+    .hud-info dl { grid-template-columns: auto 1fr auto 1fr; font-size: 12.5px; }
+    .hud-vistas { top: auto; bottom: 70px; left: 10px; right: 10px; flex-direction: row; justify-content: space-between; }
+    .hud-vistas button { padding: 8px 6px; font-size: 12px; flex: 1; }
+    .hud-tiempo { left: 10px; right: 10px; bottom: 12px; transform: none; justify-content: space-between; }
+    .seccion-tit { flex-direction: column; gap: 2px; }
+    .hud-tiempo button { padding: 9px 8px; }
+    .visor .nota-visor { display: none; }
+  }
+  @media (max-width: 620px) {
+    table.pron-movil { display: table; }
+    .desliza { display: none; }
+    .ancho { padding: 0 12px; }
+    .rejilla-3 { grid-template-columns: 1fr; }
+    .relojes { gap: 14px; }
+    .relojes b { font-size: 17px; }
+    .logo span { display: none; }
+    .estacion h1 { font-size: 26px; }
+    .modo { text-align: left; width: 100%; }
+    .aviso-banda b { font-size: 17px; }
+  }
+</style>
+</head>
+<body>
+<header class="cabecera">
+  <div class="ancho">
+    <div class="logo"><img src="novok-logo.png" alt="NOVOK"><span>Niebla y techo bajo<br><a href="./" style="color:inherit">← Red del norte</a></span></div>
+    <div class="relojes" aria-label="Hora actual">
+      <div><b class="tab" id="reloj-z">--:--:--Z</b><small>UTC</small></div>
+      <div><b class="tab" id="reloj-l">--:--</b><small>HORA LOCAL</small></div>
+    </div>
+  </div>
+</header>
+
+<section class="estacion">
+  <div class="ancho">
+    <h1 id="icao">····</h1>
+    <span id="cat-actual"></span>
+    <div class="nombre" id="nombre-aero"><b>Cargando…</b>&nbsp;</div>
+    <div class="modo" id="modo">Cargando…</div>
+  </div>
+</section>
+
+<div id="banda"></div>
+<main class="ancho">
+  <section aria-labelledby="t-visor">
+    <div class="seccion-tit"><h2 id="t-visor">Simulación 3D del aeropuerto</h2><span>Relieve real; arrastra para girar, Ctrl + rueda para acercar</span></div>
+    <div class="visor" id="visor">
+      <div id="mapa3d"></div>
+      <div class="hud hud-info" id="hud-info" aria-live="polite"></div>
+      <div class="hud hud-vistas" role="group" aria-label="Punto de vista">
+      </div>
+      <div class="hud hud-tiempo" id="hud-tiempo" role="group" aria-label="Momento"></div>
+      <p class="nota-visor">Ilustración de la previsión, no una simulación física: la cantidad de niebla dibujada sigue la visibilidad observada (ahora) o la probabilidad de niebla de NOVOK (previsión), y se desplaza con el viento.</p>
+    </div>
+  </section>
+  <div id="contenido" aria-live="polite"></div>
+</main>
+
+<footer class="pie">
+  <div class="ancho">
+    <p><strong>Prototipo educativo de apoyo a la decisión, complementario al TAF de AEMET. No apto para decisiones de vuelo ni para uso operativo.</strong></p>
+    <p>NOVOK predice niebla y techo bajo con modelos entrenados con los METAR de cada aeropuerto (2017–2025) y pronósticos numéricos emitidos 24 h antes.
+      Bajo mínimos tipo CAT I: visibilidad &lt; 550 m o techo ≤ 200 ft (aproximación; los mínimos reales dependen del procedimiento publicado).
+      Categorías de vuelo según los criterios de la FAA: LIFR techo &lt; 500 ft o visibilidad &lt; 1600 m; IFR &lt; 1000 ft o &lt; 4800 m; MVFR ≤ 3000 ft o ≤ 8000 m.
+      Código, método y verificación: <a href="https://github.com/Gelan03/novok">github.com/Gelan03/novok</a>.</p>
+  </div>
+</footer>
+
+<script>
+const ZONA = "Europe/Madrid";
+const ms = iso => new Date(iso).getTime();
+const fmtZ = iso => iso ? new Date(iso).toISOString().slice(11, 16) + "Z" : "—";
+const fmtHZ = iso => iso ? new Date(iso).toISOString().slice(11, 13) + "Z" : "—";
+const fmtL = iso => iso ? new Date(iso).toLocaleTimeString("es-ES", { timeZone: ZONA, hour: "2-digit", minute: "2-digit" }) : "—";
+const fmtDia = iso => iso ? `día ${new Date(iso).getUTCDate()} a las ${fmtZ(iso)}` : "—";
+const pct = p => (p == null ? "—" : Math.round(p * 100) + " %");
+const esc = s => String(s ?? "").replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+const visTxt = v => v == null ? "—" : v >= 10000 ? "10 km o más" : v >= 5000 ? (v / 1000).toFixed(0) + " km" : Math.round(v) + " m";
+const NIVEL = { alto: "ALTO", moderado: "MODERADO", bajo: "BAJO" };
+const COLOR_NIVEL = { alto: "var(--alto)", moderado: "var(--moderado)", bajo: "var(--bajo)" };
+const COLOR_CAT = { VFR: "var(--vfr)", MVFR: "var(--mvfr)", IFR: "var(--ifr)", LIFR: "var(--lifr)" };
+
+// Categoría de vuelo (criterios FAA) a partir de visibilidad (m) y techo (ft)
+function categoria(vis, techo) {
+  if (vis == null) return null;
+  const t = techo ?? Infinity;
+  if (t < 500 || vis < 1600) return "LIFR";
+  if (t < 1000 || vis < 4800) return "IFR";
+  if (t <= 3000 || vis <= 8000) return "MVFR";
+  return "VFR";
+}
+const pastilla = (c, grande) => `<span class="cat ${c || "NA"}${grande ? " grande" : ""}">${c || "—"}</span>`;
+
+function reloj() {
+  const d = new Date();
+  document.getElementById("reloj-z").textContent = d.toISOString().slice(11, 19) + "Z";
+  document.getElementById("reloj-l").textContent = d.toLocaleTimeString("es-ES", { timeZone: ZONA, hour: "2-digit", minute: "2-digit" });
+}
+reloj(); setInterval(reloj, 1000);
+
+const TRIANGULO = `<svg width="28" height="26" viewBox="0 0 28 26" aria-hidden="true"><path d="M14 1.5 27 24.5H1z" fill="none" stroke="#fff" stroke-width="2.4" stroke-linejoin="round"/><path d="M14 9v7.5" stroke="#fff" stroke-width="2.6" stroke-linecap="round"/><circle cx="14" cy="20.3" r="1.6" fill="#fff"/></svg>`;
+
+/* ---------- banda de aviso ---------- */
+function banda(b) {
+  const fr = b.resumen || [];
+  const tit = fr.find(f => /^(Riesgo|Sin riesgo|Sin pronóstico)/.test(f)) || "";
+  const pr = b.pronostico || [];
+  const peor = pr.reduce((m, p) => Math.max(m, { bajo: 0, moderado: 1, alto: 2 }[p.bajo_minimos.nivel]), -1);
+  const clase = !b.calidad?.pronostico_emitido ? "sin" : ["bajo", "moderado", "alto"][peor] || "bajo";
+  const titulo = clase === "alto" ? "Aviso de bajo mínimos" : clase === "moderado" ? "Vigilancia de niebla" : clase === "sin" ? "Sin pronóstico" : "Sin riesgo significativo";
+  return `<section class="aviso-banda ${clase}" role="${clase === "alto" ? "alert" : "status"}"><div class="ancho">${TRIANGULO}
+    <div><b>${titulo}</b><p>${esc(tit)}</p></div></div></section>`;
+}
+
+/* ---------- condiciones actuales ---------- */
+function actuales(b) {
+  const a = b.ahora;
+  if (!a) return `<section class="caja"><h2>Condiciones actuales</h2><div class="cuerpo">Sin observación reciente.</div></section>`;
+  const v = b.viento_pista?.ahora || {};
+  const dif = a.temp_c != null && a.rocio_c != null ? a.temp_c - a.rocio_c : null;
+  const viento = a.viento_kt === 0 ? "Calma" : `${a.viento_dir != null ? String(Math.round(a.viento_dir)).padStart(3, "0") + "°" : "Variable"} a ${a.viento_kt} kt${a.racha_kt ? `, rachas de ${a.racha_kt} kt` : ""}`;
+  const estado = a.bajo_minimos ? `<b style="color:var(--lifr)">Bajo mínimos CAT I</b>` : a.niebla ? `<b style="color:var(--ifr)">Niebla</b>` : "Sin niebla";
+  return `<section class="caja" aria-labelledby="t-act">
+    <h2 id="t-act">Condiciones actuales <span>METAR ${fmtZ(b.calidad?.metar_ultimo_utc)}</span></h2>
+    <div class="bruto mono">${esc(a.metar)}</div>
+    <table class="datos"><tbody>
+      <tr><th>Categoría de vuelo</th><td>${pastilla(categoria(a.vis_m, a.techo_ft))}</td></tr>
+      <tr><th>Visibilidad</th><td class="tab">${visTxt(a.vis_m)}${a.rvr_min_m ? `<small>RVR mínimo ${Math.round(a.rvr_min_m)} m</small>` : ""}</td></tr>
+      <tr><th>Techo</th><td class="tab">${a.techo_ft == null ? "Sin techo" : Math.round(a.techo_ft) + " ft"}</td></tr>
+      <tr><th>Fenómeno</th><td>${estado}</td></tr>
+      <tr><th>Temperatura / rocío</th><td class="tab">${a.temp_c ?? "—"} / ${a.rocio_c ?? "—"} °C${dif != null ? `<small>diferencia ${dif.toFixed(0)} °C${dif <= 1 ? ", aire saturado" : dif <= 3 ? ", casi saturado" : ""}</small>` : ""}</td></tr>
+      <tr><th>Viento</th><td class="tab">${viento}<small>pista favorable ${v.pista_favorable ?? "—"}, cruzado ${v.cruzado_kt ?? "—"} kt</small></td></tr>
+    </tbody></table>
+  </section>`;
+}
+
+/* ---------- tabla de pronóstico ---------- */
+function celdaProb(pr) {
+  const c = COLOR_NIVEL[pr.nivel];
+  return `<td><div class="prob"><b class="tab">${pct(pr.p)}</b><span style="color:${c}">${NIVEL[pr.nivel]}</span></div>
+    <div class="barrita"><i style="width:${Math.max(2, pr.p * 100)}%;background:${c}"></i></div>
+    ${pr.alerta ? `<div class="marca-aviso" title="Supera el umbral de aviso del modelo (${pct(pr.umbral)})">▲ AVISO</div>` : ""}</td>`;
+}
+function celdaTaf(p) {
+  const t = p.taf;
+  if (!t) return `<td class="taf-celda gris">Sin TAF</td>`;
+  const c = categoria(t.vis_predominante_m, t.techo_predominante_ft);
+  const tempo = t.vis_peor_m != null && t.vis_peor_m < t.vis_predominante_m ? `<br>temporal ${visTxt(t.vis_peor_m)}` : "";
+  const dif = t.p_bajo_minimos != null && Math.abs(p.bajo_minimos.p - t.p_bajo_minimos) >= .3 ? `<br><span class="difiere">Discrepa de NOVOK</span>` : "";
+  return `<td class="taf-celda">${pastilla(c)}<br>${visTxt(t.vis_predominante_m)}${t.techo_predominante_ft != null ? `, techo ${t.techo_predominante_ft} ft` : ""}${tempo}${dif}</td>`;
+}
+function pronostico(b) {
+  const pr = b.pronostico;
+  const resto = (b.resumen || []).filter(f => !/^(Ahora:|Riesgo|Sin riesgo)/.test(f));
+  return `<section class="caja" aria-labelledby="t-pron">
+    <h2 id="t-pron">Pronóstico NOVOK <span>emitido ${fmtZ(b.generado_utc)}, modelo ${esc(b.version_modelo)}${b.version_modelo === "v2" ? " (METAR + pronóstico numérico)" : " (solo METAR)"}</span></h2>
+    <table class="pron-movil">
+      <thead><tr><th>Hora</th><th>Bajo mín.</th><th>Niebla</th><th>TAF</th></tr></thead>
+      <tbody>${pr.map(p => `<tr><th><b>+${p.horizonte_h} h</b><span class="tab">${fmtZ(p.hora_utc)}</span></th>${celdaProb(p.bajo_minimos)}${celdaProb(p.niebla)}<td>${p.taf ? pastilla(categoria(p.taf.vis_predominante_m, p.taf.techo_predominante_ft)) : '<span class="gris">—</span>'}</td></tr>`).join("")}</tbody>
+    </table>
+    <div class="desliza"><table class="pron">
+      <thead><tr><th></th>${pr.map(p => `<th><b>+${p.horizonte_h} h</b><span class="tab">${fmtZ(p.hora_utc)} · ${fmtL(p.hora_utc)} local</span></th>`).join("")}</tr></thead>
+      <tbody>
+        <tr><th>Bajo mínimos CAT I<small>vis &lt; 550 m o techo ≤ 200 ft</small></th>${pr.map(p => celdaProb(p.bajo_minimos)).join("")}</tr>
+        <tr><th>Niebla<small>vis &lt; 1000 m</small></th>${pr.map(p => celdaProb(p.niebla)).join("")}</tr>
+        <tr><th>TAF de AEMET<small>${b.taf ? "emitido " + fmtZ(b.taf.emision_utc) + (b.taf.enmienda ? " (AMD)" : "") : "no disponible"}</small></th>${pr.map(celdaTaf).join("")}</tr>
+      </tbody></table></div>
+    ${resto.length ? `<ul class="resumen-lista">${resto.map(f => `<li>${esc(f)}</li>`).join("")}</ul>` : ""}
+    <div class="pie-tabla">Nivel por probabilidad: bajo &lt; 10 %, moderado 10–30 %, alto ≥ 30 %. ▲ AVISO: supera el umbral del modelo para esa antelación, elegido en validación para maximizar el acierto.${b.nota_repeticion ? " " + esc(b.nota_repeticion) : ""}</div>
+  </section>`;
+}
+
+/* ---------- línea de tiempo: 12 h observadas + 12 h previstas ---------- */
+function lineaTiempo(b, ancho) {
+  const W = Math.max(330, ancho), estrecho = W < 640;
+  const L = estrecho ? 56 : 120, R = 12;
+  const base = ms(b.calidad.hora_base_utc);
+  const t0 = base - 11.5 * 3600e3, t1 = base + 13.5 * 3600e3;
+  const x = t => L + (t - t0) / (t1 - t0) * (W - L - R);
+  const paso = x(t0 + 3600e3) - x(t0);
+  const yH = 22, yC = 40, hC = 26, yV1 = 92, yV2 = 182, yP1 = 214, yP2 = 300, H = 328;
+  let s = "";
+  const etiqueta = (y, t, sub) => s += `<text x="${L - 10}" y="${y}" text-anchor="end" font-size="12" font-weight="700" fill="var(--tinta)">${t}</text>`
+    + (sub && !estrecho ? `<text x="${L - 10}" y="${y + 14}" text-anchor="end" font-size="11" fill="var(--tinta-3)">${sub}</text>` : "");
+
+  // horas
+  for (let t = Math.ceil(t0 / 3600e3) * 3600e3; t <= t1; t += 3600e3) {
+    const hh = new Date(t).getUTCHours();
+    s += `<line x1="${x(t) - paso / 2}" x2="${x(t) - paso / 2}" y1="${yC}" y2="${yP2}" stroke="var(--borde-suave)"/>`;
+    if (hh % (estrecho ? 6 : 3) === 0) s += `<text x="${x(t)}" y="${yH}" text-anchor="middle" font-size="11.5" font-weight="600" fill="var(--tinta-2)">${String(hh).padStart(2, "0")}Z</text>`;
+  }
+
+  // fila de categoría de vuelo: METAR en el pasado, TAF en el futuro
+  etiqueta(yC + 17, estrecho ? "Cat." : "Categoría", null);
+  (b.historial || []).forEach(h => {
+    const c = categoria(h.vis_m, h.techo_ft);
+    if (c) s += `<rect x="${x(ms(h.hora_utc)) - paso / 2 + .5}" y="${yC}" width="${paso - 1}" height="${hC}" fill="${COLOR_CAT[c]}"><title>${fmtZ(h.hora_utc)} METAR: ${c}</title></rect>`;
+  });
+  const th = b.taf_horas || [];
+  if (th.length) {
+    th.forEach(h => {
+      const c = categoria(h.vis_predominante_m, h.techo_predominante_ft);
+      const cp = h.vis_peor_m != null && h.vis_peor_m < h.vis_predominante_m ? categoria(h.vis_peor_m, h.techo_peor_ft ?? h.techo_predominante_ft) : null;
+      const xa = x(ms(h.hora_utc)) - paso / 2 + .5;
+      if (c) s += `<rect x="${xa}" y="${yC}" width="${paso - 1}" height="${hC}" fill="${COLOR_CAT[c]}" opacity=".55"><title>${fmtZ(h.hora_utc)} TAF: ${c}${cp && cp !== c ? ", temporal " + cp : ""}</title></rect>`;
+      if (cp && cp !== c) s += `<rect x="${xa}" y="${yC + hC - 7}" width="${paso - 1}" height="7" fill="${COLOR_CAT[cp]}"/>`;
+    });
+  } else {
+    s += `<rect x="${x(base + 1800e3)}" y="${yC}" width="${W - R - x(base + 1800e3)}" height="${hC}" fill="url(#rayado)"/>`;
+    s += `<text x="${(x(base + 1800e3) + W - R) / 2}" y="${yC + 17}" text-anchor="middle" font-size="12" font-weight="600" fill="var(--tinta-3)">TAF no disponible</text>`;
+  }
+
+  // visibilidad observada (escala logarítmica)
+  const lv = v => Math.log10(Math.max(50, Math.min(10000, v)));
+  const yv = v => yV2 - (lv(v) - lv(50)) / (lv(10000) - lv(50)) * (yV2 - yV1);
+  etiqueta(yV1 + 12, estrecho ? "Vis." : "Visibilidad", "observada / TAF");
+  s += `<rect x="${L}" y="${yv(550)}" width="${W - L - R}" height="${yV2 - yv(550)}" fill="var(--lifr)" opacity=".07"/>`;
+  for (const [v, t, c] of [[10000, "", "var(--tinta-3)"], [1000, "1000 m", "var(--ifr)"], [550, "550 m", "var(--lifr)"], [100, "100 m", "var(--tinta-3)"]]) {
+    s += `<line x1="${L}" x2="${W - R}" y1="${yv(v)}" y2="${yv(v)}" stroke="${c}" stroke-width="1" ${v === 1000 || v === 550 ? 'stroke-dasharray="5 4"' : 'opacity=".35"'}/>`;
+    s += `<text x="${W - R - 4}" y="${v === 550 ? yv(v) + 12 : yv(v) - 4}" text-anchor="end" font-size="10.5" font-weight="700" fill="${c}">${t}</text>`;
+  }
+  const hist = (b.historial || []).filter(h => h.vis_m != null);
+  if (hist.length) {
+    s += `<path d="${hist.map((h, k) => (k ? "L" : "M") + x(ms(h.hora_utc)).toFixed(1) + "," + yv(h.vis_m).toFixed(1)).join("")}" fill="none" stroke="var(--azul-noche)" stroke-width="2.5" stroke-linejoin="round"/>`;
+    hist.forEach(h => s += `<circle cx="${x(ms(h.hora_utc))}" cy="${yv(h.vis_m)}" r="3" fill="var(--azul-noche)"><title>${fmtZ(h.hora_utc)}: ${visTxt(h.vis_m)}</title></circle>`);
+  }
+  if (th.length) {
+    let d = "";
+    th.forEach((h, k) => { const xa = x(ms(h.hora_utc)) - paso / 2, xb = xa + paso, y = yv(h.vis_predominante_m); d += (k ? `L${xa},${y}` : `M${xa},${y}`) + `L${xb},${y}`; });
+    s += `<path d="${d}" fill="none" stroke="var(--azul-noche)" stroke-width="2" stroke-dasharray="6 4" opacity=".65"/>`;
+  }
+  const dis = b.episodio?.disipacion;
+  if (dis) {
+    const xa = x(ms(dis.despeja_utc_q10)), xb = x(ms(dis.despeja_utc_q90)), xm = x(ms(dis.despeja_utc_q50)), y = yV1 + 22;
+    s += `<line x1="${xa}" x2="${xb}" y1="${y}" y2="${y}" stroke="var(--azul)" stroke-width="2"/><line x1="${xa}" x2="${xa}" y1="${y - 5}" y2="${y + 5}" stroke="var(--azul)" stroke-width="2"/><line x1="${xb}" x2="${xb}" y1="${y - 5}" y2="${y + 5}" stroke="var(--azul)" stroke-width="2"/>`;
+    s += `<circle cx="${xm}" cy="${y}" r="5" fill="var(--blanco)" stroke="var(--azul)" stroke-width="2.5"/>`;
+    s += `<text x="${xm}" y="${y - 10}" text-anchor="middle" font-size="11.5" font-weight="700" fill="var(--azul)" paint-order="stroke" stroke="var(--blanco)" stroke-width="4">despeja ~${fmtHZ(dis.despeja_utc_q50)}</text>`;
+  }
+
+  // probabilidad NOVOK
+  const yp = p => yP2 - p * (yP2 - yP1);
+  etiqueta(yP1 + 12, estrecho ? "Prob." : "Probabilidad", "NOVOK");
+  for (const [p, t] of [[.3, "30 %"], [1, "100 %"]]) {
+    s += `<line x1="${L}" x2="${W - R}" y1="${yp(p)}" y2="${yp(p)}" stroke="var(--borde)" stroke-dasharray="${p === 1 ? "" : "3 3"}"/>`;
+    s += `<text x="${L + 4}" y="${yp(p) - 3}" font-size="10.5" fill="var(--tinta-3)">${t}</text>`;
+  }
+  s += `<line x1="${L}" x2="${W - R}" y1="${yP2}" y2="${yP2}" stroke="var(--tinta-3)"/>`;
+  (b.historial || []).forEach(h => {
+    if (h.bajo_minimos || h.niebla) s += `<rect x="${x(ms(h.hora_utc)) - paso * .35}" y="${yP1}" width="${paso * .7}" height="${yP2 - yP1}" fill="${h.bajo_minimos ? "var(--lifr)" : "var(--ifr)"}" opacity=".18"><title>${fmtZ(h.hora_utc)}: ${h.bajo_minimos ? "bajo mínimos" : "niebla"} observado</title></rect>`;
+  });
+  const pr = b.pronostico || [];
+  const serie = (campo, color, discont) => {
+    if (!pr.length) return;
+    s += `<path d="${pr.map((p, k) => (k ? "L" : "M") + x(ms(p.hora_utc)).toFixed(1) + "," + yp(p[campo].p).toFixed(1)).join("")}" fill="none" stroke="${color}" stroke-width="2.5" ${discont ? 'stroke-dasharray="5 4"' : ""}/>`;
+    pr.forEach(p => {
+      s += `<circle cx="${x(ms(p.hora_utc))}" cy="${yp(p[campo].p)}" r="${p[campo].alerta ? 5.5 : 4}" fill="${p[campo].alerta ? color : "var(--blanco)"}" stroke="${color}" stroke-width="2.5"><title>+${p.horizonte_h} h: ${pct(p[campo].p)}</title></circle>`;
+    });
+  };
+  serie("niebla", "var(--niebla)", true);
+  serie("bajo_minimos", "var(--lifr)", false);
+  if (!estrecho) pr.forEach(p => s += `<text x="${x(ms(p.hora_utc))}" y="${yp(p.bajo_minimos.p) - 10}" text-anchor="middle" font-size="12" font-weight="800" fill="var(--lifr)">${Math.round(p.bajo_minimos.p * 100)}%</text>`);
+
+  // ahora
+  const xn = x(ms(b.generado_utc));
+  s += `<line x1="${xn}" x2="${xn}" y1="${yC - 4}" y2="${yP2 + 4}" stroke="var(--tinta)" stroke-width="2"/>`;
+  s += `<rect x="${xn - 25}" y="${yP2 + 6}" width="50" height="18" rx="2" fill="var(--tinta)"/><text x="${xn}" y="${yP2 + 19}" text-anchor="middle" font-size="11" font-weight="800" fill="#fff">AHORA</text>`;
+  s += `<defs><pattern id="rayado" width="8" height="8" patternUnits="userSpaceOnUse" patternTransform="rotate(45)"><rect width="8" height="8" fill="#f1f3f5"/><line x1="0" y1="0" x2="0" y2="8" stroke="#d6dadf" stroke-width="3"/></pattern></defs>`;
+  return `<svg viewBox="0 0 ${W} ${H}" width="${W}" height="${H}" role="img" aria-label="Categoría de vuelo, visibilidad y probabilidad de NOVOK: 12 horas observadas y 12 previstas">${s}</svg>`;
+}
+
+function bloqueTiempo(b) {
+  return `<section class="caja linea-tiempo" aria-labelledby="t-lt" style="margin-bottom:20px">
+    <h2 id="t-lt">Línea de tiempo <span>12 h observadas (METAR) y 12 h previstas (TAF y NOVOK)</span></h2>
+    <div class="cuerpo" id="lt-svg" style="padding:12px 14px 4px"></div>
+    <div class="leyenda">
+      <span><i style="background:var(--vfr)"></i>VFR</span><span><i style="background:var(--mvfr)"></i>MVFR</span>
+      <span><i style="background:var(--ifr)"></i>IFR</span><span><i style="background:var(--lifr)"></i>LIFR</span>
+      <span>color atenuado: TAF; franja inferior: grupo TEMPO o PROB</span>
+      <span><i style="height:3px;background:var(--lifr)"></i>prob. bajo mínimos</span>
+      <span><i style="height:0;border-top:3px dashed var(--niebla)"></i>prob. niebla</span>
+      <span>punto relleno: aviso</span>
+    </div>
+  </section>`;
+}
+
+/* ---------- detalles ---------- */
+function disipacion(b) {
+  const ep = b.episodio;
+  if (!ep) return `<section class="caja"><h2>Disipación de la niebla</h2><div class="cuerpo"><p style="margin:0" class="gris">No hay niebla ahora. Cuando la haya, aquí aparecerán su tipo y la hora estimada a la que se levantará.</p></div></section>`;
+  const d = ep.disipacion;
+  if (!d) return `<section class="caja"><h2>Niebla de ${esc(ep.tipo)}</h2><div class="cuerpo">En curso desde las ${fmtZ(ep.inicio_utc)}. Modelo de disipación no disponible.</div></section>`;
+  const ini = ms(b.ahora.hora_utc), fin = ms(d.despeja_utc_q90) + 3600e3;
+  const pos = iso => ((ms(iso) - ini) / (fin - ini) * 100).toFixed(1);
+  return `<section class="caja" aria-labelledby="t-dis">
+    <h2 id="t-dis">Disipación de la niebla <span>tipo ${esc(ep.tipo)}</span></h2>
+    <div class="cuerpo">
+      <div class="gris" style="font-size:13px">En curso desde las ${fmtZ(ep.inicio_utc)} (hace ${ep.transcurridas_h} h). Hora más probable de despeje:</div>
+      <div class="cifra tab">${fmtZ(d.despeja_utc_q50)}<small>${fmtL(d.despeja_utc_q50)} local</small></div>
+      <div class="intervalo" role="img" aria-label="Intervalo del 80 % entre ${fmtZ(d.despeja_utc_q10)} y ${fmtZ(d.despeja_utc_q90)}">
+        <div class="rango" style="left:${pos(d.despeja_utc_q10)}%;right:${100 - pos(d.despeja_utc_q90)}%"></div>
+        <div class="med" style="left:${pos(d.despeja_utc_q50)}%"></div></div>
+      <div class="ejes"><span>ahora</span><span>80 %: ${fmtZ(d.despeja_utc_q10)} a ${fmtZ(d.despeja_utc_q90)}</span></div>
+    </div></section>`;
+}
+
+// Pares de cabeceras de una misma pista (11 y 29), por rumbo opuesto
+function paresPista(pistas) {
+  const usadas = new Set(), pares = [];
+  pistas.forEach((p, i) => {
+    if (usadas.has(i)) return;
+    const j = pistas.findIndex((q, k) => k !== i && !usadas.has(k) && Math.abs((((q.rumbo - p.rumbo) % 360) + 360) % 360 - 180) < 20);
+    usadas.add(i); if (j >= 0) usadas.add(j);
+    pares.push(j >= 0 ? [p, pistas[j]] : [p]);
+  });
+  return pares;
+}
+
+function rosa(v, pistas) {
+  const c = 68, r = 58;
+  const marcas = Array.from({ length: 36 }, (_, k) => {
+    const a = k * 10 * Math.PI / 180, l = k % 9 === 0 ? 9 : 4;
+    return `<line x1="${c + Math.sin(a) * r}" y1="${c - Math.cos(a) * r}" x2="${c + Math.sin(a) * (r - l)}" y2="${c - Math.cos(a) * (r - l)}" stroke="var(--tinta-2)" stroke-width="${k % 9 === 0 ? 2 : 1}"/>`;
+  }).join("");
+  const flecha = v.dir == null || !v.kt ? "" : (() => {
+    const a = v.dir * Math.PI / 180, xa = c + Math.sin(a) * (r - 2), ya = c - Math.cos(a) * (r - 2), xb = c + Math.sin(a) * 14, yb = c - Math.cos(a) * 14;
+    return `<line x1="${xa}" y1="${ya}" x2="${xb}" y2="${yb}" stroke="var(--azul)" stroke-width="3.5" marker-end="url(#pta)"/>`;
+  })();
+  const pistasSvg = paresPista(pistas).map(([a, b]) => {
+    const ang = a.rumbo - 90, rad = a.rumbo * Math.PI / 180, L = 46;
+    const ex = (s, d) => [c - Math.sin(rad) * s * d, c + Math.cos(rad) * s * d];   // s=1: lado por donde se aterriza en "a"
+    const [xa, ya] = ex(1, L + 10), [xb, yb] = ex(-1, L + 10);
+    return `<g transform="rotate(${ang} ${c} ${c})"><rect x="${c - L}" y="${c - 6}" width="${2 * L}" height="12" fill="#3d4551"/>
+      <line x1="${c - L + 8}" y1="${c}" x2="${c + L - 8}" y2="${c}" stroke="#fff" stroke-dasharray="6 4" stroke-width="1.5"/></g>
+      <text x="${xa}" y="${ya + 4}" font-size="11" font-weight="800" fill="var(--tinta)" text-anchor="middle">${esc(a.ident)}</text>
+      ${b ? `<text x="${xb}" y="${yb + 4}" font-size="11" font-weight="800" fill="var(--tinta)" text-anchor="middle">${esc(b.ident)}</text>` : ""}`;
+  }).join("");
+  return `<svg viewBox="0 0 136 136" role="img" aria-label="Pistas ${pistas.map(p => p.ident).join(", ")} y viento de ${v.dir ?? "dirección variable"} grados a ${v.kt ?? 0} nudos">
+    <defs><marker id="pta" markerWidth="7" markerHeight="7" refX="3.5" refY="3.5" orient="auto"><path d="M0,0 L7,3.5 L0,7 z" fill="var(--azul)"/></marker></defs>
+    <circle cx="${c}" cy="${c}" r="${r}" fill="#f6f8fa" stroke="var(--borde)"/>${marcas}
+    <text x="${c}" y="${c - r + 21}" text-anchor="middle" font-size="10" font-weight="700" fill="var(--tinta-2)">N</text>
+    ${pistasSvg}${flecha}</svg>`;
+}
+
+function viento(b) {
+  const v = b.viento_pista || {}, va = v.ahora || {};
+  const prev = v.previsto || [];
+  const mx = prev.reduce((m, r) => (r.cruzado_kt ?? 0) > (m?.cruzado_kt ?? -1) ? r : m, null);
+  let mini = "";
+  if (prev.length) {
+    const W = 240, H = 40, top = Math.max(22, ...prev.map(r => r.cruzado_kt ?? 0)), bw = W / prev.length;
+    mini = `<div class="cruzado">Cruzado previsto, próximas 12 h (${esc(prev[0].fuente)}); línea roja: 20 kt
+      <svg viewBox="0 0 ${W} ${H}" width="100%" height="${H}" preserveAspectRatio="none" style="display:block;margin-top:4px">${prev.map((r, k) => {
+        const h = (r.cruzado_kt ?? 0) / top * H; return `<rect x="${k * bw + 1}" y="${H - h}" width="${bw - 2}" height="${Math.max(1, h)}" fill="${(r.cruzado_kt ?? 0) >= 20 ? "var(--ifr)" : "var(--azul)"}"><title>${fmtZ(r.hora_utc)}: ${r.cruzado_kt} kt</title></rect>`;
+      }).join("")}<line x1="0" x2="${W}" y1="${H - 20 / top * H}" y2="${H - 20 / top * H}" stroke="var(--ifr)" stroke-dasharray="3 3" vector-effect="non-scaling-stroke"/></svg></div>`;
+  }
+  const pistas = b.aeropuerto?.pistas || [];
+  const nombresPista = paresPista(pistas).map(par => par.map(p => p.ident).join("/")).join(", ");
+  return `<section class="caja" aria-labelledby="t-vi">
+    <h2 id="t-vi">Viento en pista <span>RWY ${esc(nombresPista)}</span></h2>
+    <div class="cuerpo"><div class="viento">${rosa(va, pistas)}
+      <table class="datos"><tbody>
+        <tr><th>Viento</th><td class="tab">${va.kt === 0 ? "Calma" : `${va.dir != null ? String(Math.round(va.dir)).padStart(3, "0") : "VRB"}/${String(va.kt ?? "—").padStart(2, "0")} kt`}</td></tr>
+        <tr><th>Pista favorable</th><td>${va.pista_favorable ?? "—"}</td></tr>
+        <tr><th>Cruzado</th><td class="tab">${va.cruzado_kt ?? "—"} kt</td></tr>
+        <tr><th>Cola ${pistas.map(p => esc(p.ident)).join(" / ")}</th><td class="tab">${pistas.map(p => va["cola_kt_" + p.ident] ?? "—").join(" / ")} kt</td></tr>
+        ${mx ? `<tr><th>Máx. cruzado</th><td class="tab">${mx.cruzado_kt} kt, ${fmtZ(mx.hora_utc)}</td></tr>` : ""}
+      </tbody></table></div>${mini}</div></section>`;
+}
+
+function calidad(b) {
+  const cal = b.calidad || {}, edad = cal.metar_edad_min;
+  const it = (e, t, d) => `<li><span class="ic ${e}" aria-hidden="true">${e === "ok" ? "✓" : e === "med" ? "!" : "✕"}</span><span>${t}<small>${d}</small></span></li>`;
+  return `<section class="caja" aria-labelledby="t-cal">
+    <h2 id="t-cal">Estado de los datos</h2>
+    <div class="cuerpo" style="padding-top:6px;padding-bottom:6px"><ul class="checks">
+      ${it(edad != null && edad <= 90 ? "ok" : "no", "METAR", cal.metar_ultimo_utc ? `último ${fmtZ(cal.metar_ultimo_utc)}, hace ${edad} min (máximo 90)` : "sin observación")}
+      ${it(cal.nwp ? "ok" : "med", "Pronóstico numérico", cal.nwp ? "ECMWF y JMA recibidos" : "no disponible: se usa el modelo v1")}
+      ${it(cal.taf ? "ok" : "med", "TAF de AEMET", cal.taf ? `emitido ${fmtZ(b.taf?.emision_utc)}, válido del ${fmtDia(b.taf?.valido_desde_utc)} al ${fmtDia(b.taf?.valido_hasta_utc)}` : "no disponible: sin comparación")}
+      ${it(cal.pronostico_emitido ? "ok" : "no", "Pronóstico", cal.pronostico_emitido ? `emitido con el modelo ${b.version_modelo}` : esc((cal.mensajes || []).join("; ")))}
+    </ul>${b.taf?.texto ? `<div class="mono" style="font-size:12.5px;color:var(--tinta-2);padding:8px 0 4px;border-top:1px solid var(--borde-suave);word-break:break-word">${esc(b.taf.texto)}</div>` : ""}</div>
+  </section>`;
+}
+
+/* ---------- visor 3D ---------- */
+let ARP = [-6.0342, 43.5636];              // punto de referencia del aeropuerto activo (se fija con el briefing)
+const EXAG = 1.4;                          // exageración del relieve
+let UMBRALES = {}, VISTAS = {}, CODIGO = "";
+
+// Puntos de vista a partir de la geometría real del aeropuerto (umbrales de OurAirports)
+function configurarAeropuerto(a) {
+  CODIGO = a.icao; ARP = [a.lon, a.lat];
+  const conUmbral = (a.pistas || []).filter(p => p.lat != null && p.lon != null);
+  UMBRALES = Object.fromEntries(conUmbral.map(p => [p.ident, [p.lon, p.lat]]));
+  const rumbo0 = a.pistas?.[0]?.rumbo ?? 0;
+  VISTAS = { general: { center: ARP, zoom: 12.9, pitch: 64, bearing: (rumbo0 + 90) % 360 } };
+  for (const p of conUmbral) {       // cámara en la aproximación, mirando en el sentido de aterrizaje
+    const r = p.rumbo * Math.PI / 180, d = 500, cos = Math.cos(p.lat * Math.PI / 180);
+    VISTAS[p.ident] = { center: [p.lon + Math.sin(r) * d / (111320 * cos), p.lat + Math.cos(r) * d / 111320], zoom: 14.1, pitch: 76, bearing: p.rumbo };
+  }
+  // (las claves numéricas como "11" irían antes que "general" en un objeto: se ordena a mano)
+  document.querySelector(".hud-vistas").innerHTML = ["general", ...Object.keys(VISTAS).filter(k => k !== "general")].map(k =>
+    `<button type="button" data-vista="${esc(k)}" aria-pressed="${k === "general"}">${k === "general" ? "Vista general" : "Aprox. " + esc(k)}</button>`).join("");
+}
+const visor = { mapa: null, capa: null, escenarios: [], actual: 0, reproduciendo: null };
+
+function escenarios(b) {
+  const lista = [], a = b.ahora;
+  if (a) {
+    const vis = a.vis_m ?? 10000;
+    const d = vis >= 8000 ? 0 : Math.min(1, Math.max(.06, Math.log10(8000 / vis) / Math.log10(8000 / 150)));
+    lista.push({ etiqueta: "Ahora", hora: b.calidad?.metar_ultimo_utc, densidad: d, espesor: a.techo_ft != null && a.techo_ft <= 200 ? 45 : 85,
+      dir: a.viento_dir, kt: a.viento_kt, fuenteViento: "METAR", cat: categoria(a.vis_m, a.techo_ft), catTaf: null,
+      filas: [["Visibilidad", visTxt(a.vis_m)], ["Techo", a.techo_ft == null ? "sin techo" : a.techo_ft + " ft"]] });
+  }
+  for (const p of b.pronostico || []) {
+    const v = (b.viento_pista?.previsto || []).find(r => r.hora_utc === p.hora_utc);
+    lista.push({ etiqueta: `+${p.horizonte_h} h`, hora: p.hora_utc, densidad: Math.min(1, p.niebla.p * 1.15), espesor: 45 + 60 * (1 - p.bajo_minimos.p),
+      dir: v?.dir ?? a?.viento_dir, kt: v?.kt ?? a?.viento_kt, fuenteViento: v ? v.fuente : "METAR",
+      cat: null, catTaf: p.taf ? categoria(p.taf.vis_predominante_m, p.taf.techo_predominante_ft) : null,
+      filas: [["Niebla", pct(p.niebla.p)], ["Bajo mínimos", pct(p.bajo_minimos.p)]] });
+  }
+  return lista;
+}
+
+function pintarHud() {
+  const e = visor.escenarios[visor.actual];
+  const hud = document.getElementById("hud-info");
+  if (!e) { hud.innerHTML = `<div class="tit">Sin datos</div>`; return; }
+  const viento = !e.kt ? "calma" : `${e.dir != null ? String(Math.round(e.dir)).padStart(3, "0") + "°" : "VRB"} ${Math.round(e.kt)} kt`;
+  hud.innerHTML = `<div class="tit">${e.etiqueta === "Ahora" ? "Observado (METAR)" : "Previsión NOVOK"}</div>
+    <div class="esc">${e.etiqueta}${e.cat ? pastilla(e.cat) : ""}</div>
+    <div class="hora tab">${fmtZ(e.hora)} · ${fmtL(e.hora)} local</div>
+    <dl>${e.filas.map(([k, v]) => `<dt>${k}</dt><dd>${v}</dd>`).join("")}${e.catTaf ? `<dt>TAF</dt><dd>${pastilla(e.catTaf)}</dd>` : ""}<dt>Viento</dt><dd>${viento} <span style="font-weight:400;color:#a9bdd6">${esc(e.fuenteViento)}</span></dd></dl>
+    <div class="medidor" title="Cantidad de niebla dibujada"><i style="width:${Math.round(e.densidad * 100)}%"></i></div>`;
+  document.querySelectorAll("#hud-tiempo button[data-i]").forEach(bt => bt.setAttribute("aria-pressed", String(+bt.dataset.i === visor.actual)));
+}
+
+function elegirEscenario(i) {
+  visor.actual = i; pintarHud();
+  const e = visor.escenarios[i], c = visor.capa;
+  if (!e || !c) return;
+  c.objetivo = e.densidad; c.espesorObj = e.espesor;
+  const vel = (e.kt || 0) * .514 * 45, ang = (e.dir ?? 0) * Math.PI / 180;    // cámara rápida x45; el viento va hacia dir + 180°
+  c.viento = [-Math.sin(ang) * vel, -Math.cos(ang) * vel];
+  if (visor.mapa?.setSky) visor.mapa.setSky(cielo(e.densidad));
+}
+
+function cielo(d) {
+  return { "sky-color": "#7fa6cc", "horizon-color": "#dbe4ec", "fog-color": "#e3e8ec", "sky-horizon-blend": .55,
+    "horizon-fog-blend": .35 + .6 * d, "fog-ground-blend": Math.max(.15, .92 - .7 * d), "atmosphere-blend": 0 };
+}
+
+function texturaNiebla(THREE) {
+  const cv = document.createElement("canvas"); cv.width = cv.height = 128;
+  const g = cv.getContext("2d");
+  const base = g.createRadialGradient(64, 64, 0, 64, 64, 64);
+  base.addColorStop(0, "rgba(255,255,255,.75)"); base.addColorStop(.45, "rgba(255,255,255,.45)"); base.addColorStop(1, "rgba(255,255,255,0)");
+  g.fillStyle = base; g.fillRect(0, 0, 128, 128);
+  for (let k = 0; k < 4; k++) {              // irregularidades suaves para que no parezcan círculos
+    const x = 64 + (Math.random() - .5) * 50, y = 64 + (Math.random() - .5) * 50, r = 18 + Math.random() * 22;
+    const gr = g.createRadialGradient(x, y, 0, x, y, r);
+    gr.addColorStop(0, "rgba(255,255,255,.25)"); gr.addColorStop(1, "rgba(255,255,255,0)");
+    g.fillStyle = gr; g.fillRect(0, 0, 128, 128);
+  }
+  const t = new THREE.CanvasTexture(cv); t.colorSpace = THREE.SRGBColorSpace; return t;
+}
+
+function capaNiebla(THREE) {
+  const N = 1500, R = 7500;                  // discos de niebla en un cuadrado de 15 km
+  const capa = {
+    id: "niebla", type: "custom", renderingMode: "3d",
+    densidad: 0, objetivo: 0, espesor: 80, espesorObj: 80, viento: [0, 0], suelo: null,
+    onAdd(map, gl) {
+      this.map = map; this.camera = new THREE.Camera(); this.scene = new THREE.Scene();
+      const texturas = [texturaNiebla(THREE), texturaNiebla(THREE), texturaNiebla(THREE)];
+      const geo = new THREE.PlaneGeometry(1, 1);
+      this.discos = Array.from({ length: N }, () => {
+        const m = new THREE.Mesh(geo, new THREE.MeshBasicMaterial({ map: texturas[Math.floor(Math.random() * 3)], transparent: true,
+          depthWrite: false, opacity: 0, side: THREE.DoubleSide, color: 0xf4f6f8 }));
+        const s = 700 + Math.random() * 1500;
+        m.scale.set(s, s * (.55 + Math.random() * .5), 1); m.rotation.z = Math.random() * Math.PI;
+        m.userData = { x: (Math.random() * 2 - 1) * R, y: (Math.random() * 2 - 1) * R, h: Math.random() ** 1.3, u: Math.random(), a: .16 + Math.random() * .2 };
+        this.scene.add(m); return m;
+      });
+      this.renderer = new THREE.WebGLRenderer({ canvas: map.getCanvas(), context: gl, antialias: true });
+      this.renderer.autoClear = false;
+      this.t = performance.now();
+      const muestrear = () => this.muestrearSuelo();
+      map.on("idle", muestrear);
+    },
+    // relieve en una rejilla, relativo al punto de referencia (así no depende de la cámara)
+    muestrearSuelo() {
+      const m = this.map, G = 41, e0 = m.queryTerrainElevation(ARP);
+      if (e0 == null) return;
+      const rej = new Float32Array(G * G), cos = Math.cos(ARP[1] * Math.PI / 180);
+      for (let j = 0; j < G; j++) for (let i = 0; i < G; i++) {
+        const x = -R + 2 * R * i / (G - 1), y = -R + 2 * R * j / (G - 1);
+        const e = m.queryTerrainElevation([ARP[0] + x / (111320 * cos), ARP[1] + y / 111320]);
+        rej[j * G + i] = e == null ? (this.suelo ? this.suelo.rej[j * G + i] : 0) : e - e0;
+      }
+      this.suelo = { rej, G };
+    },
+    alturaSuelo(x, y) {
+      if (!this.suelo) return 0;
+      const { rej, G } = this.suelo, fx = (x + R) / (2 * R) * (G - 1), fy = (y + R) / (2 * R) * (G - 1);
+      const i = Math.max(0, Math.min(G - 2, Math.floor(fx))), j = Math.max(0, Math.min(G - 2, Math.floor(fy))), u = fx - i, v = fy - j;
+      return rej[j * G + i] * (1 - u) * (1 - v) + rej[j * G + i + 1] * u * (1 - v) + rej[(j + 1) * G + i] * (1 - u) * v + rej[(j + 1) * G + i + 1] * u * v;
+    },
+    render(gl, arg) {
+      const matriz = arg && arg.length === 16 ? arg : arg.defaultProjectionData.mainMatrix;
+      const ahora = performance.now(), dt = Math.min(.1, (ahora - this.t) / 1000); this.t = ahora;
+      const k = Math.min(1, dt * 1.6);
+      this.densidad += (this.objetivo - this.densidad) * k; this.espesor += (this.espesorObj - this.espesor) * k;
+      for (const m of this.discos) {
+        const d = m.userData;
+        d.x += this.viento[0] * dt; d.y += this.viento[1] * dt;
+        if (d.x > R) d.x -= 2 * R; if (d.x < -R) d.x += 2 * R; if (d.y > R) d.y -= 2 * R; if (d.y < -R) d.y += 2 * R;
+        const borde = Math.min(1, (R - Math.abs(d.x)) / 1500, (R - Math.abs(d.y)) / 1500);   // se desvanece en los bordes
+        const op = d.u < this.densidad ? d.a * Math.min(1, (this.densidad - d.u) * 5) * borde : 0;
+        m.material.opacity = op; m.visible = op > .004;
+        if (m.visible) m.position.set(d.x, d.y, this.alturaSuelo(d.x, d.y) + (4 + d.h * this.espesor) * EXAG);
+      }
+      const e0 = this.map.queryTerrainElevation(ARP) || 0;
+      const o = maplibregl.MercatorCoordinate.fromLngLat(ARP, e0), s = o.meterInMercatorCoordinateUnits();
+      this.camera.projectionMatrix = new THREE.Matrix4().fromArray(matriz)
+        .multiply(new THREE.Matrix4().makeTranslation(o.x, o.y, o.z).scale(new THREE.Vector3(s, -s, s)));
+      this.renderer.resetState(); this.renderer.render(this.scene, this.camera);
+      this.map.triggerRepaint();
+    },
+  };
+  return capa;
+}
+
+const IGN = "https://www.ign.es/wmts/pnoa-ma?request=GetTile&service=WMTS&version=1.0.0&layer=OI.OrthoimageCoverage&style=default&format=image/jpeg&tilematrixset=GoogleMapsCompatible&tilematrix={z}&tilerow={y}&tilecol={x}";
+const ESRI = "https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}";
+const DEM = "https://s3.amazonaws.com/elevation-tiles-prod/terrarium/{z}/{x}/{y}.png";
+
+async function iniciarVisor() {
+  const cont = document.getElementById("mapa3d");
+  const fallo = msg => { cont.innerHTML = `<div class="sin-3d">${msg}</div>`; };
+  if (!window.maplibregl) return fallo("No se pudo cargar el visor 3D.");
+  if (!maplibregl.supported?.() && maplibregl.supported) return fallo("Tu navegador no permite gráficos 3D (WebGL).");
+  let THREE;
+  try { THREE = await import("https://cdn.jsdelivr.net/npm/three@0.169.0/build/three.module.min.js"); } catch { return fallo("No se pudo cargar el motor 3D."); }
+  const v = VISTAS.general;
+  const map = new maplibregl.Map({
+    container: cont, ...v, maxPitch: 82, cooperativeGestures: true, attributionControl: { compact: true },
+    locale: { "CooperativeGesturesHandler.WindowsHelpText": "Usa Ctrl + rueda para acercar el mapa", "CooperativeGesturesHandler.MacHelpText": "Usa ⌘ + rueda para acercar el mapa",
+      "CooperativeGesturesHandler.MobileHelpText": "Usa dos dedos para mover el mapa", "NavigationControl.ZoomIn": "Acercar", "NavigationControl.ZoomOut": "Alejar",
+      "NavigationControl.ResetBearing": "Orientar al norte", "AttributionControl.ToggleAttribution": "Créditos" },
+    style: {
+      version: 8,
+      sources: {
+        pnoa: { type: "raster", tiles: [IGN], tileSize: 256, maxzoom: 19, attribution: "Ortofoto PNOA © Instituto Geográfico Nacional" },
+        esri: { type: "raster", tiles: [ESRI], tileSize: 256, maxzoom: 18, attribution: "Imagen © Esri, Maxar, Earthstar Geographics" },
+        dem: { type: "raster-dem", tiles: [DEM], encoding: "terrarium", tileSize: 256, maxzoom: 14, attribution: "Relieve: Terrain Tiles (Mapzen, AWS)" },
+      },
+      layers: [
+        { id: "fondo", type: "background", paint: { "background-color": "#3b4c5e" } },
+        { id: "orto-pnoa", type: "raster", source: "pnoa" },
+        { id: "orto-esri", type: "raster", source: "esri", layout: { visibility: "none" } },
+      ],
+      terrain: { source: "dem", exaggeration: EXAG },
+      sky: cielo(0),
+    },
+  });
+  visor.mapa = map;
+  map.addControl(new maplibregl.NavigationControl({ visualizePitch: true }), "top-right");
+  // si la ortofoto del IGN no responde, se usa otra imagen de satélite
+  let erroresPnoa = 0;
+  map.on("error", e => {
+    if (e.sourceId === "pnoa" && ++erroresPnoa === 4) {
+      map.setLayoutProperty("orto-pnoa", "visibility", "none"); map.setLayoutProperty("orto-esri", "visibility", "visible");
+    }
+  });
+  map.on("load", () => {
+    visor.capa = capaNiebla(THREE);
+    map.addLayer(visor.capa);
+    for (const [nombre, pos] of Object.entries(UMBRALES)) {
+      const el = document.createElement("div"); el.className = "marca-pista"; el.textContent = nombre;
+      new maplibregl.Marker({ element: el }).setLngLat(pos).addTo(map);
+    }
+    const el = document.createElement("div"); el.className = "marca-pista leas"; el.textContent = CODIGO;
+    new maplibregl.Marker({ element: el, offset: [0, -18] }).setLngLat(ARP).addTo(map);
+    elegirEscenario(visor.actual);
+  });
+  document.querySelectorAll(".hud-vistas button").forEach(bt => bt.addEventListener("click", () => {
+    document.querySelectorAll(".hud-vistas button").forEach(o => o.setAttribute("aria-pressed", String(o === bt)));
+    map.flyTo({ ...VISTAS[bt.dataset.vista], duration: 2600, essential: true });
+  }));
+}
+
+function actualizarVisor(b) {
+  visor.escenarios = escenarios(b);
+  visor.actual = Math.min(visor.actual, Math.max(0, visor.escenarios.length - 1));
+  const barra = document.getElementById("hud-tiempo");
+  barra.innerHTML = `<button type="button" class="play" aria-label="Reproducir la secuencia">▶</button>`
+    + visor.escenarios.map((e, i) => `<button type="button" data-i="${i}" aria-pressed="${i === visor.actual}">${e.etiqueta}</button>`).join("");
+  barra.querySelectorAll("button[data-i]").forEach(bt => bt.addEventListener("click", () => { pararSecuencia(); elegirEscenario(+bt.dataset.i); }));
+  barra.querySelector(".play").addEventListener("click", () => visor.reproduciendo ? pararSecuencia() : reproducir());
+  elegirEscenario(visor.actual);
+}
+function reproducir() {
+  const bt = document.querySelector("#hud-tiempo .play"); bt.textContent = "❚❚"; bt.setAttribute("aria-label", "Pausar");
+  const paso = () => elegirEscenario((visor.actual + 1) % visor.escenarios.length);
+  paso(); visor.reproduciendo = setInterval(paso, 3500);
+}
+function pararSecuencia() {
+  clearInterval(visor.reproduciendo); visor.reproduciendo = null;
+  const bt = document.querySelector("#hud-tiempo .play"); if (bt) { bt.textContent = "▶"; bt.setAttribute("aria-label", "Reproducir la secuencia"); }
+}
+/* ---------- montaje ---------- */
+let ultimo = null;
+function dibujarTiempo() {
+  const c = document.getElementById("lt-svg");
+  if (c && ultimo) c.innerHTML = lineaTiempo(ultimo, c.clientWidth - 28);
+}
+
+function render(b) {
+  ultimo = b;
+  const cal = b.calidad || {}, ok = cal.pronostico_emitido, rep = b.modo === "repeticion";
+  document.getElementById("cat-actual").innerHTML = b.ahora ? pastilla(categoria(b.ahora.vis_m, b.ahora.techo_ft), true) : "";
+  document.getElementById("modo").innerHTML = rep
+    ? `<span class="punto rep"></span><b>Repetición</b> del ${new Date(b.generado_utc).toLocaleDateString("es-ES", { timeZone: "UTC", day: "numeric", month: "long", year: "numeric" })}, ${fmtZ(b.generado_utc)}<br>datos reales de ese día`
+    : `<span class="punto ${ok ? "" : "mal"}"></span><b>En directo</b>, actualizado ${fmtZ(b.generado_utc)}<br>se renueva cada 30 min`;
+  document.getElementById("banda").innerHTML = banda(b);
+  const a = b.aeropuerto || {};
+  document.title = `NOVOK · ${b.estacion} ${a.nombre || ""}`;
+  document.getElementById("icao").textContent = b.estacion;
+  const pares = paresPista(a.pistas || []).map(par => par.map(p => p.ident).join("/"));
+  document.getElementById("nombre-aero").innerHTML = `<b>${esc(a.nombre || "")}, España</b>${pares.length > 1 ? "Pistas" : "Pista"} ${esc(pares.join(", "))}, elevación ${Math.round(a.elev_ft ?? 0)} ft`;
+  if (!visor.iniciado && a.lat != null) { visor.iniciado = true; configurarAeropuerto(a); iniciarVisor(); }
+
+  let html = `<div class="rejilla-2">${actuales(b)}${ok ? pronostico(b)
+    : `<section class="caja bloqueo"><h2>No se emite pronóstico</h2><div class="cuerpo">${esc((cal.mensajes || []).join("; ").replace(/^./, c => c.toUpperCase()))}. NOVOK solo pronostica con datos recientes y completos.</div></section>`}</div>`;
+  if (ok) html += bloqueTiempo(b);
+  html += `<div class="rejilla-3">${disipacion(b)}${viento(b)}${calidad(b)}</div>`;
+  document.getElementById("contenido").innerHTML = html;
+  dibujarTiempo();
+  actualizarVisor(b);
+}
+
+const ICAO = (new URLSearchParams(location.search).get("a") || "LEAS").toUpperCase().replace(/[^A-Z]/g, "");
+function cargar() {
+  return fetch(`datos/${ICAO}.json`, { cache: "no-store" })
+    .then(r => { if (!r.ok) throw new Error(r.status); return r.json(); })
+    .then(render)
+    .catch(() => {
+      if (ultimo) return;
+      document.getElementById("contenido").innerHTML = `<section class="caja bloqueo"><h2>No se pudo cargar el briefing</h2><div class="cuerpo">No hay datos de ${ICAO}. En local, genera los briefings con <code>python -m novok.red briefing</code> y abre la página con <code>python -m http.server -d web</code>.</div></section>`;
+      document.getElementById("modo").innerHTML = `<span class="punto mal"></span><b>Sin datos</b>`;
+    });
+}
+cargar();
+setInterval(() => { if (!ultimo || ultimo.modo !== "repeticion") cargar(); }, 5 * 60e3);
+let espera; addEventListener("resize", () => { clearTimeout(espera); espera = setTimeout(dibujarTiempo, 120); });
+</script>
+</body>
+</html>

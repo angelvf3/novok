@@ -31,7 +31,8 @@ try:  # usa los certificados del sistema (necesario tras proxies corporativos co
 except ImportError:
     pass
 
-from novok.config import DATA_PROCESSED, DATA_RAW, ESTACION
+from novok.aeropuertos import activa, usar
+from novok.config import DATA_RAW, dir_proc
 
 OGIMET_URL = "https://www.ogimet.com/display_metars2.php"
 DIR_TAF = DATA_RAW / "taf"
@@ -123,8 +124,9 @@ def descargar_mes(estacion: str, tipo: str, anio: int, mes: int, forzar: bool = 
     return None
 
 
-def unir_tafs(estacion: str = ESTACION) -> pd.DataFrame:
-    """Lee todos los ficheros descargados y guarda data/processed/taf.parquet (sin duplicados)."""
+def unir_tafs(estacion: str | None = None) -> pd.DataFrame:
+    """Lee todos los ficheros descargados y guarda data/processed/<OACI>/taf.parquet (sin duplicados)."""
+    estacion = estacion or activa().icao
     filas = []
     vivo = DATA_RAW.parent / "vivo" / f"taf_{estacion}.txt"  # grabación en directo (grabar_taf_vivo)
     ficheros = sorted(DIR_TAF.glob(f"taf_{estacion}_*.txt")) + ([vivo] if vivo.exists() else [])
@@ -133,14 +135,14 @@ def unir_tafs(estacion: str = ESTACION) -> pd.DataFrame:
             filas.append({"marca_ogimet": pd.to_datetime(marca, format="%Y%m%d%H%M", utc=True), "taf": taf})
     df = pd.DataFrame(filas, columns=["marca_ogimet", "taf"])
     df = df.drop_duplicates(subset="taf").sort_values("marca_ogimet").reset_index(drop=True)
-    DATA_PROCESSED.mkdir(parents=True, exist_ok=True)
-    df.to_parquet(DATA_PROCESSED / "taf.parquet", index=False)
+    dir_proc(estacion).mkdir(parents=True, exist_ok=True)
+    df.to_parquet(dir_proc(estacion) / "taf.parquet", index=False)
     return df
 
 
 def main() -> None:
     p = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
-    p.add_argument("--estacion", default=ESTACION)
+    p.add_argument("--estacion", help="código OACI (por defecto, el aeropuerto activo)")
     p.add_argument("--inicio", type=int, default=2017)
     p.add_argument("--fin", type=int, default=date.today().year)
     p.add_argument("--tipos", default=",".join(TIPOS), help="FT (TAF largo), FC (TAF corto)")
@@ -149,6 +151,8 @@ def main() -> None:
     p.add_argument("--prueba", metavar="AAAA-MM", help="descarga solo ese mes para comprobar que funciona")
     p.add_argument("--diagnostico", action="store_true", help="muestra qué hay en los ficheros descargados")
     args = p.parse_args()
+    usar(args.estacion)
+    args.estacion = activa().icao
 
     if args.prueba:
         anio, mes = (int(x) for x in args.prueba.split("-"))
