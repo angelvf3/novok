@@ -1,0 +1,11 @@
+Componentes de terceros que usa la web de NOVOK. Todos tienen licencias abiertas que permiten el uso comercial
+(conservando estos avisos). No se llama a ningún servicio de mapas externo: todo se sirve desde el propio sitio.
+
+- MapLibre GL JS 4.7.1 ........ BSD-3-Clause (maplibre-gl.txt)
+- three.js 0.169.0 ............ MIT (three.txt)
+- Public Sans ................. SIL Open Font License 1.1 (public-sans-OFL.txt)
+- Roboto Mono ................. Apache 2.0 (roboto-mono.txt)
+- Mapa base (web/mapa/base.geojson): Natural Earth, dominio público, a través de world-atlas (ISC, world-atlas.txt)
+- Relieve del visor 3D (web/terreno/): AWS Terrain Tiles, datos abiertos; fuentes y atribución en
+  https://github.com/tilezen/joerd/blob/master/docs/attribution.md
+- Aeropuertos (config/aeropuertos.json): OurAirports, dominio público

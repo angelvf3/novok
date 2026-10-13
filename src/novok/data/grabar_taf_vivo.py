@@ -42,7 +42,7 @@ def tafs_actuales(estacion: str | list[str] = "LEAS") -> list[str]:
     if not isinstance(estacion, str):
         estacion = ",".join(estacion)
     r = requests.get(AWC_URL, params={"ids": estacion, "format": "raw"}, timeout=30,
-                     headers={"User-Agent": "novok (proyecto educativo de verificacion de TAF)"})
+                     headers={"User-Agent": "novok (https://github.com/Gelan03/novok)"})
     r.raise_for_status()
     tafs, actual = [], []
     for linea in r.text.splitlines():

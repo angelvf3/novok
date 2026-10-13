@@ -59,7 +59,7 @@ def pedir(modelo: str, variables: list[str], inicio: str, fin: str) -> dict:
         "hourly": ",".join(v + SUFIJO for v in variables), "start_date": inicio, "end_date": fin,
     }
     r = requests.get(URL, params=params, timeout=120,
-                     headers={"User-Agent": "novok (proyecto educativo de prediccion de niebla)"})
+                     headers={"User-Agent": "novok (https://github.com/Gelan03/novok)"})
     datos = r.json() if r.headers.get("content-type", "").startswith("application/json") else {}
     if r.status_code != 200 or datos.get("error"):
         raise RuntimeError(datos.get("reason") or f"HTTP {r.status_code}: {r.text[:300]}")

@@ -52,6 +52,18 @@ def metricas(oos: pd.DataFrame, columna_p: str, columna_u: str | None, bs_clim: 
     return {**det, "brier": bs, "brier_skill_vs_clima": brier_skill(bs, bs_clim)}
 
 
+def guardar_eleccion(clave: str, bss_v1: float, bss_v2: float) -> str:
+    """v2 solo si su Brier skill en 2024-25 (periodo con ECMWF) es al menos el de v1; si no, v1."""
+    import json
+
+    eleccion = "v2" if bss_v2 >= bss_v1 else "v1"
+    f = dir_modelos() / "eleccion.json"
+    datos = json.loads(f.read_text()) if f.exists() else {}
+    datos[clave] = eleccion
+    f.write_text(json.dumps(dict(sorted(datos.items())), indent=2))
+    return eleccion
+
+
 def main() -> None:
     cli_estacion()
     ruta = dir_proc() / "nwp.parquet"
@@ -102,6 +114,8 @@ def main() -> None:
             entrenar(x1, y, n_arboles=int(o1["arboles"].iloc[-1])).save_model(
                 str(dir_modelos() / f"novok_v1_{suceso}_{L}h.txt"))
             guardar_umbral(f"v1_{suceso}_{L}h", o1["umbral"].iloc[-1])
+            guardar_eleccion(f"{suceso}_{L}h", r["novok_v1"]["brier_skill_vs_clima"],
+                             r["novok_v2"]["brier_skill_vs_clima"])
 
     res = pd.DataFrame(filas)
     res.round(4).to_csv(dir_informes() / "modelo_v2_resultados.csv", index=False)

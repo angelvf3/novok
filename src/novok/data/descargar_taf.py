@@ -99,7 +99,7 @@ def descargar_mes(estacion: str, tipo: str, anio: int, mes: int, forzar: bool = 
     for intento in range(1, REINTENTOS + 1):
         try:
             r = requests.get(OGIMET_URL, params=parametros(estacion, tipo, anio, mes), timeout=120,
-                             headers={"User-Agent": "novok (proyecto educativo de verificacion de TAF)"})
+                             headers={"User-Agent": "novok (https://github.com/Gelan03/novok)"})
             r.raise_for_status()
         except requests.RequestException as e:
             print(f"  {anio}-{mes:02d} {tipo}: error {e} (intento {intento}/{REINTENTOS})")

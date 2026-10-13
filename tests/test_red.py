@@ -80,3 +80,21 @@ def test_resumen_de_red():
     r = resumen_red(b)
     assert r["categoria"] == "LIFR" and r["riesgo"] == {"p": .8, "nivel": "alto", "horizonte_h": 1, "alerta": True}
     assert r["despeja_utc"] == "2025-06-30T09:00Z" and r["resumen"].startswith("Riesgo alto")
+
+
+def test_relieve_rejilla_y_codificacion(tmp_path):
+    from PIL import Image
+
+    from novok.red import guardar_relieve, rejilla_relieve
+
+    def tesela(z, x, y):  # rampa este-oeste: la altura crece hacia el este, 1 m por píxel global
+        return np.tile(np.arange(256, dtype=float) + x * 256, (256, 1))
+
+    alt = rejilla_relieve(43.56, -6.03, alcance_m=5000, n=33, tesela=tesela)
+    assert alt.shape == (33, 33)
+    assert (np.diff(alt, axis=1) > 0).all() and np.allclose(alt[0], alt[-1])   # crece al este, igual en N y S
+    alt = alt - alt.min() - 50                                                # de -50 m a unos cientos
+    guardar_relieve(alt, tmp_path / "r.png")
+    p = np.asarray(Image.open(tmp_path / "r.png"), dtype=float)
+    leido = p[..., 0] * 256 + p[..., 1] + p[..., 2] / 256 - 32768
+    assert np.abs(leido - alt).max() < 0.01                          # ida y vuelta, incluso bajo cero

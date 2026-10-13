@@ -4,14 +4,12 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>NOVOK · Red del norte</title>
-<meta name="description" content="Niebla y techo bajo en los aeropuertos del norte de España: situación actual y riesgo de bajo mínimos en las próximas 12 horas. Prototipo educativo, complementario al TAF de AEMET.">
+<meta name="description" content="Niebla y techo bajo en los aeropuertos del norte de España: situación actual y riesgo de bajo mínimos en las próximas 12 horas. Herramienta de apoyo a la planificación de operaciones.">
 <meta name="theme-color" content="#0b2545">
 <link rel="icon" href="novok-logo.png">
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Public+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.css">
-<script src="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.js"></script>
+<link rel="stylesheet" href="vendor/fuentes.css">
+<link rel="stylesheet" href="vendor/maplibre-gl.css">
+<script src="vendor/maplibre-gl.js"></script>
 <style>
   /* Mismo lenguaje visual que el briefing de aeropuerto: categorías de vuelo con sus colores estándar. */
   :root {
@@ -136,8 +134,7 @@
   <div class="ancho">
     <div class="logo"><img src="novok-logo.png" alt="NOVOK"><span>Niebla y techo bajo<br>Aeropuertos del norte de España</span></div>
     <div class="relojes" aria-label="Hora actual">
-      <div><b class="tab" id="reloj-z">--:--:--Z</b><small>UTC</small></div>
-      <div><b class="tab" id="reloj-l">--:--</b><small>HORA LOCAL</small></div>
+      <div><b class="tab" id="reloj-l">--:--:--</b><small>HORA PENINSULAR</small></div>
     </div>
   </div>
 </header>
@@ -175,16 +172,17 @@
 
 <footer class="pie">
   <div class="ancho">
-    <p><strong>Prototipo educativo de apoyo a la decisión, complementario al TAF de AEMET. No apto para decisiones de vuelo ni para uso operativo.</strong></p>
+    <p><strong>Herramienta de apoyo a la planificación de operaciones. No sustituye a la información meteorológica aeronáutica oficial (METAR y TAF de AEMET), que es la que vale para las decisiones de vuelo.</strong></p>
     <p>NOVOK predice niebla y techo bajo con modelos entrenados con los METAR de cada aeropuerto y pronósticos numéricos emitidos 24 h antes.
-      Categorías de vuelo según los criterios de la FAA. Datos de aeropuertos: OurAirports. Mapa base: © OpenStreetMap, © CARTO.
+      Categorías de vuelo según los criterios de la FAA. Datos de aeropuertos: OurAirports. Mapa base: Natural Earth (dominio público).
       Código, método y verificación: <a href="https://github.com/Gelan03/novok">github.com/Gelan03/novok</a>.</p>
   </div>
 </footer>
 
 <script>
 const ZONA = "Europe/Madrid";
-const fmtZ = iso => iso ? new Date(iso).toISOString().slice(11, 16) + "Z" : "—";
+// Todas las horas se muestran en hora peninsular española (los datos van en UTC por dentro)
+const fmtZ = iso => iso ? new Date(iso).toLocaleTimeString("es-ES", { timeZone: ZONA, hour: "2-digit", minute: "2-digit" }) : "—";
 const esc = s => String(s ?? "").replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
 const pct = p => (p == null ? "—" : Math.round(p * 100) + " %");
 const visTxt = v => v == null ? "—" : v >= 10000 ? "10 km o más" : v >= 5000 ? (v / 1000).toFixed(0) + " km" : Math.round(v) + " m";
@@ -196,8 +194,7 @@ const pastilla = c => `<span class="cat ${c || "NA"}">${c || "—"}</span>`;
 
 function reloj() {
   const d = new Date();
-  document.getElementById("reloj-z").textContent = d.toISOString().slice(11, 19) + "Z";
-  document.getElementById("reloj-l").textContent = d.toLocaleTimeString("es-ES", { timeZone: ZONA, hour: "2-digit", minute: "2-digit" });
+  document.getElementById("reloj-l").textContent = d.toLocaleTimeString("es-ES", { timeZone: ZONA, hour: "2-digit", minute: "2-digit", second: "2-digit" });
 }
 reloj(); setInterval(reloj, 1000);
 
@@ -254,12 +251,17 @@ function iniciarMapa(lista) {
     locale: { "CooperativeGesturesHandler.WindowsHelpText": "Usa Ctrl + rueda para acercar el mapa", "CooperativeGesturesHandler.MacHelpText": "Usa ⌘ + rueda para acercar el mapa",
       "CooperativeGesturesHandler.MobileHelpText": "Usa dos dedos para mover el mapa", "NavigationControl.ZoomIn": "Acercar", "NavigationControl.ZoomOut": "Alejar",
       "AttributionControl.ToggleAttribution": "Créditos" },
+    // Mapa base propio: Natural Earth (dominio público) en un fichero del sitio; sin servicios de mapas externos
     style: {
       version: 8,
-      sources: { base: { type: "raster", tileSize: 256, maxzoom: 19, attribution: "© OpenStreetMap, © CARTO",
-        tiles: ["a", "b", "c", "d"].map(s => `https://${s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}.png`) } },
-      layers: [{ id: "fondo", type: "background", paint: { "background-color": "#e8edf2" } }, { id: "base", type: "raster", source: "base" }],
+      sources: { base: { type: "geojson", data: "mapa/base.geojson", attribution: "Natural Earth" } },
+      layers: [
+        { id: "mar", type: "background", paint: { "background-color": "#cddbe8" } },
+        { id: "tierra", type: "fill", source: "base", paint: { "fill-color": ["match", ["get", "pais"], "ES", "#fbfaf7", "#ecebe5"] } },
+        { id: "costa", type: "line", source: "base", paint: { "line-color": "#93a7ba", "line-width": ["interpolate", ["linear"], ["zoom"], 5, 0.6, 9, 1.4] } },
+      ],
     },
+    maxBounds: [[-14, 33], [8, 49]], minZoom: 4.5, maxZoom: 10.5,
   });
   mapa.addControl(new maplibregl.NavigationControl({ showCompass: false }), "top-right");
   mapa.on("click", () => popup?.remove());
@@ -272,7 +274,7 @@ function render(r) {
   const rep = r.modo === "repeticion";
   document.getElementById("subtitulo").textContent = `${lista.length} aeropuertos · niebla y techo bajo, ahora y en las próximas 12 h`;
   document.getElementById("modo").innerHTML = rep
-    ? `<span class="punto rep"></span><b>Repetición</b> del ${new Date(r.generado_utc).toLocaleDateString("es-ES", { timeZone: "UTC", day: "numeric", month: "long", year: "numeric" })}, ${fmtZ(r.generado_utc)}<br>datos reales de ese día`
+    ? `<span class="punto rep"></span><b>Repetición</b> del ${new Date(r.generado_utc).toLocaleDateString("es-ES", { timeZone: ZONA, day: "numeric", month: "long", year: "numeric" })}, ${fmtZ(r.generado_utc)}<br>datos reales de ese día`
     : `<span class="punto"></span><b>En directo</b>, actualizado ${fmtZ(r.generado_utc)}<br>se renueva cada 30 min`;
   const cuenta = {};
   lista.forEach(a => { if (a.categoria) cuenta[a.categoria] = (cuenta[a.categoria] || 0) + 1; });

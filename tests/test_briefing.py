@@ -122,6 +122,14 @@ def test_briefing_v2_con_pronostico_numerico(modelos_falsos):
 
     b = br.generar(Fuentes(metars(), nwp=nwp), AHORA)
     assert b["version_modelo"] == "v2" and b["calidad"]["nwp"]
+    assert all(p[c]["modelo"] == "v2" for p in b["pronostico"] for c in ("niebla", "bajo_minimos"))
+
+    # la elección por validación manda: aquí v1 a 12 h en bajo mínimos
+    (modelos_falsos / "eleccion.json").write_text(json.dumps({"bajo_minimos_cat1_12h": "v1"}))
+    be = br.generar(Fuentes(metars(), nwp=nwp), AHORA)
+    usados = {(p["horizonte_h"], c): p[c]["modelo"] for p in be["pronostico"] for c in ("niebla", "bajo_minimos")}
+    assert usados[(12, "bajo_minimos")] == "v1" and usados[(12, "niebla")] == "v2" and be["version_modelo"] == "v2"
+    (modelos_falsos / "eleccion.json").unlink()
     prev = b["viento_pista"]["previsto"]
     assert len(prev) == 12 and prev[0]["fuente"] == "ECMWF"
     assert prev[0]["cruzado_kt"] == pytest.approx(8 * abs(np.sin(np.deg2rad(200 - 290))), abs=0.1)

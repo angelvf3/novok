@@ -4,14 +4,11 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>NOVOK · Briefing de aeropuerto</title>
-<meta name="description" content="Probabilidad de niebla y de condiciones bajo mínimos en un aeropuerto de la red de NOVOK para las próximas 12 horas, frente al TAF de AEMET. Prototipo educativo.">
+<meta name="description" content="Probabilidad de niebla y de condiciones bajo mínimos en un aeropuerto de la red de NOVOK para las próximas 12 horas, frente al TAF de AEMET. Herramienta de apoyo a la planificación.">
 <meta name="theme-color" content="#0b2545">
 <link rel="icon" href="novok-logo.png">
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Public+Sans:wght@400;500;600;700;800&family=Roboto+Mono:wght@400;500&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.css">
-<script src="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.js"></script>
+<link rel="stylesheet" href="vendor/fuentes.css">
+<script type="importmap">{ "imports": { "three": "./vendor/three.module.min.js" } }</script>
 <style>
   /* Lenguaje visual de las herramientas meteorológicas aeronáuticas:
      categorías de vuelo con sus colores estándar, tablas densas, avisos en banda. */
@@ -174,6 +171,7 @@
   .hud-tiempo .play { width: 36px; padding: 9px 0; font-size: 12px; }
   .hud-vistas { top: 14px; right: 54px; display: flex; flex-direction: column; gap: 2px; padding: 5px; }
   .visor .nota-visor { position: absolute; z-index: 2; left: 14px; bottom: 16px; max-width: 280px; font-size: 11.5px; line-height: 1.35; color: #d5e0ec; text-shadow: 0 1px 2px rgb(0 0 0 / .6); }
+  .visor .sin-relieve { position: absolute; z-index: 2; left: 50%; top: 14px; transform: translateX(-50%); background: rgb(11 25 45 / .78); color: #fff; font-size: 12.5px; padding: 6px 10px; border-radius: 8px; }
   .visor .sin-3d { position: absolute; inset: 0; display: grid; place-items: center; text-align: center; color: #c9d6e6; padding: 30px; }
   .marca-pista { font: 800 12px/1 "Public Sans", sans-serif; color: #fff; background: var(--azul-noche); border: 1.5px solid #fff; border-radius: 5px; padding: 4px 6px; box-shadow: 0 2px 6px rgb(0 0 0 / .35); }
   .marca-pista.leas { background: #fff; color: var(--azul-noche); }
@@ -233,8 +231,7 @@
   <div class="ancho">
     <div class="logo"><img src="novok-logo.png" alt="NOVOK"><span>Niebla y techo bajo<br><a href="./" style="color:inherit">← Red del norte</a></span></div>
     <div class="relojes" aria-label="Hora actual">
-      <div><b class="tab" id="reloj-z">--:--:--Z</b><small>UTC</small></div>
-      <div><b class="tab" id="reloj-l">--:--</b><small>HORA LOCAL</small></div>
+      <div><b class="tab" id="reloj-l">--:--:--</b><small>HORA PENINSULAR</small></div>
     </div>
   </div>
 </header>
@@ -251,7 +248,7 @@
 <div id="banda"></div>
 <main class="ancho">
   <section aria-labelledby="t-visor">
-    <div class="seccion-tit"><h2 id="t-visor">Simulación 3D del aeropuerto</h2><span>Relieve real; arrastra para girar, Ctrl + rueda para acercar</span></div>
+    <div class="seccion-tit"><h2 id="t-visor">Simulación 3D del aeropuerto</h2><span>Relieve real; arrastra para girar y usa la rueda para acercar</span></div>
     <div class="visor" id="visor">
       <div id="mapa3d"></div>
       <div class="hud hud-info" id="hud-info" aria-live="polite"></div>
@@ -266,7 +263,7 @@
 
 <footer class="pie">
   <div class="ancho">
-    <p><strong>Prototipo educativo de apoyo a la decisión, complementario al TAF de AEMET. No apto para decisiones de vuelo ni para uso operativo.</strong></p>
+    <p><strong>Herramienta de apoyo a la planificación de operaciones. No sustituye a la información meteorológica aeronáutica oficial (METAR y TAF de AEMET), que es la que vale para las decisiones de vuelo.</strong></p>
     <p>NOVOK predice niebla y techo bajo con modelos entrenados con los METAR de cada aeropuerto (2017–2025) y pronósticos numéricos emitidos 24 h antes.
       Bajo mínimos tipo CAT I: visibilidad &lt; 550 m o techo ≤ 200 ft (aproximación; los mínimos reales dependen del procedimiento publicado).
       Categorías de vuelo según los criterios de la FAA: LIFR techo &lt; 500 ft o visibilidad &lt; 1600 m; IFR &lt; 1000 ft o &lt; 4800 m; MVFR ≤ 3000 ft o ≤ 8000 m.
@@ -277,10 +274,12 @@
 <script>
 const ZONA = "Europe/Madrid";
 const ms = iso => new Date(iso).getTime();
-const fmtZ = iso => iso ? new Date(iso).toISOString().slice(11, 16) + "Z" : "—";
-const fmtHZ = iso => iso ? new Date(iso).toISOString().slice(11, 13) + "Z" : "—";
+// Todas las horas se muestran en hora peninsular española (los datos van en UTC por dentro)
+const fmtZ = iso => iso ? new Date(iso).toLocaleTimeString("es-ES", { timeZone: ZONA, hour: "2-digit", minute: "2-digit" }) : "—";
+const fmtHZ = iso => iso ? new Date(iso).toLocaleTimeString("es-ES", { timeZone: ZONA, hour: "2-digit" }) + " h" : "—";
+const horaLocal = t => +new Date(t).toLocaleString("en-GB", { timeZone: ZONA, hour: "2-digit", hour12: false }) % 24;
 const fmtL = iso => iso ? new Date(iso).toLocaleTimeString("es-ES", { timeZone: ZONA, hour: "2-digit", minute: "2-digit" }) : "—";
-const fmtDia = iso => iso ? `día ${new Date(iso).getUTCDate()} a las ${fmtZ(iso)}` : "—";
+const fmtDia = iso => iso ? `día ${new Date(iso).toLocaleDateString("es-ES", { timeZone: ZONA, day: "numeric" })} a las ${fmtZ(iso)}` : "—";
 const pct = p => (p == null ? "—" : Math.round(p * 100) + " %");
 const esc = s => String(s ?? "").replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
 const visTxt = v => v == null ? "—" : v >= 10000 ? "10 km o más" : v >= 5000 ? (v / 1000).toFixed(0) + " km" : Math.round(v) + " m";
@@ -301,8 +300,7 @@ const pastilla = (c, grande) => `<span class="cat ${c || "NA"}${grande ? " grand
 
 function reloj() {
   const d = new Date();
-  document.getElementById("reloj-z").textContent = d.toISOString().slice(11, 19) + "Z";
-  document.getElementById("reloj-l").textContent = d.toLocaleTimeString("es-ES", { timeZone: ZONA, hour: "2-digit", minute: "2-digit" });
+  document.getElementById("reloj-l").textContent = d.toLocaleTimeString("es-ES", { timeZone: ZONA, hour: "2-digit", minute: "2-digit", second: "2-digit" });
 }
 reloj(); setInterval(reloj, 1000);
 
@@ -367,7 +365,7 @@ function pronostico(b) {
       <tbody>${pr.map(p => `<tr><th><b>+${p.horizonte_h} h</b><span class="tab">${fmtZ(p.hora_utc)}</span></th>${celdaProb(p.bajo_minimos)}${celdaProb(p.niebla)}<td>${p.taf ? pastilla(categoria(p.taf.vis_predominante_m, p.taf.techo_predominante_ft)) : '<span class="gris">—</span>'}</td></tr>`).join("")}</tbody>
     </table>
     <div class="desliza"><table class="pron">
-      <thead><tr><th></th>${pr.map(p => `<th><b>+${p.horizonte_h} h</b><span class="tab">${fmtZ(p.hora_utc)} · ${fmtL(p.hora_utc)} local</span></th>`).join("")}</tr></thead>
+      <thead><tr><th></th>${pr.map(p => `<th><b>+${p.horizonte_h} h</b><span class="tab">a las ${fmtZ(p.hora_utc)}</span></th>`).join("")}</tr></thead>
       <tbody>
         <tr><th>Bajo mínimos CAT I<small>vis &lt; 550 m o techo ≤ 200 ft</small></th>${pr.map(p => celdaProb(p.bajo_minimos)).join("")}</tr>
         <tr><th>Niebla<small>vis &lt; 1000 m</small></th>${pr.map(p => celdaProb(p.niebla)).join("")}</tr>
@@ -393,9 +391,9 @@ function lineaTiempo(b, ancho) {
 
   // horas
   for (let t = Math.ceil(t0 / 3600e3) * 3600e3; t <= t1; t += 3600e3) {
-    const hh = new Date(t).getUTCHours();
+    const hh = horaLocal(t);
     s += `<line x1="${x(t) - paso / 2}" x2="${x(t) - paso / 2}" y1="${yC}" y2="${yP2}" stroke="var(--borde-suave)"/>`;
-    if (hh % (estrecho ? 6 : 3) === 0) s += `<text x="${x(t)}" y="${yH}" text-anchor="middle" font-size="11.5" font-weight="600" fill="var(--tinta-2)">${String(hh).padStart(2, "0")}Z</text>`;
+    if (hh % (estrecho ? 6 : 3) === 0) s += `<text x="${x(t)}" y="${yH}" text-anchor="middle" font-size="11.5" font-weight="600" fill="var(--tinta-2)">${String(hh).padStart(2, "0")} h</text>`;
   }
 
   // fila de categoría de vuelo: METAR en el pasado, TAF en el futuro
@@ -503,7 +501,7 @@ function disipacion(b) {
     <h2 id="t-dis">Disipación de la niebla <span>tipo ${esc(ep.tipo)}</span></h2>
     <div class="cuerpo">
       <div class="gris" style="font-size:13px">En curso desde las ${fmtZ(ep.inicio_utc)} (hace ${ep.transcurridas_h} h). Hora más probable de despeje:</div>
-      <div class="cifra tab">${fmtZ(d.despeja_utc_q50)}<small>${fmtL(d.despeja_utc_q50)} local</small></div>
+      <div class="cifra tab">${fmtZ(d.despeja_utc_q50)}<small>hora peninsular</small></div>
       <div class="intervalo" role="img" aria-label="Intervalo del 80 % entre ${fmtZ(d.despeja_utc_q10)} y ${fmtZ(d.despeja_utc_q90)}">
         <div class="rango" style="left:${pos(d.despeja_utc_q10)}%;right:${100 - pos(d.despeja_utc_q90)}%"></div>
         <div class="med" style="left:${pos(d.despeja_utc_q50)}%"></div></div>
@@ -590,39 +588,49 @@ function calidad(b) {
 }
 
 /* ---------- visor 3D ---------- */
-let ARP = [-6.0342, 43.5636];              // punto de referencia del aeropuerto activo (se fija con el briefing)
-const EXAG = 1.4;                          // exageración del relieve
-let UMBRALES = {}, VISTAS = {}, CODIGO = "";
+// Escena propia con three.js: relieve del aeropuerto desde un fichero del sitio (web/terreno/<OACI>.png),
+// pistas dibujadas con sus umbrales reales y niebla que sigue el terreno. Sin servicios de mapas externos.
+const EXAG = 1.6;                 // exageración vertical del relieve
+const ALCANCE = 12000;            // el relieve cubre 24 x 24 km alrededor del aeropuerto
+let AERO = null, VISTAS = {};
+const visor = { escenarios: [], actual: 0, reproduciendo: null, escena: null };
 
-// Puntos de vista a partir de la geometría real del aeropuerto (umbrales de OurAirports)
+// lat/lon -> metros locales (x este, z sur), con origen en el punto de referencia del aeropuerto
+function local(lat, lon) {
+  return [(lon - AERO.lon) * 111320 * Math.cos(AERO.lat * Math.PI / 180), -(lat - AERO.lat) * 111320];
+}
+
 function configurarAeropuerto(a) {
-  CODIGO = a.icao; ARP = [a.lon, a.lat];
-  const conUmbral = (a.pistas || []).filter(p => p.lat != null && p.lon != null);
-  UMBRALES = Object.fromEntries(conUmbral.map(p => [p.ident, [p.lon, p.lat]]));
+  AERO = a;
+  const elev = (a.elev_ft || 0) * .3048 * EXAG;
+  const pistas = (a.pistas || []).filter(p => p.lat != null && p.lon != null);
   const rumbo0 = a.pistas?.[0]?.rumbo ?? 0;
-  VISTAS = { general: { center: ARP, zoom: 12.9, pitch: 64, bearing: (rumbo0 + 90) % 360 } };
-  for (const p of conUmbral) {       // cámara en la aproximación, mirando en el sentido de aterrizaje
-    const r = p.rumbo * Math.PI / 180, d = 500, cos = Math.cos(p.lat * Math.PI / 180);
-    VISTAS[p.ident] = { center: [p.lon + Math.sin(r) * d / (111320 * cos), p.lat + Math.cos(r) * d / 111320], zoom: 14.1, pitch: 76, bearing: p.rumbo };
+  const dir = r => [Math.sin(r * Math.PI / 180), -Math.cos(r * Math.PI / 180)];   // rumbo -> (x, z)
+  // Vista general: de costado a la pista principal, a 8 km y con 25° de inclinación
+  const [gx, gz] = dir((rumbo0 + 90) % 360);
+  VISTAS = { general: { objetivo: [0, elev, 0], camara: [-gx * 7200, elev + 3400, -gz * 7200] } };
+  // Aproximación: alineado con la pista a 1 km del umbral, algo más alto que la senda real para ver bien la pista
+  for (const p of pistas) {
+    const [ux, uz] = local(p.lat, p.lon), [dx, dz] = dir(p.rumbo);
+    VISTAS[p.ident] = { objetivo: [ux + dx * 1100, elev, uz + dz * 1100],
+                        camara: [ux - dx * 1000, elev + 1000 * Math.tan(9 * Math.PI / 180), uz - dz * 1000] };
   }
-  // (las claves numéricas como "11" irían antes que "general" en un objeto: se ordena a mano)
   document.querySelector(".hud-vistas").innerHTML = ["general", ...Object.keys(VISTAS).filter(k => k !== "general")].map(k =>
     `<button type="button" data-vista="${esc(k)}" aria-pressed="${k === "general"}">${k === "general" ? "Vista general" : "Aprox. " + esc(k)}</button>`).join("");
 }
-const visor = { mapa: null, capa: null, escenarios: [], actual: 0, reproduciendo: null };
 
 function escenarios(b) {
   const lista = [], a = b.ahora;
   if (a) {
     const vis = a.vis_m ?? 10000;
     const d = vis >= 8000 ? 0 : Math.min(1, Math.max(.06, Math.log10(8000 / vis) / Math.log10(8000 / 150)));
-    lista.push({ etiqueta: "Ahora", hora: b.calidad?.metar_ultimo_utc, densidad: d, espesor: a.techo_ft != null && a.techo_ft <= 200 ? 45 : 85,
+    lista.push({ etiqueta: "Ahora", hora: b.calidad?.metar_ultimo_utc, densidad: d, vis, espesor: a.techo_ft != null && a.techo_ft <= 200 ? 45 : 85,
       dir: a.viento_dir, kt: a.viento_kt, fuenteViento: "METAR", cat: categoria(a.vis_m, a.techo_ft), catTaf: null,
       filas: [["Visibilidad", visTxt(a.vis_m)], ["Techo", a.techo_ft == null ? "sin techo" : a.techo_ft + " ft"]] });
   }
   for (const p of b.pronostico || []) {
     const v = (b.viento_pista?.previsto || []).find(r => r.hora_utc === p.hora_utc);
-    lista.push({ etiqueta: `+${p.horizonte_h} h`, hora: p.hora_utc, densidad: Math.min(1, p.niebla.p * 1.15), espesor: 45 + 60 * (1 - p.bajo_minimos.p),
+    lista.push({ etiqueta: `+${p.horizonte_h} h`, hora: p.hora_utc, densidad: Math.min(1, p.niebla.p * 1.15), vis: null, espesor: 45 + 60 * (1 - p.bajo_minimos.p),
       dir: v?.dir ?? a?.viento_dir, kt: v?.kt ?? a?.viento_kt, fuenteViento: v ? v.fuente : "METAR",
       cat: null, catTaf: p.taf ? categoria(p.taf.vis_predominante_m, p.taf.techo_predominante_ft) : null,
       filas: [["Niebla", pct(p.niebla.p)], ["Bajo mínimos", pct(p.bajo_minimos.p)]] });
@@ -637,7 +645,7 @@ function pintarHud() {
   const viento = !e.kt ? "calma" : `${e.dir != null ? String(Math.round(e.dir)).padStart(3, "0") + "°" : "VRB"} ${Math.round(e.kt)} kt`;
   hud.innerHTML = `<div class="tit">${e.etiqueta === "Ahora" ? "Observado (METAR)" : "Previsión NOVOK"}</div>
     <div class="esc">${e.etiqueta}${e.cat ? pastilla(e.cat) : ""}</div>
-    <div class="hora tab">${fmtZ(e.hora)} · ${fmtL(e.hora)} local</div>
+    <div class="hora tab">${e.etiqueta === "Ahora" ? "Observado a las" : "Para las"} ${fmtZ(e.hora)}</div>
     <dl>${e.filas.map(([k, v]) => `<dt>${k}</dt><dd>${v}</dd>`).join("")}${e.catTaf ? `<dt>TAF</dt><dd>${pastilla(e.catTaf)}</dd>` : ""}<dt>Viento</dt><dd>${viento} <span style="font-weight:400;color:#a9bdd6">${esc(e.fuenteViento)}</span></dd></dl>
     <div class="medidor" title="Cantidad de niebla dibujada"><i style="width:${Math.round(e.densidad * 100)}%"></i></div>`;
   document.querySelectorAll("#hud-tiempo button[data-i]").forEach(bt => bt.setAttribute("aria-pressed", String(+bt.dataset.i === visor.actual)));
@@ -645,17 +653,22 @@ function pintarHud() {
 
 function elegirEscenario(i) {
   visor.actual = i; pintarHud();
-  const e = visor.escenarios[i], c = visor.capa;
-  if (!e || !c) return;
-  c.objetivo = e.densidad; c.espesorObj = e.espesor;
-  const vel = (e.kt || 0) * .514 * 45, ang = (e.dir ?? 0) * Math.PI / 180;    // cámara rápida x45; el viento va hacia dir + 180°
-  c.viento = [-Math.sin(ang) * vel, -Math.cos(ang) * vel];
-  if (visor.mapa?.setSky) visor.mapa.setSky(cielo(e.densidad));
+  const e = visor.escenarios[i];
+  if (e && visor.escena) visor.escena.escenario(e);
 }
 
-function cielo(d) {
-  return { "sky-color": "#7fa6cc", "horizon-color": "#dbe4ec", "fog-color": "#e3e8ec", "sky-horizon-blend": .55,
-    "horizon-fog-blend": .35 + .6 * d, "fog-ground-blend": Math.max(.15, .92 - .7 * d), "atmosphere-blend": 0 };
+// Mapa de alturas: PNG con la codificación "terrarium" (altura = R*256 + G + B/256 - 32768 m)
+async function leerRelieve(icao) {
+  try {
+    const meta = await fetch(`terreno/${icao}.json`).then(r => r.ok ? r.json() : null);
+    if (!meta) return null;
+    const img = new Image(); img.src = `terreno/${icao}.png`; await img.decode();
+    const cv = document.createElement("canvas"); cv.width = img.width; cv.height = img.height;
+    const g = cv.getContext("2d", { willReadFrequently: true }); g.drawImage(img, 0, 0);
+    const px = g.getImageData(0, 0, img.width, img.height).data, n = img.width, alt = new Float32Array(n * n);
+    for (let k = 0; k < n * n; k++) alt[k] = px[k * 4] * 256 + px[k * 4 + 1] + px[k * 4 + 2] / 256 - 32768;
+    return { n, alt, alcance: meta.alcance_m || ALCANCE };
+  } catch { return null; }
 }
 
 function texturaNiebla(THREE) {
@@ -673,129 +686,185 @@ function texturaNiebla(THREE) {
   const t = new THREE.CanvasTexture(cv); t.colorSpace = THREE.SRGBColorSpace; return t;
 }
 
-function capaNiebla(THREE) {
-  const N = 1500, R = 7500;                  // discos de niebla en un cuadrado de 15 km
-  const capa = {
-    id: "niebla", type: "custom", renderingMode: "3d",
-    densidad: 0, objetivo: 0, espesor: 80, espesorObj: 80, viento: [0, 0], suelo: null,
-    onAdd(map, gl) {
-      this.map = map; this.camera = new THREE.Camera(); this.scene = new THREE.Scene();
-      const texturas = [texturaNiebla(THREE), texturaNiebla(THREE), texturaNiebla(THREE)];
-      const geo = new THREE.PlaneGeometry(1, 1);
-      this.discos = Array.from({ length: N }, () => {
-        const m = new THREE.Mesh(geo, new THREE.MeshBasicMaterial({ map: texturas[Math.floor(Math.random() * 3)], transparent: true,
-          depthWrite: false, opacity: 0, side: THREE.DoubleSide, color: 0xf4f6f8 }));
-        const s = 700 + Math.random() * 1500;
-        m.scale.set(s, s * (.55 + Math.random() * .5), 1); m.rotation.z = Math.random() * Math.PI;
-        m.userData = { x: (Math.random() * 2 - 1) * R, y: (Math.random() * 2 - 1) * R, h: Math.random() ** 1.3, u: Math.random(), a: .16 + Math.random() * .2 };
-        this.scene.add(m); return m;
-      });
-      this.renderer = new THREE.WebGLRenderer({ canvas: map.getCanvas(), context: gl, antialias: true });
-      this.renderer.autoClear = false;
-      this.t = performance.now();
-      const muestrear = () => this.muestrearSuelo();
-      map.on("idle", muestrear);
-    },
-    // relieve en una rejilla, relativo al punto de referencia (así no depende de la cámara)
-    muestrearSuelo() {
-      const m = this.map, G = 41, e0 = m.queryTerrainElevation(ARP);
-      if (e0 == null) return;
-      const rej = new Float32Array(G * G), cos = Math.cos(ARP[1] * Math.PI / 180);
-      for (let j = 0; j < G; j++) for (let i = 0; i < G; i++) {
-        const x = -R + 2 * R * i / (G - 1), y = -R + 2 * R * j / (G - 1);
-        const e = m.queryTerrainElevation([ARP[0] + x / (111320 * cos), ARP[1] + y / 111320]);
-        rej[j * G + i] = e == null ? (this.suelo ? this.suelo.rej[j * G + i] : 0) : e - e0;
-      }
-      this.suelo = { rej, G };
-    },
-    alturaSuelo(x, y) {
-      if (!this.suelo) return 0;
-      const { rej, G } = this.suelo, fx = (x + R) / (2 * R) * (G - 1), fy = (y + R) / (2 * R) * (G - 1);
-      const i = Math.max(0, Math.min(G - 2, Math.floor(fx))), j = Math.max(0, Math.min(G - 2, Math.floor(fy))), u = fx - i, v = fy - j;
-      return rej[j * G + i] * (1 - u) * (1 - v) + rej[j * G + i + 1] * u * (1 - v) + rej[(j + 1) * G + i] * (1 - u) * v + rej[(j + 1) * G + i + 1] * u * v;
-    },
-    render(gl, arg) {
-      const matriz = arg && arg.length === 16 ? arg : arg.defaultProjectionData.mainMatrix;
-      const ahora = performance.now(), dt = Math.min(.1, (ahora - this.t) / 1000); this.t = ahora;
-      const k = Math.min(1, dt * 1.6);
-      this.densidad += (this.objetivo - this.densidad) * k; this.espesor += (this.espesorObj - this.espesor) * k;
-      for (const m of this.discos) {
-        const d = m.userData;
-        d.x += this.viento[0] * dt; d.y += this.viento[1] * dt;
-        if (d.x > R) d.x -= 2 * R; if (d.x < -R) d.x += 2 * R; if (d.y > R) d.y -= 2 * R; if (d.y < -R) d.y += 2 * R;
-        const borde = Math.min(1, (R - Math.abs(d.x)) / 1500, (R - Math.abs(d.y)) / 1500);   // se desvanece en los bordes
-        const op = d.u < this.densidad ? d.a * Math.min(1, (this.densidad - d.u) * 5) * borde : 0;
-        m.material.opacity = op; m.visible = op > .004;
-        if (m.visible) m.position.set(d.x, d.y, this.alturaSuelo(d.x, d.y) + (4 + d.h * this.espesor) * EXAG);
-      }
-      const e0 = this.map.queryTerrainElevation(ARP) || 0;
-      const o = maplibregl.MercatorCoordinate.fromLngLat(ARP, e0), s = o.meterInMercatorCoordinateUnits();
-      this.camera.projectionMatrix = new THREE.Matrix4().fromArray(matriz)
-        .multiply(new THREE.Matrix4().makeTranslation(o.x, o.y, o.z).scale(new THREE.Vector3(s, -s, s)));
-      this.renderer.resetState(); this.renderer.render(this.scene, this.camera);
-      this.map.triggerRepaint();
-    },
-  };
-  return capa;
-}
-
-const IGN = "https://www.ign.es/wmts/pnoa-ma?request=GetTile&service=WMTS&version=1.0.0&layer=OI.OrthoimageCoverage&style=default&format=image/jpeg&tilematrixset=GoogleMapsCompatible&tilematrix={z}&tilerow={y}&tilecol={x}";
-const ESRI = "https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}";
-const DEM = "https://s3.amazonaws.com/elevation-tiles-prod/terrarium/{z}/{x}/{y}.png";
-
 async function iniciarVisor() {
   const cont = document.getElementById("mapa3d");
   const fallo = msg => { cont.innerHTML = `<div class="sin-3d">${msg}</div>`; };
-  if (!window.maplibregl) return fallo("No se pudo cargar el visor 3D.");
-  if (!maplibregl.supported?.() && maplibregl.supported) return fallo("Tu navegador no permite gráficos 3D (WebGL).");
-  let THREE;
-  try { THREE = await import("https://cdn.jsdelivr.net/npm/three@0.169.0/build/three.module.min.js"); } catch { return fallo("No se pudo cargar el motor 3D."); }
-  const v = VISTAS.general;
-  const map = new maplibregl.Map({
-    container: cont, ...v, maxPitch: 82, cooperativeGestures: true, attributionControl: { compact: true },
-    locale: { "CooperativeGesturesHandler.WindowsHelpText": "Usa Ctrl + rueda para acercar el mapa", "CooperativeGesturesHandler.MacHelpText": "Usa ⌘ + rueda para acercar el mapa",
-      "CooperativeGesturesHandler.MobileHelpText": "Usa dos dedos para mover el mapa", "NavigationControl.ZoomIn": "Acercar", "NavigationControl.ZoomOut": "Alejar",
-      "NavigationControl.ResetBearing": "Orientar al norte", "AttributionControl.ToggleAttribution": "Créditos" },
-    style: {
-      version: 8,
-      sources: {
-        pnoa: { type: "raster", tiles: [IGN], tileSize: 256, maxzoom: 19, attribution: "Ortofoto PNOA © Instituto Geográfico Nacional" },
-        esri: { type: "raster", tiles: [ESRI], tileSize: 256, maxzoom: 18, attribution: "Imagen © Esri, Maxar, Earthstar Geographics" },
-        dem: { type: "raster-dem", tiles: [DEM], encoding: "terrarium", tileSize: 256, maxzoom: 14, attribution: "Relieve: Terrain Tiles (Mapzen, AWS)" },
-      },
-      layers: [
-        { id: "fondo", type: "background", paint: { "background-color": "#3b4c5e" } },
-        { id: "orto-pnoa", type: "raster", source: "pnoa" },
-        { id: "orto-esri", type: "raster", source: "esri", layout: { visibility: "none" } },
-      ],
-      terrain: { source: "dem", exaggeration: EXAG },
-      sky: cielo(0),
-    },
-  });
-  visor.mapa = map;
-  map.addControl(new maplibregl.NavigationControl({ visualizePitch: true }), "top-right");
-  // si la ortofoto del IGN no responde, se usa otra imagen de satélite
-  let erroresPnoa = 0;
-  map.on("error", e => {
-    if (e.sourceId === "pnoa" && ++erroresPnoa === 4) {
-      map.setLayoutProperty("orto-pnoa", "visibility", "none"); map.setLayoutProperty("orto-esri", "visibility", "visible");
+  let THREE, OrbitControls, CSS2DRenderer, CSS2DObject;
+  try {
+    THREE = await import("three");
+    ({ OrbitControls } = await import("./vendor/jsm/OrbitControls.js"));
+    ({ CSS2DRenderer, CSS2DObject } = await import("./vendor/jsm/CSS2DRenderer.js"));
+  } catch { return fallo("No se pudo cargar el motor 3D."); }
+  const relieve = await leerRelieve(AERO.icao);
+
+  let renderer;
+  try { renderer = new THREE.WebGLRenderer({ antialias: true }); } catch { return fallo("Tu navegador no permite gráficos 3D (WebGL)."); }
+  renderer.setPixelRatio(Math.min(2, devicePixelRatio));
+  cont.appendChild(renderer.domElement);
+  const etiquetas = new CSS2DRenderer();
+  etiquetas.domElement.style.cssText = "position:absolute;inset:0;pointer-events:none";
+  cont.appendChild(etiquetas.domElement);
+
+  const CIELO = new THREE.Color("#b8cde0"), NIEBLA = new THREE.Color("#e4e8eb");
+  const escena = new THREE.Scene();
+  escena.background = CIELO.clone();
+  escena.fog = new THREE.Fog(CIELO.clone(), 9000, 60000);
+  const camara = new THREE.PerspectiveCamera(45, 1, 20, 120000);
+  escena.add(new THREE.HemisphereLight(0xf2f6fb, 0x55606a, 1.25));
+  const sol = new THREE.DirectionalLight(0xffffff, 1.6); sol.position.set(-6000, 9000, -4000); escena.add(sol);
+
+  // Relieve
+  const N = relieve ? relieve.n : 2, A = relieve ? relieve.alcance : ALCANCE;
+  const altura = (x, z) => {                 // altura (m, ya exagerada) en un punto local, interpolada
+    if (!relieve) return 0;
+    const fx = (x + A) / (2 * A) * (N - 1), fz = (z + A) / (2 * A) * (N - 1);
+    const i = Math.max(0, Math.min(N - 2, Math.floor(fx))), j = Math.max(0, Math.min(N - 2, Math.floor(fz))), u = fx - i, v = fz - j;
+    const h = relieve.alt, g = (a, b) => Math.max(0, h[b * N + a]);
+    return (g(i, j) * (1 - u) * (1 - v) + g(i + 1, j) * u * (1 - v) + g(i, j + 1) * (1 - u) * v + g(i + 1, j + 1) * u * v) * EXAG;
+  };
+  const geo = new THREE.PlaneGeometry(2 * A, 2 * A, N - 1, N - 1);
+  geo.rotateX(-Math.PI / 2);                 // plano horizontal: filas de norte (z = -A) a sur (z = +A)
+  const pos = geo.attributes.position, colores = new Float32Array(pos.count * 3);
+  const paleta = [[0, "#7fa6c9"], [1, "#b9c99c"], [150, "#a4b88a"], [450, "#8ea277"], [900, "#b4a789"], [1600, "#d9d2c4"]].map(([m, c]) => [m, new THREE.Color(c)]);
+  const tmp = new THREE.Color();
+  for (let k = 0; k < pos.count; k++) {
+    const bruto = relieve ? relieve.alt[k] : 0, m = Math.max(0, bruto);
+    pos.setY(k, m * EXAG);
+    if (relieve && bruto <= 0.5) tmp.copy(paleta[0][1]);           // mar
+    else {
+      let a = 1; while (a < paleta.length - 1 && m > paleta[a + 1][0]) a++;
+      const [m0, c0] = paleta[a], [m1, c1] = paleta[Math.min(a + 1, paleta.length - 1)];
+      tmp.copy(c0).lerp(c1, m1 > m0 ? Math.min(1, (m - m0) / (m1 - m0)) : 0);
     }
+    colores.set([tmp.r, tmp.g, tmp.b], k * 3);
+  }
+  // Explanada del aeropuerto: el relieve se aplana alrededor de cada pista (a su altura media en el relieve)
+  const segmentos = paresPista((AERO.pistas || []).filter(p => p.lat != null)).filter(par => par.length === 2).map(([a, b]) => {
+    const [ax, az] = local(a.lat, a.lon), [bx, bz] = local(b.lat, b.lon);
+    let suma = 0; for (let f = 0; f <= 10; f++) suma += altura(ax + (bx - ax) * f / 10, az + (bz - az) * f / 10);
+    return { ax, az, bx, bz, y: Math.max(suma / 11, (AERO.elev_ft || 0) * .3048 * EXAG * .5) };
   });
-  map.on("load", () => {
-    visor.capa = capaNiebla(THREE);
-    map.addLayer(visor.capa);
-    for (const [nombre, pos] of Object.entries(UMBRALES)) {
-      const el = document.createElement("div"); el.className = "marca-pista"; el.textContent = nombre;
-      new maplibregl.Marker({ element: el }).setLngLat(pos).addTo(map);
+  const distSeg = (x, z, g) => {
+    const vx = g.bx - g.ax, vz = g.bz - g.az, f = Math.max(0, Math.min(1, ((x - g.ax) * vx + (z - g.az) * vz) / (vx * vx + vz * vz)));
+    return Math.hypot(x - g.ax - f * vx, z - g.az - f * vz);
+  };
+  for (let k = 0; k < pos.count && relieve; k++) {
+    for (const g of segmentos) {
+      const d = distSeg(pos.getX(k), pos.getZ(k), g);
+      if (d < 700) { const w = d < 250 ? 1 : 1 - (d - 250) / 450; pos.setY(k, pos.getY(k) * (1 - w) + g.y * w); }
     }
-    const el = document.createElement("div"); el.className = "marca-pista leas"; el.textContent = CODIGO;
-    new maplibregl.Marker({ element: el, offset: [0, -18] }).setLngLat(ARP).addTo(map);
-    elegirEscenario(visor.actual);
+  }
+  geo.setAttribute("color", new THREE.BufferAttribute(colores, 3));
+  geo.computeVertexNormals();
+  escena.add(new THREE.Mesh(geo, new THREE.MeshLambertMaterial({ vertexColors: true })));
+
+  // Pistas, con su línea central, y etiquetas
+  const etiqueta = (texto, clase, x, y, z) => {
+    const el = document.createElement("div"); el.className = clase; el.textContent = texto;
+    const o = new CSS2DObject(el); o.position.set(x, y, z); escena.add(o);
+  };
+  const elevPista = (AERO.elev_ft || 0) * .3048 * EXAG;
+  for (const par of paresPista((AERO.pistas || []).filter(p => p.lat != null))) {
+    const [a, b] = par;
+    const [ax, az] = local(a.lat, a.lon);
+    etiqueta(a.ident, "marca-pista", ax, altura(ax, az) + 40, az);
+    if (!b) continue;
+    const [bx, bz] = local(b.lat, b.lon), largo = Math.hypot(bx - ax, bz - az), ang = Math.atan2(bx - ax, bz - az);
+    const seg = segmentos.find(g => Math.abs(g.ax - ax) < 1 && Math.abs(g.az - az) < 1);
+    const y = (seg ? seg.y : elevPista) + 3;
+    const pista = new THREE.Mesh(new THREE.BoxGeometry(45, 4, largo), new THREE.MeshLambertMaterial({ color: 0x3d4551 }));
+    pista.position.set((ax + bx) / 2, y, (az + bz) / 2); pista.rotation.y = ang; escena.add(pista);
+    const raya = new THREE.Mesh(new THREE.BoxGeometry(3, 4.4, largo * .92), new THREE.MeshBasicMaterial({ color: 0xffffff }));
+    raya.position.copy(pista.position); raya.rotation.y = ang; escena.add(raya);
+    etiqueta(b.ident, "marca-pista", bx, altura(bx, bz) + 40, bz);
+  }
+  etiqueta(AERO.icao, "marca-pista leas", 0, elevPista + 260, 0);
+
+  // Niebla: discos horizontales y translúcidos que siguen el terreno y se mueven con el viento
+  const texturas = [texturaNiebla(THREE), texturaNiebla(THREE), texturaNiebla(THREE)];
+  const plano = new THREE.PlaneGeometry(1, 1); plano.rotateX(-Math.PI / 2);
+  const R = A * .92, discos = Array.from({ length: 1400 }, () => {
+    const m = new THREE.Mesh(plano, new THREE.MeshBasicMaterial({ map: texturas[Math.floor(Math.random() * 3)], transparent: true,
+      depthWrite: false, opacity: 0, color: 0xf4f6f8, fog: false }));
+    const s = 600 + Math.random() * 1400;
+    m.scale.set(s, 1, s * (.55 + Math.random() * .5)); m.rotation.y = Math.random() * Math.PI;
+    m.userData = { x: (Math.random() * 2 - 1) * R, z: (Math.random() * 2 - 1) * R, h: Math.random() ** 1.3, u: Math.random(), a: .16 + Math.random() * .2 };
+    m.renderOrder = 2; escena.add(m); return m;
   });
+  // "alcance" = distancia a la que la bruma lo tapa todo, contada desde el punto que se mira
+  const estado = { densidad: 0, objetivo: 0, espesor: 80, espesorObj: 80, viento: [0, 0], alcance: 60000, alcanceObj: 60000 };
+
+  // Cámara: controles de órbita y transiciones suaves entre vistas
+  const controles = new OrbitControls(camara, renderer.domElement);
+  controles.enableDamping = true; controles.maxPolarAngle = Math.PI * .49; controles.minDistance = 300; controles.maxDistance = 30000;
+  // Que ninguna vista quede tapada por el relieve: la cámara pasa por encima de lo que haya delante
+  for (const v of Object.values(VISTAS)) {
+    let maximo = 0;
+    for (let f = 0; f <= 24; f++) maximo = Math.max(maximo, altura(v.camara[0] + (v.objetivo[0] - v.camara[0]) * f / 24, v.camara[2] + (v.objetivo[2] - v.camara[2]) * f / 24));
+    v.objetivo[1] = Math.max(v.objetivo[1], altura(v.objetivo[0], v.objetivo[2]));
+    v.camara[1] = Math.max(v.camara[1], maximo + 140);
+  }
+  let vuelo = null;
+  const irA = (nombre, inmediato) => {
+    const v = VISTAS[nombre]; if (!v) return;
+    const destino = { cam: new THREE.Vector3(...v.camara), obj: new THREE.Vector3(...v.objetivo) };
+    if (inmediato) { camara.position.copy(destino.cam); controles.target.copy(destino.obj); return; }
+    vuelo = { t0: performance.now(), dur: 2200, desdeCam: camara.position.clone(), desdeObj: controles.target.clone(), ...destino };
+  };
+  irA("general", true);
   document.querySelectorAll(".hud-vistas button").forEach(bt => bt.addEventListener("click", () => {
     document.querySelectorAll(".hud-vistas button").forEach(o => o.setAttribute("aria-pressed", String(o === bt)));
-    map.flyTo({ ...VISTAS[bt.dataset.vista], duration: 2600, essential: true });
+    irA(bt.dataset.vista);
   }));
+
+  const ajustar = () => {
+    const w = cont.clientWidth, h = cont.clientHeight;
+    renderer.setSize(w, h); etiquetas.setSize(w, h); camara.aspect = w / h; camara.updateProjectionMatrix();
+  };
+  new ResizeObserver(ajustar).observe(cont); ajustar();
+
+  let t = performance.now();
+  const reducir = matchMedia("(prefers-reduced-motion: reduce)").matches;
+  renderer.setAnimationLoop(ahora => {
+    const dt = Math.min(.1, (ahora - t) / 1000); t = ahora;
+    const k = Math.min(1, dt * 1.6);
+    estado.densidad += (estado.objetivo - estado.densidad) * k;
+    estado.espesor += (estado.espesorObj - estado.espesor) * k;
+    estado.alcance += (estado.alcanceObj - estado.alcance) * k;
+    // la bruma general y el color del cielo acompañan a la cantidad de niebla; empieza un poco antes del punto mirado
+    const dist = camara.position.distanceTo(controles.target);
+    escena.fog.near = dist * .55; escena.fog.far = dist * .55 + estado.alcance;
+    escena.fog.color.copy(CIELO).lerp(NIEBLA, estado.densidad); escena.background.copy(escena.fog.color);
+    for (const m of discos) {
+      const d = m.userData;
+      if (!reducir) { d.x += estado.viento[0] * dt; d.z += estado.viento[1] * dt; }
+      if (d.x > R) d.x -= 2 * R; if (d.x < -R) d.x += 2 * R; if (d.z > R) d.z -= 2 * R; if (d.z < -R) d.z += 2 * R;
+      const borde = Math.min(1, (R - Math.abs(d.x)) / 1800, (R - Math.abs(d.z)) / 1800);
+      const op = d.u < estado.densidad ? d.a * Math.min(1, (estado.densidad - d.u) * 5) * borde : 0;
+      m.material.opacity = op; m.visible = op > .004;
+      if (m.visible) m.position.set(d.x, altura(d.x, d.z) + (4 + d.h * estado.espesor) * EXAG, d.z);
+    }
+    if (vuelo) {
+      const f = Math.min(1, (ahora - vuelo.t0) / vuelo.dur), e = f < .5 ? 2 * f * f : 1 - (-2 * f + 2) ** 2 / 2;
+      camara.position.lerpVectors(vuelo.desdeCam, vuelo.cam, e); controles.target.lerpVectors(vuelo.desdeObj, vuelo.obj, e);
+      if (f >= 1) vuelo = null;
+    }
+    controles.update();
+    renderer.render(escena, camara); etiquetas.render(escena, camara);
+  });
+
+  visor.escena = {
+    escenario(e) {
+      estado.objetivo = e.densidad; estado.espesorObj = e.espesor;
+      // la bruma se cierra con la visibilidad (observada o equivalente a la probabilidad); con un mínimo para que se vea
+      const vis = e.vis != null ? e.vis : 10000 * (1 - e.densidad) + 300;
+      estado.alcanceObj = vis >= 8000 ? 60000 : Math.max(2500, vis * 6);
+      const vel = (e.kt || 0) * .514 * 45, ang = (e.dir ?? 0) * Math.PI / 180;   // cámara rápida x45; va hacia dir + 180°
+      estado.viento = [-Math.sin(ang) * vel, Math.cos(ang) * vel];
+    },
+  };
+  if (!relieve) cont.insertAdjacentHTML("beforeend", `<div class="sin-relieve">Relieve no disponible: genera los mapas de alturas con <code>python -m novok.red terreno</code></div>`);
+  elegirEscenario(visor.actual);
 }
 
 function actualizarVisor(b) {
@@ -817,6 +886,7 @@ function pararSecuencia() {
   clearInterval(visor.reproduciendo); visor.reproduciendo = null;
   const bt = document.querySelector("#hud-tiempo .play"); if (bt) { bt.textContent = "▶"; bt.setAttribute("aria-label", "Reproducir la secuencia"); }
 }
+
 /* ---------- montaje ---------- */
 let ultimo = null;
 function dibujarTiempo() {
@@ -829,7 +899,7 @@ function render(b) {
   const cal = b.calidad || {}, ok = cal.pronostico_emitido, rep = b.modo === "repeticion";
   document.getElementById("cat-actual").innerHTML = b.ahora ? pastilla(categoria(b.ahora.vis_m, b.ahora.techo_ft), true) : "";
   document.getElementById("modo").innerHTML = rep
-    ? `<span class="punto rep"></span><b>Repetición</b> del ${new Date(b.generado_utc).toLocaleDateString("es-ES", { timeZone: "UTC", day: "numeric", month: "long", year: "numeric" })}, ${fmtZ(b.generado_utc)}<br>datos reales de ese día`
+    ? `<span class="punto rep"></span><b>Repetición</b> del ${new Date(b.generado_utc).toLocaleDateString("es-ES", { timeZone: ZONA, day: "numeric", month: "long", year: "numeric" })}, ${fmtZ(b.generado_utc)}<br>datos reales de ese día`
     : `<span class="punto ${ok ? "" : "mal"}"></span><b>En directo</b>, actualizado ${fmtZ(b.generado_utc)}<br>se renueva cada 30 min`;
   document.getElementById("banda").innerHTML = banda(b);
   const a = b.aeropuerto || {};

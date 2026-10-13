@@ -7,7 +7,8 @@ Genera un JSON con:
 - viento en las pistas del aeropuerto ahora y previsto,
 - un resumen en texto generado por reglas (trazable: cada frase sale de un dato del propio briefing).
 
-Prototipo de apoyo a la decisión, complementario al TAF de AEMET. NO apto para decisiones de vuelo.
+Herramienta de apoyo a la planificación de operaciones. No sustituye a la información meteorológica
+aeronáutica oficial (METAR y TAF de AEMET), que es la que vale para las decisiones de vuelo.
 
 Uso:
     python -m novok.app.briefing --estacion LEAS                              # en directo
@@ -46,8 +47,8 @@ HORIZONTES_H = [1, 3, 6, 12]
 SUCESOS = ["niebla", "bajo_minimos_cat1"]
 EDAD_MAX_METAR_MIN = 90       # con un METAR más antiguo no se emite pronóstico
 HORAS_MIN_ULTIMAS_24 = 18     # horas con observación necesarias en las últimas 24 h
-AVISO = ("Prototipo educativo de apoyo a la decisión, complementario al TAF de AEMET. "
-         "No apto para decisiones de vuelo ni para uso operativo.")
+AVISO = ("Herramienta de apoyo a la planificación de operaciones. No sustituye a la información meteorológica "
+         "aeronáutica oficial (METAR y TAF de AEMET), que es la que vale para las decisiones de vuelo.")
 
 
 # ------------------------------------------------------------------ utilidades
@@ -69,9 +70,8 @@ def _num(v, nd: int = 1):
 
 
 def _hora(t) -> str:
-    """'05:00Z (07:00 local)'."""
-    t = pd.Timestamp(t)
-    return f"{t.tz_convert('UTC'):%H:%M}Z ({t.tz_convert(ZONA_LOCAL):%H:%M} local)"
+    """Hora peninsular española, '07:00' (los datos van en UTC por dentro)."""
+    return f"{pd.Timestamp(t).tz_convert(ZONA_LOCAL):%H:%M}"
 
 
 def _dir() -> Path:
@@ -92,6 +92,12 @@ def _cargar_modelos(version: str) -> tuple[dict, dict] | None:
                 return None
             modelos[(s, L)] = lgb.Booster(model_file=str(f))
     return modelos, umbrales
+
+
+def _eleccion() -> dict:
+    """{'niebla_6h': 'v1', ...}: versión elegida por validación (la escribe el entrenamiento o novok.red elegir)."""
+    f = _dir() / "eleccion.json"
+    return json.loads(f.read_text()) if f.exists() else {}
 
 
 NIVELES = (0.10, 0.30)  # bajo < 10 % <= moderado < 30 % <= alto
@@ -229,8 +235,8 @@ def _resumen(b: dict) -> list[str]:
         d = ep.get("disipacion")
         if d:
             texto += (f" Se espera que despeje hacia las {_hora(d['despeja_utc_q50'])}; "
-                      f"80 % de probabilidad entre las {pd.Timestamp(d['despeja_utc_q10']):%H:%M}Z "
-                      f"y las {pd.Timestamp(d['despeja_utc_q90']):%H:%M}Z.")
+                      f"80 % de probabilidad entre las {_hora(d['despeja_utc_q10'])} "
+                      f"y las {_hora(d['despeja_utc_q90'])}.")
         frases.append(texto)
     altos = [p for p in b["pronostico"] if p["bajo_minimos"]["nivel"] == "alto"]
     if altos:
@@ -313,9 +319,14 @@ def generar(fuentes, ahora: pd.Timestamp) -> dict:
         nwp = None
         cal["mensajes"].append(f"pronóstico numérico no disponible ({e.__class__.__name__})")
     cal["nwp"] = nwp is not None
-    cargados = _cargar_modelos("v2") if nwp is not None else None
-    version = "v2" if cargados else "v1"
-    cargados = cargados or _cargar_modelos("v1")
+    v2 = _cargar_modelos("v2") if nwp is not None else None
+    v1 = _cargar_modelos("v1")
+    # En cada suceso y antelación se usa la versión que mejor validó en ese aeropuerto (eleccion.json)
+    eleccion = _eleccion() if v2 else {}
+    usa = {(s, L): (eleccion.get(f"{s}_{L}h", "v2") if v2 else "v1") for s in SUCESOS for L in HORIZONTES_H}
+    usa = {k: ("v2" if v == "v1" and v1 is None else v) for k, v in usa.items()}
+    version = "v2" if v2 and "v2" in usa.values() else "v1"
+    cargados = v2 or v1
     if cargados is None:
         cal["mensajes"].append("faltan los modelos entrenados en modelos/")
     b["version_modelo"] = version
@@ -343,17 +354,18 @@ def generar(fuentes, ahora: pd.Timestamp) -> dict:
         b["resumen"] = _resumen(b)
         return b
 
-    modelos, umbrales = cargados
     pron = []
     for L, t in zip(HORIZONTES_H, objetivos, strict=True):
         p = {"horizonte_h": L, "hora_utc": _iso(t), "taf": taf_por_hora.get(t)}
         for s, clave in (("niebla", "niebla"), ("bajo_minimos_cat1", "bajo_minimos")):
-            x, _ = matriz(h, base, s, L, nwp=nwp if version == "v2" else None)
+            ver = usa[(s, L)]
+            modelos, umbrales = v2 if ver == "v2" else v1
+            x, _ = matriz(h, base, s, L, nwp=nwp if ver == "v2" else None)
             m = modelos[(s, L)]
             prob = float(m.predict(x.loc[[i]].reindex(columns=m.feature_name()))[0])
-            u = umbrales[f"{version}_{s}_{L}h"]
+            u = umbrales[f"{ver}_{s}_{L}h"]
             # alerta = supera el umbral de decisión del modelo (el que maximiza el CSI en validación)
-            p[clave] = {"p": round(prob, 3), "umbral": u, "nivel": _nivel(prob), "alerta": prob >= u}
+            p[clave] = {"p": round(prob, 3), "umbral": u, "nivel": _nivel(prob), "alerta": prob >= u, "modelo": ver}
         pron.append(p)
     b["pronostico"] = pron
     cal["pronostico_emitido"] = True

@@ -19,9 +19,10 @@ en el Aeropuerto de Asturias, y se compara de forma honesta con el pronóstico o
 actualización con cada METAR, hora estimada de disipación, explicación del porqué
 y un marcador público contra el TAF.
 
-> ⚠️ **Prototipo educativo de apoyo a la decisión, complementario al TAF de AEMET. No apto para decisiones de
-> vuelo ni para uso operativo.** En la UE, la información meteorológica aeronáutica solo la pueden proporcionar
-> proveedores certificados (Reglamento (UE) 2017/373); en LEAS, AEMET.
+> ⚠️ **Herramienta de apoyo a la planificación de operaciones** (personal, autobuses, hoteles, tripulaciones,
+> rotaciones). **No sustituye a la información meteorológica aeronáutica oficial**: en la UE solo la pueden
+> proporcionar proveedores certificados (Reglamento (UE) 2017/373), en España AEMET, y es la que vale para las
+> decisiones de vuelo. NOVOK no emite METAR ni TAF: traduce la previsión en impacto operativo.
 
 **Mapa de la red en directo:** https://gelan03.github.io/novok/
 
@@ -214,8 +215,8 @@ NWP (Open-Meteo) ───┘        │
 - **Incertidumbre visible:** probabilidad, nivel (bajo < 10 %, moderado 10–30 %, alto ≥ 30 %), aviso cuando se
   supera el umbral del modelo e intervalo del 80 % para la disipación.
 - **Comparación en directo con el TAF** de AEMET para las mismas horas.
-- **Visor 3D del aeropuerto** (MapLibre + three.js) sobre el relieve real y la ortofoto PNOA del IGN: dibuja la niebla
-  observada o prevista y la mueve con el viento. Es una ilustración de la previsión, no una simulación física.
+- **Visor 3D del aeropuerto** (three.js) sobre el relieve real: dibuja la niebla observada o prevista y la mueve con
+  el viento. Es una ilustración de la previsión, no una simulación física.
 
 ## Red del norte (F6)
 
@@ -239,6 +240,13 @@ NOVOK pasa de un aeropuerto a una red. Todo el código trabaja con un **aeropuer
   de bajo mínimos en 12 h; banda de aviso con los aeropuertos en riesgo alto; lista ordenada por riesgo.
 - **Briefing por aeropuerto** (`web/aeropuerto.html?a=LEXJ`): el de F5, con el visor 3D y la rosa de vientos
   generados a partir de las pistas reales de cada aeropuerto.
+- **Sin servicios de mapas externos:** el mapa base es propio (Natural Earth, dominio público) y el relieve del
+  visor 3D se genera una vez por aeropuerto (`python -m novok.red terreno`) y se sirve desde el sitio. Librerías y
+  fuentes también van alojadas en `web/vendor/`, con sus licencias abiertas (BSD, MIT, OFL, Apache) en
+  `web/vendor/licencias/`, todas compatibles con el uso comercial.
+- **El mejor modelo en cada caso:** en cada aeropuerto, suceso y antelación se usa v1 o v2 según cuál validó mejor
+  en 2024-2025 (`modelos/<OACI>/eleccion.json`).
+- **Horas en hora peninsular** en toda la web (los datos van en UTC por dentro).
 - **Un solo proceso para todos:** cada 30 min, GitHub Actions genera los 13 briefings y `red.json`; si un aeropuerto
   falla, el resto se publica igual.
 
@@ -260,6 +268,8 @@ pip install -e ".[dev]"
 python -m novok.aeropuertos --descargar
 python -m novok.red preparar                    # o solo algunos: python -m novok.red preparar LEXJ LEBB
 python -m novok.red estado
+python -m novok.red elegir                      # v1 o v2 por suceso y antelación (con la validación ya hecha)
+python -m novok.red terreno                     # relieve para el visor 3D (una vez; se sube al repo)
 python -m novok.red briefing                    # en directo -> web/datos/
 python -m novok.red briefing --repetir 2025-06-30T04:40
 python -m http.server 8000 -d web               # abre http://localhost:8000
@@ -357,6 +367,9 @@ src/novok/
   data/metar_texto.py       # METAR en texto -> formato de entrenamiento
 web/index.html              # mapa de la red (GitHub Pages)
 web/aeropuerto.html         # briefing de un aeropuerto, con visor 3D
+web/mapa/base.geojson       # mapa base propio (Natural Earth, dominio público)
+web/terreno/<OACI>.png      # relieve de cada aeropuerto para el visor 3D
+web/vendor/                 # MapLibre, three.js y fuentes alojados en el sitio, con sus licencias
 config/aeropuertos.json     # coordenadas, elevación y pistas de cada aeropuerto (OurAirports)
 modelos/<OACI>/             # modelos entrenados que usa el briefing
   analysis/resumen_niebla.py
