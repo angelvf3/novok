@@ -1,0 +1,5 @@
+{
+  "comentario": "EJEMPLO. Cada aerolínea pone sus cifras. coste_actuar_eur: preparar la contingencia para una llegada (combustible extra, tripulación o handling de reserva, avisar al pasajero). perdida_evitable_eur: lo que se ahorra si se actuó a tiempo y hubo bajo mínimos. Referencia: EUROCONTROL estima un desvío de vuelo continental en 1.400-10.500 EUR (precios de 2022).",
+  "coste_actuar_eur": 300,
+  "perdida_evitable_eur": 3000
+}

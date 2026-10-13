@@ -39,7 +39,8 @@ y un marcador público contra el TAF.
 | F6 | Red del norte: 13 aeropuertos, mapa 2D de la red y briefing por aeropuerto | ✅ |
 | F7 | Vuelos en el aire con riesgo a su llegada y alternativo; mapa con relieve y ortofoto en 3D | ✅ |
 | F7b | Histórico de desvíos reales para validar el riesgo por vuelo | ⏳ |
-| F8 | Más fenómenos: viento cruzado y cizalladura (Canarias), tormentas; restricciones de tráfico aéreo | ⏳ |
+| F8 | Verificación independiente (temporada 2026 no usada) frente al TAF, y valor económico por llegada | ✅ código · 🔄 ejecutar con datos de 2026 |
+| F9 | Piloto: alertas configurables y API para el centro de operaciones de un cliente | ⏳ |
 
 ## Primeros resultados (METAR 2017–2025)
 
@@ -275,6 +276,25 @@ NWP (Open-Meteo) ────────┘        │                         
   una vez y servida desde el sitio. Se descartó Google Earth (Photorealistic 3D Tiles): es de pago a partir de
   1.000 cargas al mes, exige cuenta de facturación y prohíbe guardar las teselas.
 
+## Verificación independiente y valor económico (F8)
+
+La elección entre v1 y v2 y los umbrales se fijaron con 2024-2025, los mismos años que se publican en F3. Para
+tener una cifra que no esté sesgada por esa elección, `python -m novok.red independiente` reserva una temporada
+entera (por defecto, desde el 1 de enero de 2026) que no se usa para nada: se entrena con lo anterior, se elige
+modelo y umbral con 2025 y se evalúa en 2026 frente al **TAF de AEMET**, la persistencia y la climatología.
+
+Lo que mide, por aeropuerto y antelación (`reports/<OACI>/independiente_*`, resumen en `reports/red_independiente.csv`):
+
+- CSI, detección, **horas de falsa alarma al mes** y Brier skill.
+- **Episodios avisados:** de los episodios que empezaron en la temporada, qué parte se avisó con 1, 3, 6 y 12 h.
+- **Valor económico** con el modelo coste/pérdida: por cada llegada, preparar la contingencia cuesta C y no
+  prepararla cuando hay bajo mínimos cuesta L. Se da el ahorro **por cada 100 llegadas** frente a no tener
+  previsión, y la curva de valor para cualquier relación C/L (`independiente_valor.png`). Los costes los pone cada
+  aerolínea en `config/costes.json`; los del repositorio son un ejemplo (EUROCONTROL estima un desvío continental en
+  1.400-10.500 EUR).
+
+Simplificación: cada llegada es una decisión independiente y se ve afectada si a su hora hay bajo mínimos.
+
 ## Puesta en marcha
 
 ```bash
@@ -289,6 +309,7 @@ python -m novok.red estado
 python -m novok.red elegir                      # v1 o v2 por suceso y antelación (con la validación ya hecha)
 python -m novok.red terreno                     # relieve + ortofoto PNOA para el visor 3D (una vez; se sube al repo)
 python -m novok.red mapa                        # teselas de relieve del mapa 2D (una vez, ~5 min; se suben al repo)
+python -m novok.red independiente --actualizar  # verificación en 2026 (no usada) frente al TAF y valor en EUR
 python -m novok.red briefing                    # en directo -> web/datos/
 python -m novok.red briefing --repetir 2025-06-30T04:40
 python -m http.server 8000 -d web               # abre http://localhost:8000

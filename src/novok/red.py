@@ -10,6 +10,7 @@ Uso:
     python -m novok.red mapa                         # mapa de relieve de España para el mapa 2D (una vez)
     python -m novok.red briefing                     # briefing en directo de toda la red -> web/datos/
     python -m novok.red briefing --repetir 2025-06-30T04:40
+    python -m novok.red independiente --actualizar   # verificación en una temporada no usada (2026) y valor en EUR
 
 Preparar un aeropuerto con pronóstico numérico tarda unos 15-20 min (sobre todo el entrenamiento).
 """
@@ -221,6 +222,85 @@ def briefing_red(repetir: str | None, salida: Path, solo: list[str] | None = Non
     return red
 
 
+# ------------------------------------------------------------------ verificación independiente (F8)
+
+def actualizar(icao: str) -> None:
+    """Vuelve a descargar el año en curso (METAR y pronóstico numérico) sin reentrenar nada."""
+    from novok.data import descargar_metar, descargar_nwp, limpiar_metar
+
+    hoy = date.today()
+    with estacion(icao):
+        descargar_metar.descargar_anio(icao, hoy.year, DATA_RAW, forzar=True)
+        limpiar_metar.procesar(icao)
+        for f in (descargar_nwp.DIR_NWP / icao).glob(f"*_{hoy.year}.parquet"):
+            f.unlink()
+        try:
+            descargar_nwp.descargar()
+        except SystemExit as e:
+            print(f"   sin pronóstico numérico ({e})")
+
+
+def independiente_red(codigos: list[str], corte: str, con_actualizar: bool) -> pd.DataFrame:
+    """Verificación independiente de cada aeropuerto y tabla resumen de la red (bajo mínimos CAT I)."""
+    import numpy as np
+
+    from novok.verificacion import independiente as ind
+
+    np.seterr(all="ignore")
+    t_corte = pd.Timestamp(corte, tz="UTC")
+    filas = []
+    for icao in codigos:
+        print(f"\n===== {icao} =====")
+        try:
+            if con_actualizar:
+                actualizar(icao)
+            with estacion(icao):
+                res = ind.verificar(t_corte, ind.cargar_nwp())
+                ind.guardar(res)
+        except (Exception, SystemExit) as e:  # noqa: BLE001 - un aeropuerto que falla no para el resto
+            print(f"{icao}: no se pudo verificar ({e})")
+            continue
+        m = res["metricas"]
+        ep = ind.resumen_episodios(res["episodios"])
+        for L in (3, 6, 12):
+            d = m[(m["suceso"] == "bajo_minimos_cat1") & (m["horizonte_h"] == L)].set_index("metodo")
+            if "novok" not in d.index:
+                continue
+            e = ep[(ep["suceso"] == "bajo_minimos_cat1") & (ep["horizonte_h"] == L)] if not ep.empty else ep
+            def dato(met: str, col: str, d: pd.DataFrame = d) -> float | None:
+                return float(d.loc[met, col]) if met in d.index and col in d and pd.notna(d.loc[met, col]) else None
+
+            filas.append({
+                "aeropuerto": icao, "horizonte_h": L, "horas": int(d.loc["novok", "n_horas"]),
+                "desde": d.loc["novok", "desde"], "hasta": d.loc["novok", "hasta"],
+                "modelo": d.loc["novok", "modelo_elegido"],
+                "csi_novok": dato("novok", "CSI"), "csi_taf": dato("taf_predominante", "CSI"),
+                "csi_persistencia": dato("persistencia", "CSI"),
+                "falsas_alarmas_h_mes_novok": dato("novok", "falsas_alarmas_h_mes"),
+                "falsas_alarmas_h_mes_taf": dato("taf_predominante", "falsas_alarmas_h_mes"),
+                "bss_novok": dato("novok", "brier_skill_vs_clima"), "bss_taf": dato("taf", "brier_skill_vs_clima"),
+                "episodios": int(e["episodios"].iloc[0]) if len(e) else 0,
+                "avisados_novok": float(e["avisados_novok"].iloc[0]) if len(e) else None,
+                "avisados_taf": float(e["avisados_taf"].iloc[0]) if len(e) and "avisados_taf" in e else None,
+                "ahorro_100_novok": dato("novok", "ahorro_eur_100_llegadas"),
+                "ahorro_100_taf": dato("taf", "ahorro_eur_100_llegadas"),
+                "ahorro_100_persistencia": dato("persistencia", "ahorro_eur_100_llegadas"),
+            })
+    tabla = pd.DataFrame(filas)
+    if not tabla.empty:
+        from novok.config import REPORTS
+
+        tabla.round(3).to_csv(REPORTS / "red_independiente.csv", index=False)
+        print("\nBajo mínimos CAT I en la temporada de prueba (CSI y ahorro por 100 llegadas con config/costes.json)")
+        for _, r in tabla.iterrows():
+            taf = f"{r['csi_taf']:.2f}" if pd.notna(r["csi_taf"]) else " -- "
+            print(f"  {r['aeropuerto']} {r['horizonte_h']:>2} h  CSI NOVOK {r['csi_novok']:.2f}  TAF {taf}  "
+                  f"pers {r['csi_persistencia']:.2f}  | avisos de arranque {r['avisados_novok'] or 0:.0%}"
+                  f"  | ahorro NOVOK {r['ahorro_100_novok']:,.0f} EUR/100 llegadas".replace(",", "."))
+        print(f"-> {REPORTS / 'red_independiente.csv'}")
+    return tabla
+
+
 def main() -> None:
     p = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     sub = p.add_subparsers(dest="orden", required=True)
@@ -238,6 +318,10 @@ def main() -> None:
     pb.add_argument("--repetir", metavar="FECHA_UTC")
     pb.add_argument("--salida", default=str(DIR_WEB_DATOS))
     pb.add_argument("codigos", nargs="*")
+    pi = sub.add_parser("independiente", help="verificación en una temporada no usada y valor económico")
+    pi.add_argument("codigos", nargs="*")
+    pi.add_argument("--corte", default="2026-01-01", help="primer día de la temporada de prueba")
+    pi.add_argument("--actualizar", action="store_true", help="descarga antes los METAR y NWP del año en curso")
     args = p.parse_args()
 
     if args.orden == "migrar":
@@ -270,6 +354,8 @@ def main() -> None:
         for c in codigos:
             preparar(c, args.desde, not args.sin_nwp)
         estado()
+    elif args.orden == "independiente":
+        independiente_red([c.upper() for c in args.codigos] or list(RED), args.corte, args.actualizar)
     else:
         briefing_red(args.repetir, Path(args.salida), [c.upper() for c in args.codigos] or None)
 
