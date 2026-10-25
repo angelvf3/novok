@@ -36,9 +36,37 @@ jobs:
       - name: Generar briefings de la red
         run: |
           mkdir -p _site
-          cp -r web/index.html web/aeropuerto.html web/vuelos.js web/vuelos.json web/novok-logo.png web/vendor web/mapa _site/
+          cp -r web/index.html web/aeropuerto.html web/vuelos.js web/vuelos.json web/costes.json web/aerolineas.json web/novok-logo.png web/vendor web/mapa _site/
           if [ -d web/terreno ]; then cp -r web/terreno _site/; fi
+          if [ -f web/cliente.json ]; then cp web/cliente.json _site/; fi
+          if [ -d web/cliente ]; then cp -r web/cliente _site/; fi
           python -m novok.red briefing --salida _site/datos
+      # Alertas (F10): el estado de lo ya avisado se guarda entre ejecuciones en la caché de Actions.
+      # Sin los secretos NOVOK_TELEGRAM_* o NOVOK_SMTP_*, los avisos solo se escriben en el registro.
+      - name: Recuperar estado de las alertas
+        uses: actions/cache/restore@v4
+        with:
+          path: .alertas
+          key: alertas-${{ github.run_id }}
+          restore-keys: alertas-
+      - name: Alertas
+        continue-on-error: true
+        env:
+          NOVOK_TELEGRAM_TOKEN: ${{ secrets.NOVOK_TELEGRAM_TOKEN }}
+          NOVOK_TELEGRAM_CHAT: ${{ secrets.NOVOK_TELEGRAM_CHAT }}
+          NOVOK_SMTP_SERVIDOR: ${{ secrets.NOVOK_SMTP_SERVIDOR }}
+          NOVOK_SMTP_PUERTO: ${{ secrets.NOVOK_SMTP_PUERTO }}
+          NOVOK_SMTP_USUARIO: ${{ secrets.NOVOK_SMTP_USUARIO }}
+          NOVOK_SMTP_CLAVE: ${{ secrets.NOVOK_SMTP_CLAVE }}
+          NOVOK_CORREO_PARA: ${{ secrets.NOVOK_CORREO_PARA }}
+        run: python -m novok.alertas --red _site/datos/red.json --estado .alertas/estado.json --vuelos
+      - name: Guardar estado de las alertas
+        if: always()
+        continue-on-error: true
+        uses: actions/cache/save@v4
+        with:
+          path: .alertas
+          key: alertas-${{ github.run_id }}
       - uses: actions/upload-pages-artifact@v3
         with:
           path: _site

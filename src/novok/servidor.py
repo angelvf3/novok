@@ -74,7 +74,7 @@ class Manejador(SimpleHTTPRequestHandler):
                 self._responder(guardado[1], guardado[2])
                 return
         try:
-            r = requests.request(metodo, url, data=datos, timeout=20,
+            r = requests.request(metodo, url, data=datos, timeout=8,
                                  headers={**CABECERA, "Content-Type": "application/json"} if datos else CABECERA)
             estado, cuerpo = r.status_code, r.content
         except requests.RequestException as e:

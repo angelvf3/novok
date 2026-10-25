@@ -1,0 +1,10 @@
+{
+  "comentario": "Alertas de NOVOK. umbral: probabilidad de bajo mínimos en 12 h para avisar; umbral_fin: por debajo se da por terminado; subida: cuánto tiene que empeorar para volver a avisar; recordar_cada_h: recordatorio si sigue; aeropuertos: [] = toda la red; aerolinea: código OACI (p. ej. VOE) para contar solo sus vuelos. Las claves de Telegram y del correo van en variables de entorno, nunca aquí.",
+  "umbral": 0.3,
+  "umbral_fin": 0.15,
+  "subida": 0.2,
+  "recordar_cada_h": 3,
+  "aeropuertos": [],
+  "aerolinea": null,
+  "web": "https://angelvf3.github.io/novok/"
+}
