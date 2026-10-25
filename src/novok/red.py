@@ -7,7 +7,7 @@ Uso:
     python -m novok.red estado                       # qué tiene cada aeropuerto (datos, modelos, cobertura)
     python -m novok.red elegir                       # v1 o v2 por suceso y antelación, según la validación
     python -m novok.red terreno                      # relieve y ortofoto de cada aeropuerto, visor 3D (una vez)
-    python -m novok.red mapa                         # mapa de relieve de España para el mapa 2D (una vez)
+    python -m novok.red mapa                         # mapa 2D: OpenStreetMap y relieve, en el propio sitio (una vez)
     python -m novok.red briefing                     # briefing en directo de toda la red -> web/datos/
     python -m novok.red briefing --repetir 2025-06-30T04:40
     python -m novok.red independiente --actualizar   # verificación en una temporada no usada (2026) y valor en EUR
@@ -263,28 +263,36 @@ def independiente_red(codigos: list[str], corte: str, con_actualizar: bool) -> p
         m = res["metricas"]
         ep = ind.resumen_episodios(res["episodios"])
         for L in (3, 6, 12):
-            d = m[(m["suceso"] == "bajo_minimos_cat1") & (m["horizonte_h"] == L)].set_index("metodo")
+            sel = (m["suceso"] == "bajo_minimos_cat1") & (m["horizonte_h"] == L)
+            d = m[sel & (m["muestra"] == "todas")].set_index("metodo")
+            dt = m[sel & (m["muestra"] == "horas_con_taf")].set_index("metodo")
             if "novok" not in d.index:
                 continue
             e = ep[(ep["suceso"] == "bajo_minimos_cat1") & (ep["horizonte_h"] == L)] if not ep.empty else ep
-            def dato(met: str, col: str, d: pd.DataFrame = d) -> float | None:
+            def dato(met: str, col: str, d: pd.DataFrame = d) -> float | None:  # noqa: B008
                 return float(d.loc[met, col]) if met in d.index and col in d and pd.notna(d.loc[met, col]) else None
 
             filas.append({
                 "aeropuerto": icao, "horizonte_h": L, "horas": int(d.loc["novok", "n_horas"]),
                 "desde": d.loc["novok", "desde"], "hasta": d.loc["novok", "hasta"],
                 "modelo": d.loc["novok", "modelo_elegido"],
-                "csi_novok": dato("novok", "CSI"), "csi_taf": dato("taf_predominante", "CSI"),
-                "csi_persistencia": dato("persistencia", "CSI"),
+                "csi_novok": dato("novok", "CSI"), "csi_persistencia": dato("persistencia", "CSI"),
                 "falsas_alarmas_h_mes_novok": dato("novok", "falsas_alarmas_h_mes"),
-                "falsas_alarmas_h_mes_taf": dato("taf_predominante", "falsas_alarmas_h_mes"),
-                "bss_novok": dato("novok", "brier_skill_vs_clima"), "bss_taf": dato("taf", "brier_skill_vs_clima"),
+                "bss_novok": dato("novok", "brier_skill_vs_clima"),
                 "episodios": int(e["episodios"].iloc[0]) if len(e) else 0,
                 "avisados_novok": float(e["avisados_novok"].iloc[0]) if len(e) else None,
                 "avisados_taf": float(e["avisados_taf"].iloc[0]) if len(e) and "avisados_taf" in e else None,
                 "ahorro_100_novok": dato("novok", "ahorro_eur_100_llegadas"),
-                "ahorro_100_taf": dato("taf", "ahorro_eur_100_llegadas"),
                 "ahorro_100_persistencia": dato("persistencia", "ahorro_eur_100_llegadas"),
+                # NOVOK frente al TAF de AEMET en exactamente las mismas horas (las que tienen TAF)
+                "horas_con_taf": int(dt.loc["novok", "n_horas"]) if "novok" in dt.index else 0,
+                "csi_novok_mismas_horas": dato("novok", "CSI", dt), "csi_taf": dato("taf_predominante", "CSI", dt),
+                "falsas_alarmas_h_mes_novok_mismas_horas": dato("novok", "falsas_alarmas_h_mes", dt),
+                "falsas_alarmas_h_mes_taf": dato("taf_predominante", "falsas_alarmas_h_mes", dt),
+                "bss_novok_mismas_horas": dato("novok", "brier_skill_vs_clima", dt),
+                "bss_taf": dato("taf", "brier_skill_vs_clima", dt),
+                "ahorro_100_novok_mismas_horas": dato("novok", "ahorro_eur_100_llegadas", dt),
+                "ahorro_100_taf": dato("taf", "ahorro_eur_100_llegadas", dt),
             })
     tabla = pd.DataFrame(filas)
     if not tabla.empty:
@@ -293,10 +301,11 @@ def independiente_red(codigos: list[str], corte: str, con_actualizar: bool) -> p
         tabla.round(3).to_csv(REPORTS / "red_independiente.csv", index=False)
         print("\nBajo mínimos CAT I en la temporada de prueba (CSI y ahorro por 100 llegadas con config/costes.json)")
         for _, r in tabla.iterrows():
-            taf = f"{r['csi_taf']:.2f}" if pd.notna(r["csi_taf"]) else " -- "
-            print(f"  {r['aeropuerto']} {r['horizonte_h']:>2} h  CSI NOVOK {r['csi_novok']:.2f}  TAF {taf}  "
+            taf = (f"  | {r['horas_con_taf']} h con TAF: NOVOK {r['csi_novok_mismas_horas']:.2f} TAF {r['csi_taf']:.2f}"
+                   if r["horas_con_taf"] and pd.notna(r["csi_taf"]) else "  | sin TAF")
+            print(f"  {r['aeropuerto']} {r['horizonte_h']:>2} h  CSI NOVOK {r['csi_novok']:.2f}  "
                   f"pers {r['csi_persistencia']:.2f}  | avisos de arranque {r['avisados_novok'] or 0:.0%}"
-                  f"  | ahorro NOVOK {r['ahorro_100_novok']:,.0f} EUR/100 llegadas".replace(",", "."))
+                  f"  | ahorro {r['ahorro_100_novok']:,.0f} EUR/100".replace(",", ".") + taf)
         print(f"-> {REPORTS / 'red_independiente.csv'}")
     return tabla
 
@@ -308,7 +317,10 @@ def main() -> None:
     sub.add_parser("estado")
     pt = sub.add_parser("terreno", help="relieve y ortofoto de cada aeropuerto para el visor 3D (una vez)")
     pt.add_argument("codigos", nargs="*")
-    sub.add_parser("mapa", help="teselas de relieve de España para el mapa 2D (una vez)")
+    pm = sub.add_parser("mapa", help="mapa 2D: OpenStreetMap y relieve, en el propio sitio (una vez)")
+    pm.add_argument("--solo-relieve", action="store_true", help="solo las teselas de altura, sin el mapa de calles")
+    pm.add_argument("--solo-mundo", action="store_true", help="solo el mapa de todo el mundo")
+    pm.add_argument("--rehacer", action="store_true", help="vuelve a descargar los mapas aunque ya existan")
     sub.add_parser("elegir", help="elige v1 o v2 por suceso y antelación con la validación ya hecha")
     pp = sub.add_parser("preparar")
     pp.add_argument("codigos", nargs="*")
@@ -336,8 +348,16 @@ def main() -> None:
                 print(f"{icao}: no se pudo generar el relieve ({e.__class__.__name__}: {e})")
     elif args.orden == "mapa":
         from novok import cartografia
-        print("Mapa de relieve de España (AWS Terrain Tiles)...")
-        print(f"-> {cartografia.mapa_relieve()} teselas en web/mapa/relieve/")
+        if args.solo_mundo:
+            print(f"-> {cartografia.mapa_mundial(rehacer=args.rehacer)}")
+            return
+        print("1/3 Relieve (AWS Terrain Tiles)...")
+        print(f"-> {cartografia.dem()} teselas de altura en web/mapa/dem/")
+        if not args.solo_relieve:
+            print("2/3 Mapa de OpenStreetMap del norte de España, con detalle (Protomaps)...")
+            print(f"-> {cartografia.mapa_vectorial(rehacer=args.rehacer)}")
+            print("3/3 Mapa de OpenStreetMap de todo el mundo, con menos detalle (Protomaps)...")
+            print(f"-> {cartografia.mapa_mundial(rehacer=args.rehacer)}")
     elif args.orden == "elegir":
         for icao in catalogo():
             e = elegir(icao)

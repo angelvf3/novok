@@ -58,6 +58,7 @@ from novok.verificacion.metricas import brier, brier_skill, deterministas
 
 CORTE_DEF = "2026-01-01"
 MIN_DIAS_PRUEBA = 90
+MIN_HORAS_TAF = 300   # horas de la temporada con TAF para compararse con AEMET
 FICH_COSTES = RAIZ / "config" / "costes.json"
 COSTES_EJEMPLO = {
     "comentario": ("EJEMPLO. Cada aerolínea pone sus cifras. coste_actuar_eur: preparar la contingencia para una "
@@ -143,7 +144,6 @@ def verificar(corte: pd.Timestamp, nwp: pd.DataFrame | None = None, h: pd.DataFr
     th = taf_horario()
     k = costes()
     c, perdida = float(k["coste_actuar_eur"]), float(k["perdida_evitable_eur"])
-    alfa_k = c / perdida
     filas, episodios, valor, series = [], [], [], {}
 
     for suceso in SUCESOS:
@@ -176,55 +176,38 @@ def verificar(corte: pd.Timestamp, nwp: pd.DataFrame | None = None, h: pd.DataFr
             d["p_novok"], d["u_novok"] = d[f"p_{elegido}"], d[f"u_{elegido}"]
             d["persistencia"] = h[f"obs_{suceso}"].shift(L + 1).reindex(idx_t).to_numpy()
             d["climatologia"] = clim.reindex(idx_t).to_numpy()
-            con_taf = False
             if th is not None:
                 t = taf_para_horizonte(th, L).reindex(idx_t)
-                if t["emision"].notna().mean() > 0.5:
-                    con_taf = True
-                    d["taf_predominante"] = evento(t["vis_prev_m"], t["techo_prev_ft"], uv, ut).astype(float)\
-                        .where(t["emision"].notna()).to_numpy()
-                    d["taf"] = t[f"p_{suceso}"].to_numpy()
-            d = d.dropna(subset=[col for col in ("persistencia", "climatologia", "taf") if col in d])
+                d["taf_predominante"] = evento(t["vis_prev_m"], t["techo_prev_ft"], uv, ut).astype(float)\
+                    .where(t["emision"].notna()).to_numpy()
+                d["taf"] = t[f"p_{suceso}"].where(t["emision"].notna()).to_numpy()
+            d = d.dropna(subset=["persistencia", "climatologia"])
             if d.empty or not d["y"].any():
                 print(f"   {suceso} {L} h: sin casos en la temporada de prueba")
                 continue
             series[(suceso, L)] = d
-            yy = d["y"]
-            meses = max((d.index.max() - d.index.min()).days / 30.44, 1)
-            comunes = {"suceso": suceso, "horizonte_h": L, "n_horas": len(d), "frecuencia_obs": yy.mean(),
-                       "desde": f"{d.index.min():%Y-%m-%d}", "hasta": f"{d.index.max():%Y-%m-%d}"}
-            bs_clim = brier(yy, d["climatologia"])
 
-            # Decisión de cada método: NOVOK con su umbral (fijado antes del corte), TAF predominante, persistencia
-            decisiones = {"persistencia": d["persistencia"] == 1}
-            probs = {"climatologia": d["climatologia"], "persistencia": d["persistencia"]}
-            for v in [*candidatos, "novok"]:
-                decisiones[v] = d[f"p_{v}"] >= d[f"u_{v}"]
-                probs[v] = d[f"p_{v}"]
+            # 1) Todas las horas de la temporada: NOVOK frente a persistencia y climatología
+            filas += medir(d, suceso, L, [*candidatos, "novok"], elegido, "todas", c, perdida)
+            # 2) Solo las horas con TAF disponible: NOVOK frente al TAF en exactamente las mismas horas
+            con_taf = "taf" in d and d["taf"].notna().sum() >= MIN_HORAS_TAF
             if con_taf:
-                decisiones["taf_predominante"] = d["taf_predominante"] == 1
-                probs["taf"] = d["taf"]
-            for metodo in [*decisiones, *(m for m in probs if m not in decisiones)]:
-                fila = {**comunes, "metodo": metodo, "modelo_elegido": elegido if metodo == "novok" else ""}
-                if metodo in decisiones:
-                    det = deterministas(yy, decisiones[metodo])
-                    fila |= {**det, "falsas_alarmas_h_mes": det["b"] / meses}
-                if metodo in probs:
-                    bs = brier(yy, probs[metodo])
-                    fila |= {"brier": bs, "brier_skill_vs_clima": brier_skill(bs, bs_clim)}
-                    # coste/pérdida: con probabilidad calibrada, actuar si p >= C/L (sin ajustar nada en la prueba)
-                    actuar = probs[metodo].to_numpy() >= alfa_k
-                    fila["ahorro_eur_100_llegadas"] = ahorro_por_100(yy.to_numpy(), actuar, c, perdida)
-                    fila["valor_relativo"] = valor_relativo(yy.to_numpy(), actuar, alfa_k)
-                filas.append(fila)
+                dt = d[d["taf"].notna()]
+                if dt["y"].any():
+                    filas += medir(dt, suceso, L, ["novok"], elegido, "horas_con_taf", c, perdida, con_taf=True)
+                else:
+                    con_taf = False
 
-            for metodo in ("novok", "taf", "persistencia", "climatologia"):
-                if metodo not in probs:
-                    continue
-                pr = probs[metodo].to_numpy()
-                for a in ALFAS:
-                    valor.append({"suceso": suceso, "horizonte_h": L, "metodo": metodo, "alfa": a,
-                                  "valor_relativo": valor_relativo(yy.to_numpy(), pr >= a, a)})
+            muestras = {"todas": (d, ["novok", "persistencia", "climatologia"])}
+            if con_taf:
+                muestras["horas_con_taf"] = (dt, ["novok", "taf", "persistencia", "climatologia"])
+            for muestra, (dd, metodos) in muestras.items():
+                columna = {"novok": "p_novok"}
+                for metodo in metodos:
+                    pr = dd[columna.get(metodo, metodo)].to_numpy()
+                    for a in ALFAS:
+                        valor.append({"suceso": suceso, "horizonte_h": L, "muestra": muestra, "metodo": metodo,
+                                      "alfa": a, "valor_relativo": valor_relativo(dd["y"].to_numpy(), pr >= a, a)})
 
             # Episodios: ¿se avisó del arranque con L h de antelación?
             for t0 in arranques:
@@ -233,19 +216,54 @@ def verificar(corte: pd.Timestamp, nwp: pd.DataFrame | None = None, h: pd.DataFr
                 r = d.loc[t0]
                 fila = {"suceso": suceso, "inicio_utc": t0.isoformat(), "horizonte_h": L,
                         "novok": bool(r["p_novok"] >= r["u_novok"]), "p_novok": float(r["p_novok"])}
-                if con_taf:
+                if con_taf and pd.notna(r["taf"]):
                     fila["taf"] = bool(r["taf_predominante"] == 1) or bool(r["taf"] >= 0.3)
                 episodios.append(fila)
+            taf = (f"  | mismas {len(dt)} h con TAF: NOVOK {filas_csi(filas, 'novok', 'horas_con_taf'):.3f}"
+                   f" TAF {filas_csi(filas, 'taf_predominante', 'horas_con_taf'):.3f}") if con_taf else "  | sin TAF"
             print(f"   {suceso:<18} {L:>2} h  [{elegido}]  CSI NOVOK {filas_csi(filas, 'novok'):.3f}"
-                  f"  TAF {filas_csi(filas, 'taf_predominante'):.3f}  pers {filas_csi(filas, 'persistencia'):.3f}")
+                  f"  pers {filas_csi(filas, 'persistencia'):.3f}{taf}")
 
     return {"metricas": pd.DataFrame(filas), "episodios": pd.DataFrame(episodios), "valor": pd.DataFrame(valor),
             "series": series, "costes": k, "corte": corte}
 
 
-def filas_csi(filas: list[dict], metodo: str) -> float:
+def medir(d: pd.DataFrame, suceso: str, L: int, versiones: list[str], elegido: str, muestra: str,
+          c: float, perdida: float, con_taf: bool = False) -> list[dict]:
+    """Métricas de cada método en las horas de d. NOVOK usa su umbral fijado antes del corte."""
+    yy = d["y"]
+    meses = max((d.index.max() - d.index.min()).days / 30.44, 1)
+    comunes = {"suceso": suceso, "horizonte_h": L, "muestra": muestra, "n_horas": len(d),
+               "frecuencia_obs": yy.mean(), "desde": f"{d.index.min():%Y-%m-%d}", "hasta": f"{d.index.max():%Y-%m-%d}"}
+    bs_clim = brier(yy, d["climatologia"])
+    decisiones = {"persistencia": d["persistencia"] == 1}
+    probs = {"climatologia": d["climatologia"], "persistencia": d["persistencia"]}
+    for v in versiones:
+        decisiones[v] = d[f"p_{v}"] >= d[f"u_{v}"]
+        probs[v] = d[f"p_{v}"]
+    if con_taf:
+        decisiones["taf_predominante"] = d["taf_predominante"] == 1
+        probs["taf"] = d["taf"]
+    filas = []
+    for metodo in [*decisiones, *(m for m in probs if m not in decisiones)]:
+        fila = {**comunes, "metodo": metodo, "modelo_elegido": elegido if metodo == "novok" else ""}
+        if metodo in decisiones:
+            det = deterministas(yy, decisiones[metodo])
+            fila |= {**det, "falsas_alarmas_h_mes": det["b"] / meses}
+        if metodo in probs:
+            bs = brier(yy, probs[metodo])
+            fila |= {"brier": bs, "brier_skill_vs_clima": brier_skill(bs, bs_clim)}
+            # coste/pérdida: con probabilidad calibrada, actuar si p >= C/L (sin ajustar nada en la prueba)
+            actuar = probs[metodo].to_numpy() >= c / perdida
+            fila["ahorro_eur_100_llegadas"] = ahorro_por_100(yy.to_numpy(), actuar, c, perdida)
+            fila["valor_relativo"] = valor_relativo(yy.to_numpy(), actuar, c / perdida)
+        filas.append(fila)
+    return filas
+
+
+def filas_csi(filas: list[dict], metodo: str, muestra: str = "todas") -> float:
     for f in reversed(filas):
-        if f["metodo"] == metodo:
+        if f["metodo"] == metodo and f["muestra"] == muestra:
             return f.get("CSI", np.nan)
     return np.nan
 
@@ -288,6 +306,8 @@ def grafico_valor(res: dict, suceso: str = "bajo_minimos_cat1") -> None:
     for ax, L in zip(axes[0], hs, strict=True):
         _estilo(ax)
         d = v[(v["suceso"] == suceso) & (v["horizonte_h"] == L)]
+        muestra = "horas_con_taf" if (d["muestra"] == "horas_con_taf").any() else "todas"
+        d = d[d["muestra"] == muestra]
         for metodo, color in COLORES.items():
             s = d[d["metodo"] == metodo].sort_values("alfa")
             if s.empty:
@@ -302,7 +322,8 @@ def grafico_valor(res: dict, suceso: str = "bajo_minimos_cat1") -> None:
         ax.minorticks_off()
         ax.set_xlim(0.01, 0.95)
         ax.set_ylim(-0.2, 1)
-        ax.set_title(f"Con {L} h de antelación", loc="left", fontsize=10.5, color=TINTA)
+        titulo = f"Con {L} h de antelación" + (" (horas con TAF)" if muestra != "todas" else "")
+        ax.set_title(titulo, loc="left", fontsize=10.5, color=TINTA)
         ax.set_xlabel("Coste de actuar / pérdida evitable", color=TINTA2)
     axes[0][0].set_ylabel("Valor (1 = previsión perfecta, 0 = sin previsión)", color=TINTA2)
     axes[0][0].legend(frameon=False, fontsize=8.5, loc="upper right")

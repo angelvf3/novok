@@ -24,7 +24,7 @@ from novok.aeropuertos import activa
 from novok.config import DATA_RAW, dir_proc
 
 AWC = "https://aviationweather.gov/api/data"
-CABECERA = {"User-Agent": "novok (https://github.com/Gelan03/novok)"}
+CABECERA = {"User-Agent": "novok (https://github.com/angelvf3/novok)"}
 
 
 class FuentesEnDirecto:

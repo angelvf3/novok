@@ -139,11 +139,52 @@
     return r.json();
   }
 
-  async function posiciones(cfg) {
-    const url = cfg.posiciones.replace("{lat}", cfg.centro[0]).replace("{lon}", cfg.centro[1]).replace("{radio}", cfg.radio_nm);
-    const r = await fetch(url, { cache: "no-store" });
+  // El proveedor puede no aceptar peticiones directas desde otra web (CORS). Entonces se usa el intermediario
+  // del propio servidor de NOVOK (python -m novok.servidor), definido en vuelos.json como "*_intermediario".
+  let viaIntermediario = false;
+  async function pedir(directa, intermediaria, opciones) {
+    if (!viaIntermediario && directa) {
+      try {
+        const r = await fetch(directa, opciones);
+        if (r.ok) return r;
+      } catch (e) {
+        if (!intermediaria) throw e;
+      }
+      if (!intermediaria) throw new Error("proveedor no disponible");
+      viaIntermediario = true;
+    }
+    const r = await fetch(intermediaria, opciones);
     if (!r.ok) throw new Error(`HTTP ${r.status}`);
-    return normalizar(await r.json(), Date.now());
+    return r;
+  }
+
+  async function posicionesDe(cfg) {
+    const rellenar = u => u && u.replace("{lat}", cfg.centro[0]).replace("{lon}", cfg.centro[1])
+      .replace("{radio}", Math.min(cfg.radio_nm, cfg.radio_max_nm || Infinity));
+    const r = await pedir(rellenar(cfg.posiciones), rellenar(cfg.posiciones_intermediario), { cache: "no-store" });
+    const json = await r.json();          // un aviso en texto (p. ej. "down for maintenance") no es JSON y falla aquí
+    return normalizar(json, Date.now());
+  }
+
+  // Proveedor principal y, si falla, los de respaldo de vuelos.json (si los hay), en orden. cfg.atribucion_actual dice cuál se usó.
+  async function posiciones(cfg) {
+    try {
+      const av = await posicionesDe(cfg);
+      cfg.atribucion_actual = cfg.atribucion;
+      return av;
+    } catch (e) {
+      let error = e;
+      for (const r of cfg.respaldos || []) {          // se prueban en orden hasta que uno responda
+        try {
+          const av = await posicionesDe({ ...cfg, posiciones: null, ...r });
+          cfg.atribucion_actual = r.atribucion;
+          return av;
+        } catch (e2) {
+          error = e2;
+        }
+      }
+      throw error;
+    }
   }
 
   const cacheRutas = {};
@@ -154,9 +195,9 @@
     for (let k = 0; k < faltan.length; k += 100) {
       const lote = faltan.slice(k, k + 100);
       try {
-        const r = await fetch(cfg.rutas, { method: "POST", headers: { "Content-Type": "application/json" },
+        const r = await pedir(cfg.rutas, cfg.rutas_intermediario, { method: "POST",
+          headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ planes: lote.map(a => ({ callsign: a.indicativo, lat: a.lat, lng: a.lon })) }) });
-        if (!r.ok) break;
         const datos = await r.json();
         for (const x of Array.isArray(datos) ? datos : []) if (x?.callsign) cacheRutas[x.callsign.trim()] = { ...x, _t: ahora };
         for (const a of lote) if (!(a.indicativo in cacheRutas)) cacheRutas[a.indicativo] = { _t: ahora };   // sin ruta conocida

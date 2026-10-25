@@ -3,12 +3,19 @@ Componentes de terceros que usa la web de NOVOK. Todos tienen licencias abiertas
 
 - MapLibre GL JS 4.7.1 ........ BSD-3-Clause (maplibre-gl.txt)
 - three.js 0.169.0 ............ MIT (three.txt)
+- pmtiles.js 3.2.1 ............ BSD-3-Clause (pmtiles.txt)
+- Estilo del mapa 2D: @protomaps/basemaps 5.7.2, BSD-3-Clause (protomaps-basemaps.txt), con paleta propia
+- Rótulos del mapa 2D: Noto Sans, SIL Open Font License 1.1 (noto-sans-OFL.txt)
+- Iconos del mapa 2D: derivados de tangrams/icons, MIT (iconos-tangrams-MIT.md)
 - Public Sans ................. SIL Open Font License 1.1 (public-sans-OFL.txt)
 - Roboto Mono ................. Apache 2.0 (roboto-mono.txt)
 - Mapa base (web/mapa/base.geojson): Natural Earth, dominio público, a través de world-atlas (ISC, world-atlas.txt)
 - Relieve del visor 3D (web/terreno/): AWS Terrain Tiles, datos abiertos; fuentes y atribución en
   https://github.com/tilezen/joerd/blob/master/docs/attribution.md
-- Relieve del mapa 2D (web/mapa/relieve/): generado a partir de AWS Terrain Tiles (misma atribución)
+- Mapa 2D (web/mapa/norte.pmtiles): datos © colaboradores de OpenStreetMap, licencia ODbL 1.0
+  https://www.openstreetmap.org/copyright (uso comercial permitido citando la fuente; el aviso aparece en el mapa).
+  Teselas generadas por Protomaps (https://protomaps.com) a partir de OpenStreetMap.
+- Relieve del mapa 2D (web/mapa/dem/ y web/mapa/relieve/): generado a partir de AWS Terrain Tiles (misma atribución)
 - Ortofoto del visor 3D (web/terreno/*_orto*.jpg): PNOA © Instituto Geográfico Nacional de España, CC BY 4.0
   https://www.ign.es  (uso comercial permitido citando la fuente)
 - Vuelos en directo (web/vuelos.json): adsb.lol, datos abiertos bajo ODbL 1.0 https://adsb.lol

@@ -43,7 +43,7 @@
   .tab { font-variant-numeric: tabular-nums; }
   .mono { font-family: "Roboto Mono", ui-monospace, monospace; }
   .gris { color: var(--tinta-3); }
-  .llegadas { margin-top: 20px; }
+  .llegadas { margin-top: var(--hueco); }
   .llegadas table { width: 100%; border-collapse: collapse; font-size: 14px; }
   .llegadas th, .llegadas td { padding: 10px 16px; text-align: left; border-bottom: 1px solid var(--borde-suave); }
   .llegadas thead th { font-size: 12px; font-weight: 600; color: var(--tinta-3); }
@@ -52,7 +52,7 @@
   .llegadas .vacio { padding: 14px 16px; margin: 0; color: var(--tinta-3); }
   .nota-lleg { margin: 0; padding: 10px 16px 14px; font-size: 12.5px; color: var(--tinta-3); }
   @media (max-width: 640px) { .llegadas .op { display: none; } .llegadas th, .llegadas td { padding: 9px 10px; } }
-  .ancho { max-width: 1200px; margin: 0 auto; padding: 0 20px; }
+  .ancho { max-width: 1200px; margin: 0 auto; padding-inline: 20px; }
 
   /* Barra superior */
   .cabecera { background: var(--azul-noche); color: #fff; }
@@ -93,9 +93,10 @@
   .aviso-banda.bajo { background: #2a5c37; }
   .aviso-banda.sin { background: #5c5c5c; }
 
-  main { padding-top: 28px; padding-bottom: 40px; }
-  .rejilla-2 { display: grid; grid-template-columns: minmax(0, 5fr) minmax(0, 7fr); gap: 20px; margin-bottom: 20px; }
-  .rejilla-3 { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 20px; margin-bottom: 20px; }
+  :root { --hueco: 20px; }
+  main { padding-top: 24px; padding-bottom: 40px; }
+  .rejilla-2 { display: grid; grid-template-columns: minmax(0, 5fr) minmax(0, 7fr); gap: var(--hueco); margin-bottom: var(--hueco); }
+  .rejilla-3 { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: var(--hueco); margin-bottom: var(--hueco); }
 
   /* Secciones: caja blanca con cabecera en banda */
   .caja { background: var(--blanco); border: 1px solid var(--borde); border-radius: 12px; overflow: hidden; min-width: 0; box-shadow: 0 1px 2px rgb(16 24 40 / .04), 0 8px 24px -16px rgb(16 24 40 / .18); }
@@ -159,7 +160,7 @@
   .ic.ok { background: var(--vfr); } .ic.med { background: var(--moderado); } .ic.no { background: var(--ifr); }
 
   /* Visor 3D */
-  .visor { position: relative; height: 560px; border-radius: 14px; overflow: hidden; background: #1c2a3a; margin-bottom: 20px;
+  .visor { position: relative; height: 560px; border-radius: 14px; overflow: hidden; background: #1c2a3a; margin-bottom: var(--hueco);
     box-shadow: 0 20px 40px -24px rgb(11 37 69 / .55); }
   #mapa3d { position: absolute; inset: 0; }
   .hud { position: absolute; z-index: 2; color: #fff; background: rgb(11 25 45 / .72); backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px);
@@ -226,7 +227,9 @@
   @media (max-width: 620px) {
     table.pron-movil { display: table; }
     .desliza { display: none; }
-    .ancho { padding: 0 12px; }
+    .ancho { padding-inline: 12px; }
+    :root { --hueco: 14px; }
+    main { padding-top: 16px; padding-bottom: 28px; }
     .rejilla-3 { grid-template-columns: 1fr; }
     .relojes { gap: 14px; }
     .relojes b { font-size: 17px; }
@@ -283,7 +286,7 @@
     <p>NOVOK predice niebla y techo bajo con modelos entrenados con los METAR de cada aeropuerto (2017–2025) y pronósticos numéricos emitidos 24 h antes.
       Bajo mínimos tipo CAT I: visibilidad &lt; 550 m o techo ≤ 200 ft (aproximación; los mínimos reales dependen del procedimiento publicado).
       Categorías de vuelo según los criterios de la FAA: LIFR techo &lt; 500 ft o visibilidad &lt; 1600 m; IFR &lt; 1000 ft o &lt; 4800 m; MVFR ≤ 3000 ft o ≤ 8000 m.
-      Código, método y verificación: <a href="https://github.com/Gelan03/novok">github.com/Gelan03/novok</a>.</p>
+      Código, método y verificación: <a href="https://github.com/angelvf3/novok">github.com/angelvf3/novok</a>.</p>
   </div>
 </footer>
 
@@ -492,7 +495,7 @@ function lineaTiempo(b, ancho) {
 }
 
 function bloqueTiempo(b) {
-  return `<section class="caja linea-tiempo" aria-labelledby="t-lt" style="margin-bottom:20px">
+  return `<section class="caja linea-tiempo" aria-labelledby="t-lt" style="margin-bottom:var(--hueco)">
     <h2 id="t-lt">Línea de tiempo <span>12 h observadas (METAR) y 12 h previstas (TAF y NOVOK)</span></h2>
     <div class="cuerpo" id="lt-svg" style="padding:12px 14px 4px"></div>
     <div class="leyenda">
@@ -965,7 +968,7 @@ function cargar() {
     .then(render)
     .catch(() => {
       if (ultimo) return;
-      document.getElementById("contenido").innerHTML = `<section class="caja bloqueo"><h2>No se pudo cargar el briefing</h2><div class="cuerpo">No hay datos de ${ICAO}. En local, genera los briefings con <code>python -m novok.red briefing</code> y abre la página con <code>python -m http.server -d web</code>.</div></section>`;
+      document.getElementById("contenido").innerHTML = `<section class="caja bloqueo"><h2>No se pudo cargar el briefing</h2><div class="cuerpo">No hay datos de ${ICAO}. En local, genera los briefings con <code>python -m novok.red briefing</code> y abre la página con <code>python -m novok.servidor</code>.</div></section>`;
       document.getElementById("modo").innerHTML = `<span class="punto mal"></span><b>Sin datos</b>`;
     });
 }
@@ -992,7 +995,7 @@ async function llegadas() {
     const ahora = Date.now();
     const vuelos = V.analizar(aviones, rutas, [propia, ...otros], ahora)
       .filter(v => v.destino === propia.icao && v.llegada).sort((x, y) => x.llegada.ms - y.llegada.ms);
-    estado.textContent = `${vuelos.length} ${vuelos.length === 1 ? "vuelo" : "vuelos"} · ${lleg.cfg.atribucion || ""}`;
+    estado.textContent = `${vuelos.length} ${vuelos.length === 1 ? "vuelo" : "vuelos"} · ${cfg.atribucion_actual || lleg.cfg.atribucion || ""}`;
     document.getElementById("lista-lleg").innerHTML = vuelos.length ? `<table>
       <thead><tr><th>Vuelo</th><th class="op">Origen</th><th>Llega</th><th>Riesgo a su llegada</th><th class="op">Alternativo</th></tr></thead>
       <tbody>${vuelos.map(v => `<tr>

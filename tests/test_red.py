@@ -135,3 +135,25 @@ def test_ortofoto_por_trozos():
     assert img.size == (128, 128) and len(pedidas) == 4
     sur, oeste, norte, este = map(float, pedidas[0].split(","))
     assert norte > sur and este > oeste and abs(norte - 43.56 - 3000 / 111320) < 1e-6   # primer trozo: esquina NO
+
+
+def test_codificacion_terrarium_ida_y_vuelta():
+    import numpy as np
+
+    from novok.cartografia import a_terrarium
+    alt = np.array([[-12.5, 0.0], [845.25, 2648.0]])
+    rgb = a_terrarium(alt).astype(float)
+    vuelta = rgb[..., 0] * 256 + rgb[..., 1] + rgb[..., 2] / 256 - 32768
+    assert np.allclose(vuelta, alt, atol=1 / 256)
+
+
+def test_mapa_existente_se_reutiliza(tmp_path, monkeypatch):
+    from novok import cartografia
+    cabecera = bytearray(127)
+    cabecera[:7], cabecera[7], cabecera[101] = b"PMTiles", 3, 6
+    f = tmp_path / "mundo.pmtiles"
+    f.write_bytes(bytes(cabecera) + b"datos")
+    monkeypatch.setattr(cartografia, "herramienta_pmtiles", lambda: (_ for _ in ()).throw(AssertionError("descarga")))
+    assert cartografia.zoom_maximo(f) == 6
+    assert cartografia._recortar(f, None, (4, 5, 6, 7)) == 6
+    assert '"maxzoom": 6' in (tmp_path / "mundo.json").read_text()

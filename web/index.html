@@ -10,6 +10,7 @@
 <link rel="stylesheet" href="vendor/fuentes.css">
 <link rel="stylesheet" href="vendor/maplibre-gl.css">
 <script src="vendor/maplibre-gl.js"></script>
+<script src="vendor/pmtiles.js"></script>
 <script src="vuelos.js"></script>
 <style>
   /* Mismo lenguaje visual que el briefing de aeropuerto: categorías de vuelo con sus colores estándar. */
@@ -39,7 +40,7 @@
   :focus-visible { outline: 3px solid #2491ff; outline-offset: 2px; }
   .tab { font-variant-numeric: tabular-nums; }
   .gris { color: var(--tinta-3); }
-  .ancho { max-width: 1320px; margin: 0 auto; padding: 0 20px; }
+  .ancho { max-width: 1320px; margin: 0 auto; padding-inline: 20px; }
 
   .cabecera { background: var(--azul-noche); color: #fff; }
   .cabecera .ancho { display: flex; align-items: center; gap: 20px; min-height: 60px; flex-wrap: wrap; padding-top: 8px; padding-bottom: 8px; }
@@ -72,8 +73,9 @@
   .aviso-banda span { font-size: 14.5px; opacity: .95; }
   .aviso-banda.alto { background: #b3261e; } .aviso-banda.moderado { background: #a34a00; } .aviso-banda.bajo { background: #2a5c37; }
 
-  main { padding-top: 20px; padding-bottom: 36px; }
-  .rejilla { display: grid; grid-template-columns: minmax(0, 1fr) 400px; gap: 20px; align-items: start; }
+  :root { --hueco: 20px; }
+  main { padding-top: 24px; padding-bottom: 40px; }
+  .rejilla { display: grid; grid-template-columns: minmax(0, 1fr) 400px; gap: var(--hueco); align-items: start; }
   .caja { background: var(--blanco); border: 1px solid var(--borde); border-radius: 12px; overflow: hidden; box-shadow: 0 1px 2px rgb(16 24 40 / .04), 0 8px 24px -16px rgb(16 24 40 / .18); min-width: 0; }
   .caja > h2 { margin: 0; padding: 13px 16px; font-size: 15px; font-weight: 700; border-bottom: 1px solid var(--borde-suave); display: flex; justify-content: space-between; gap: 10px; align-items: baseline; }
   .caja > h2 span { font-weight: 400; color: var(--tinta-3); font-size: 13px; }
@@ -97,7 +99,7 @@
   .pop p { margin: 4px 0; font-size: 13px; color: var(--tinta-2); }
   .pop a { font-weight: 700; }
 
-  .lista { max-height: 640px; overflow: auto; }
+  .lista { max-height: 592px; overflow: auto; }   /* 640 px del mapa menos la nota de abajo: las dos tarjetas igual de altas */
   .fila { display: grid; grid-template-columns: 58px minmax(0, 1fr) auto; gap: 10px; align-items: center; padding: 11px 16px; border-bottom: 1px solid var(--borde-suave); cursor: pointer; text-decoration: none; color: inherit; }
   .fila:hover, .fila.activo { background: #f4f7fa; }
   .fila .nom b { display: block; font-size: 14.5px; }
@@ -133,13 +135,18 @@
   .pie p { margin: 0 0 8px; max-width: 100ch; }
   .pie strong { color: var(--tinta); }
 
+  /* lejos (mapa del mundo) los aeropuertos se solapan: puntos de color; el detalle, al pulsar o al acercarse */
+  .lejos .marcador .chapa { font-size: 0; padding: 0; width: 14px; height: 14px; border-radius: 50%; }
+  .lejos .marcador .riesgo { display: none; }
   @media (max-width: 980px) {
     .rejilla { grid-template-columns: 1fr; }
     .mapa-caja { height: 460px; }
     .lista { max-height: none; }
   }
   @media (max-width: 620px) {
-    .ancho { padding: 0 12px; }
+    .ancho { padding-inline: 12px; }
+    :root { --hueco: 14px; }
+    main { padding-top: 16px; padding-bottom: 28px; }
     .logo span { display: none; }
     .relojes b { font-size: 17px; }
     .modo { text-align: left; width: 100%; }
@@ -210,8 +217,8 @@
   <div class="ancho">
     <p><strong>Herramienta de apoyo a la planificación de operaciones. No sustituye a la información meteorológica aeronáutica oficial (METAR y TAF de AEMET), que es la que vale para las decisiones de vuelo.</strong></p>
     <p>NOVOK predice niebla y techo bajo con modelos entrenados con los METAR de cada aeropuerto y pronósticos numéricos emitidos 24 h antes.
-      Categorías de vuelo según los criterios de la FAA. Datos de aeropuertos: OurAirports. Mapa base: Natural Earth (dominio público); relieve: AWS Terrain Tiles (datos abiertos).
-      Código, método y verificación: <a href="https://github.com/Gelan03/novok">github.com/Gelan03/novok</a>.</p>
+      Categorías de vuelo según los criterios de la FAA. Datos de aeropuertos: OurAirports. Mapa: © colaboradores de OpenStreetMap (ODbL), teselas de Protomaps y Natural Earth (dominio público); relieve: AWS Terrain Tiles (datos abiertos).
+      Código, método y verificación: <a href="https://github.com/angelvf3/novok">github.com/angelvf3/novok</a>.</p>
   </div>
 </footer>
 
@@ -234,6 +241,7 @@ function reloj() {
 }
 reloj(); setInterval(reloj, 1000);
 
+let iniciandoMapa = false;
 let mapa = null, marcadores = {}, popup = null, datos = null;
 const enlace = icao => `aeropuerto.html?a=${encodeURIComponent(icao)}`;
 const condiciones = a => a.vis_m == null ? "sin observación" : `vis ${visTxt(a.vis_m)}, ${a.techo_ft == null ? "sin techo" : "techo " + Math.round(a.techo_ft) + " ft"}`;
@@ -278,7 +286,47 @@ function pintarMapa(lista) {
   }
 }
 
-function iniciarMapa(lista) {
+// Mapa de OpenStreetMap del propio sitio (python -m novok.red mapa). Si aún no se ha generado, queda el mapa sencillo.
+const leerJson = u => fetch(u, { cache: "no-store" }).then(r => r.ok ? r.json() : null).catch(() => null);
+// Dos ficheros: el norte de España con todo detalle y el mundo entero con menos detalle (para alejar el mapa)
+const promesaOsm = Promise.all([leerJson("mapa/norte.json"), leerJson("mapa/mundo.json")])
+  .then(([norte, mundo]) => norte || mundo ? { ...(norte || {}), norte: !!norte, mundo } : null);
+const absoluta = u => new URL(u, location.href).href.replace(/%7B/g, "{").replace(/%7D/g, "}");
+
+async function estiloOsm(info) {
+  const capas = await fetch("mapa/capas_osm.json").then(r => r.json());
+  const protocolo = new pmtiles.Protocol();
+  maplibregl.addProtocol("pmtiles", protocolo.tile);
+  const atribucion = '<a href="https://www.openstreetmap.org/copyright" target="_blank">© OpenStreetMap</a> · Protomaps';
+  const con = (fuente, prefijo) => capas.map(c => ({ ...c, id: prefijo + c.id, source: fuente }));
+  const sources = {}, layers = [{ id: "mar", type: "background", paint: { "background-color": "#a8d4e6" } }];
+  if (info.mundo) {
+    sources.mundo = { type: "vector", url: "pmtiles://" + absoluta("mapa/mundo.pmtiles"), attribution: atribucion };
+    // el mundo va debajo: dentro del norte lo tapa el mapa detallado (también sus rótulos, así no salen dobles)
+    layers.push(...con("mundo", "mundo_"));
+  } else {
+    sources.base = { type: "geojson", data: "mapa/base.geojson", attribution: "Natural Earth" };
+    layers.push({ id: "tierra", type: "fill", source: "base", paint: { "fill-color": "#f2efe9" } },
+                { id: "fronteras", type: "line", source: "base", paint: { "line-color": "#8f8a9e", "line-width": 1 } });
+  }
+  if (info.norte) {
+    const [o, s, e, n] = info.caja;
+    sources.norte = { type: "vector", url: "pmtiles://" + absoluta("mapa/norte.pmtiles"), attribution: atribucion };
+    sources.dem = { type: "raster-dem", tiles: [absoluta("mapa/dem/{z}/{x}/{y}.png")], encoding: "terrarium", tileSize: 256,
+      minzoom: 5, maxzoom: 9, bounds: [o, s, e, n], attribution: "Relieve: AWS Terrain Tiles" };
+    // el sombreado del relieve va encima de la tierra y los bosques y debajo del agua, las carreteras y los rótulos
+    const norte = con("norte", ""), corte = norte.findIndex(c => c.id === "water");
+    const sombra = { id: "sombra", type: "hillshade", source: "dem", paint: {
+      "hillshade-exaggeration": ["interpolate", ["linear"], ["zoom"], 5, 0.55, 10, 0.35, 13, 0.2],
+      "hillshade-shadow-color": "#5b5446", "hillshade-highlight-color": "#ffffff", "hillshade-accent-color": "#7d735f",
+      "hillshade-illumination-direction": 315 } };
+    layers.push(...norte.slice(0, corte), sombra, ...norte.slice(corte));
+  }
+  return { version: 8, glyphs: absoluta("mapa/fuentes/{fontstack}/{range}.pbf"), sprite: absoluta("mapa/sprites/light"),
+           sources, layers };
+}
+
+function iniciarMapa(lista, osm = null) {
   if (!window.maplibregl || !lista.length) { document.getElementById("mapa").innerHTML = `<p style="padding:20px" class="gris">No se pudo cargar el mapa.</p>`; return; }
   const lons = lista.map(a => a.lon), lats = lista.map(a => a.lat);
   mapa = new maplibregl.Map({
@@ -287,8 +335,8 @@ function iniciarMapa(lista) {
     locale: { "CooperativeGesturesHandler.WindowsHelpText": "Usa Ctrl + rueda para acercar el mapa", "CooperativeGesturesHandler.MacHelpText": "Usa ⌘ + rueda para acercar el mapa",
       "CooperativeGesturesHandler.MobileHelpText": "Usa dos dedos para mover el mapa", "NavigationControl.ZoomIn": "Acercar", "NavigationControl.ZoomOut": "Alejar",
       "AttributionControl.ToggleAttribution": "Créditos" },
-    // Mapa base propio: Natural Earth (dominio público) en un fichero del sitio; sin servicios de mapas externos
-    style: {
+    // Mapa base propio: OpenStreetMap (si está generado) o Natural Earth, en ficheros del sitio; sin servicios externos
+    style: osm?.estilo || {
       version: 8,
       sources: {
         base: { type: "geojson", data: "mapa/base.geojson", attribution: "Natural Earth" },
@@ -302,16 +350,20 @@ function iniciarMapa(lista) {
         { id: "fronteras", type: "line", source: "base", paint: { "line-color": "#8c97a3", "line-width": ["interpolate", ["linear"], ["zoom"], 5, 0.6, 9, 1.3] } },
       ],
     },
-    maxBounds: [[-14, 33], [8, 49]], minZoom: 4.5, maxZoom: 10.5,
+    ...(osm?.mundo ? { minZoom: 1.5, renderWorldCopies: false } : { maxBounds: [[-14, 33], [8, 49]], minZoom: 4.5 }),
+    maxZoom: osm?.norte ? osm.maxzoom + 2.5 : 10.5,
   });
   mapa.addControl(new maplibregl.NavigationControl({ showCompass: false }), "top-right");
-  // El relieve sale de teselas propias (python -m novok.red mapa); si aún no se han generado, queda el mapa liso
-  fetch("mapa/relieve/info.json").then(r => {
+  // Mapa sencillo: el relieve sale de teselas propias en imagen (versión anterior de python -m novok.red mapa)
+  if (!osm) fetch("mapa/relieve/info.json").then(r => {
     if (!r.ok) return;
     const ver = () => mapa.setLayoutProperty("relieve", "visibility", "visible");
     mapa.isStyleLoaded() ? ver() : mapa.once("load", ver);
   }).catch(() => {});
   mapa.on("click", e => { if (!e.defaultPrevented) popup?.remove(); });
+  const lejos = () => mapa.getContainer().classList.toggle("lejos", mapa.getZoom() < 5.6);
+  mapa.on("zoom", lejos);
+  lejos();
   pintarMapa(lista);
 }
 
@@ -347,7 +399,17 @@ function render(r) {
     // en pantallas grandes, el primer clic centra el mapa; el enlace del globo abre el briefing
     f.addEventListener("click", e => { if (window.innerWidth > 980 && !f.classList.contains("activo")) { e.preventDefault(); seleccionar(f.dataset.icao, true); } });
   });
-  if (!mapa) { iniciarMapa(lista); if (mapa) iniciarVuelos(); } else pintarMapa(lista);
+  if (!mapa && !iniciandoMapa) {
+    iniciandoMapa = true;
+    promesaOsm.then(async info => {
+      let osm = null;
+      if (info && window.pmtiles) {
+        try { osm = { ...info, estilo: await estiloOsm(info) }; } catch { osm = null; }
+      }
+      iniciarMapa(lista, osm);
+      if (mapa) iniciarVuelos();
+    });
+  } else if (mapa) pintarMapa(lista);
 }
 
 /* ---------- vuelos en directo (F7) ---------- */
@@ -459,7 +521,7 @@ async function actualizarVuelos() {
   const n = vuelos.analizados.length, hacia = vuelos.analizados.filter(a => a.llegada).length;
   document.getElementById("estado-vuelos").innerHTML = vuelos.error && !n
     ? `<span style="color:var(--alto)">No se pudieron cargar los vuelos</span> <span class="gris">(servicio no disponible o bloqueado por la red)</span>`
-    : `${n} aviones · ${hacia} hacia la red · <span class="gris">${esc(vuelos.cfg.atribucion)}</span>`;
+    : `${n} aviones · ${hacia} hacia la red · <span class="gris">${esc(vuelos.cfg.atribucion_actual || vuelos.cfg.atribucion)}</span>`;
   pintarLlegadas(); dibujarVuelos();
   if (vuelos.seleccionado && popup?.isOpen()) {
     const a = vuelos.analizados.find(x => x.hex === vuelos.seleccionado);
@@ -488,7 +550,7 @@ function cargar() {
     .then(render)
     .catch(() => {
       if (datos) return;
-      document.getElementById("lista").innerHTML = `<p style="padding:16px">No hay datos de la red. En local, genéralos con <code>python -m novok.red briefing</code> y abre la página con <code>python -m http.server -d web</code>.</p>`;
+      document.getElementById("lista").innerHTML = `<p style="padding:16px">No hay datos de la red. En local, genéralos con <code>python -m novok.red briefing</code> y abre la página con <code>python -m novok.servidor</code>.</p>`;
       document.getElementById("modo").innerHTML = `<span class="punto mal"></span><b>Sin datos</b>`;
     });
 }

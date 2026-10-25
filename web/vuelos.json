@@ -1,10 +1,24 @@
 {
-  "comentario": "Fuente de los vuelos en directo. Para cambiarla (antena propia, proveedor de pago) basta con editar este fichero.",
+  "comentario": "Fuente de los vuelos en directo. Para cambiarla (antena propia, proveedor de pago) basta con editar este fichero. Si el navegador no puede pedir los datos directamente al proveedor, la página usa el intermediario de python -m novok.servidor.",
   "proveedor": "adsb.lol",
   "posiciones": "https://api.adsb.lol/v2/point/{lat}/{lon}/{radio}",
+  "posiciones_intermediario": "api/vuelos/adsblol/v2/point/{lat}/{lon}/{radio}",
   "rutas": "https://api.adsb.lol/api/0/routeset",
+  "rutas_intermediario": "api/vuelos/adsblol/api/0/routeset",
   "atribucion": "Vuelos: adsb.lol (datos abiertos, ODbL)",
-  "centro": [42.9, -4.6],
+  "centro": [
+    42.9,
+    -4.6
+  ],
   "radio_nm": 250,
-  "refresco_s": 10
+  "refresco_s": 10,
+  "respaldos": [
+    {
+      "comentario": "Solo para desarrollo y pruebas: adsb.fi es gratuito solo para uso personal y no comercial. Quitar antes de dar servicio a un cliente.",
+      "proveedor": "adsb.fi",
+      "posiciones_intermediario": "api/vuelos/adsbfi/v3/lat/{lat}/lon/{lon}/dist/{radio}",
+      "radio_max_nm": 250,
+      "atribucion": "Vuelos: adsb.fi (respaldo de pruebas, uso no comercial)"
+    }
+  ]
 }

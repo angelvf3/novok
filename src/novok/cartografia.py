@@ -43,7 +43,7 @@ def _sesion():
     except ImportError:
         pass
     s = requests.Session()
-    s.headers["User-Agent"] = "novok (https://github.com/Gelan03/novok)"
+    s.headers["User-Agent"] = "novok (https://github.com/angelvf3/novok)"
     return s
 
 
@@ -165,6 +165,164 @@ def mapa_relieve(caja=CAJA_ESPANA, zmin: int = 5, zmax: int = 9, destino: Path =
     (destino / "info.json").write_text(json.dumps({"zmin": zmin, "zmax": zmax, "caja": caja,
                                                    "fuente": "AWS Terrain Tiles (datos abiertos)"}), encoding="utf-8")
     return n
+
+
+# ------------------------------------------------------------------ mapa vectorial (2D)
+#
+# El mapa 2D usa teselas vectoriales de OpenStreetMap (calles, pueblos, ríos, bosques...) en un único fichero
+# PMTiles alojado en el propio sitio, sin servicios externos. Se recorta del mapa mundial que publica Protomaps
+# (datos © OpenStreetMap, licencia ODbL: uso comercial permitido citando la fuente) con su herramienta pmtiles.
+# Debajo, el relieve se sombrea en el navegador a partir de teselas de altura (AWS Terrain Tiles).
+
+CAJA_NORTE = (-10.2, 40.8, -0.8, 44.6)          # Galicia, Cantábrico, Castilla y León, Navarra, La Rioja
+DIR_MAPA = RAIZ / "web" / "mapa"
+DIR_HERRAMIENTAS = DATA_RAW / "herramientas"
+URL_BUILDS = "https://build.protomaps.com/{fecha}.pmtiles"
+LIMITE_MB = 95                                   # GitHub no admite ficheros de más de 100 MB
+CRECIMIENTO = 2.6                                # cada zoom ocupa al menos ~2,6 veces el anterior
+ATRIBUCION_OSM = "© OpenStreetMap (ODbL) · Protomaps"
+
+
+def a_terrarium(alt: np.ndarray) -> np.ndarray:
+    """Codifica alturas (m) en RGB terrarium: altura = R·256 + G + B/256 − 32768."""
+    v = np.clip(alt.astype(float) + 32768, 0, 65535.996)
+    r = np.floor(v / 256)
+    g = np.floor(v - r * 256)
+    b = np.floor((v - r * 256 - g) * 256)
+    return np.stack([r, g, b], axis=-1).astype(np.uint8)
+
+
+def dem(caja=CAJA_NORTE, zmin: int = 5, zmax: int = 9, destino: Path = DIR_MAPA / "dem",
+        tesela: Callable = tesela_terrarium) -> int:
+    """Teselas de altura (PNG terrarium) para que MapLibre sombree el relieve. Devuelve cuántas ha escrito."""
+    from PIL import Image
+    oeste, sur, este, norte = caja
+    n = 0
+    for z in range(zmin, zmax + 1):
+        for ty in range(int(lat_a_y(norte, z)), int(lat_a_y(sur, z)) + 1):
+            for tx in range(int(lon_a_x(oeste, z)), int(lon_a_x(este, z)) + 1):
+                f = destino / str(z) / str(tx) / f"{ty}.png"
+                f.parent.mkdir(parents=True, exist_ok=True)
+                Image.fromarray(a_terrarium(tesela(z, tx, ty))).save(f, optimize=True)
+                n += 1
+    info = {"zmin": zmin, "zmax": zmax, "caja": caja, "codificacion": "terrarium",
+            "fuente": "AWS Terrain Tiles (datos abiertos)"}
+    (destino / "info.json").write_text(json.dumps(info), encoding="utf-8")
+    return n
+
+
+def herramienta_pmtiles() -> Path:
+    """Ruta del programa pmtiles (go-pmtiles, BSD-3); si no está, descarga la última versión desde GitHub."""
+    import platform
+    import shutil
+    import tarfile
+    import zipfile
+
+    if (en_path := shutil.which("pmtiles")):
+        return Path(en_path)
+    exe = DIR_HERRAMIENTAS / ("pmtiles.exe" if platform.system() == "Windows" else "pmtiles")
+    if exe.exists():
+        return exe
+    sistema = {"Windows": "windows", "Darwin": "darwin", "Linux": "linux"}[platform.system()]
+    arq = "arm64" if platform.machine().lower() in ("arm64", "aarch64") else "x86_64"
+    s = _sesion()
+    rel = s.get("https://api.github.com/repos/protomaps/go-pmtiles/releases/latest", timeout=60).json()
+    activo = next(a for a in rel["assets"] if sistema in a["name"].lower() and arq in a["name"].lower())
+    print(f"  descargando {activo['name']}")
+    DIR_HERRAMIENTAS.mkdir(parents=True, exist_ok=True)
+    datos = s.get(activo["browser_download_url"], timeout=300).content
+    if activo["name"].endswith(".zip"):
+        with zipfile.ZipFile(io.BytesIO(datos)) as z:
+            nombre = next(n for n in z.namelist() if Path(n).name.startswith("pmtiles"))
+            exe.write_bytes(z.read(nombre))
+    else:
+        with tarfile.open(fileobj=io.BytesIO(datos)) as t:
+            m = next(m for m in t.getmembers() if Path(m.name).name == "pmtiles")
+            exe.write_bytes(t.extractfile(m).read())
+    exe.chmod(0o755)
+    return exe
+
+
+def ultimo_build(dias: int = 14) -> str:
+    """URL del mapa mundial más reciente de Protomaps (se publica uno al día y se guardan unos días)."""
+    from datetime import date, timedelta
+    s = _sesion()
+    for d in range(dias):
+        url = URL_BUILDS.format(fecha=(date.today() - timedelta(days=d)).strftime("%Y%m%d"))
+        if s.head(url, timeout=30).status_code == 200:
+            return url
+    raise SystemExit("No se encontró ningún mapa reciente en build.protomaps.com; inténtalo más tarde.")
+
+
+def zoom_maximo(fichero: Path) -> int:
+    """Zoom máximo de un fichero PMTiles (byte 101 de la cabecera de la versión 3)."""
+    with fichero.open("rb") as f:
+        cabecera = f.read(127)
+    if cabecera[:7] != b"PMTiles":
+        raise ValueError(f"{fichero.name} no es un fichero PMTiles")
+    return cabecera[101]
+
+
+def _registrar(destino: Path, caja, z: int, origen: str | None) -> None:
+    destino.with_suffix(".json").write_text(json.dumps({"maxzoom": z, "caja": caja, "origen": origen,
+                                                        "atribucion": ATRIBUCION_OSM}), encoding="utf-8")
+
+
+def _recortar(destino: Path, caja, zooms, rehacer: bool = False) -> int:
+    """Recorta el mapa mundial de Protomaps (todo el mundo si caja es None) al mayor zoom que quepa en GitHub.
+
+    Prueba de menos a más zoom y se queda con el último que cabe. Cada nivel ocupa unas 3-4 veces más que el
+    anterior: si la previsión ya no cabe, no lo descarga. Si ya existe el fichero, lo reutiliza (salvo rehacer).
+    """
+    import subprocess
+    prueba = destino.with_suffix(".prueba.pmtiles")
+    prueba.unlink(missing_ok=True)
+    if destino.exists() and not rehacer:
+        z = zoom_maximo(destino)
+        _registrar(destino, caja, z, None)
+        print(f"  ya existe {destino.name} (zoom {z}); para volver a descargarlo usa --rehacer")
+        return z
+    exe, origen = herramienta_pmtiles(), ultimo_build()
+    destino.parent.mkdir(parents=True, exist_ok=True)
+    extra = [f"--bbox={','.join(str(c) for c in caja)}"] if caja else []
+    elegido, mb = None, 0.0
+    for z in zooms:
+        if elegido is not None and mb * CRECIMIENTO > LIMITE_MB:
+            print(f"  el zoom {z} ocuparía unos {mb * CRECIMIENTO:.0f} MB: no cabe, me quedo con el {elegido}")
+            break
+        print(f"  recortando {origen.rsplit('/', 1)[-1]} hasta el zoom {z}...")
+        try:
+            subprocess.run([str(exe), "extract", origen, str(prueba), *extra, f"--maxzoom={z}"], check=True)
+        except subprocess.CalledProcessError:
+            prueba.unlink(missing_ok=True)
+            if elegido is None:
+                raise SystemExit("Se cortó la descarga del mapa; vuelve a intentarlo más tarde.") from None
+            print(f"  se cortó la descarga del zoom {z}; me quedo con el {elegido}")
+            break
+        mb = prueba.stat().st_size / 1e6
+        print(f"  zoom {z}: {mb:.0f} MB")
+        if mb > LIMITE_MB:
+            prueba.unlink()
+            break
+        prueba.replace(destino)
+        elegido = z
+        _registrar(destino, caja, z, origen)
+    if elegido is None:
+        raise SystemExit(f"El mapa ocupa más de {LIMITE_MB} MB incluso con zoom {zooms[0]}.")
+    return elegido
+
+
+def mapa_vectorial(caja=CAJA_NORTE, zooms=(10, 11, 12, 13), destino: Path = DIR_MAPA / "norte.pmtiles",
+                   rehacer: bool = False) -> Path:
+    """Mapa detallado del norte de España (calles, pueblos, bosques)."""
+    _recortar(destino, caja, zooms, rehacer)
+    return destino
+
+
+def mapa_mundial(zooms=(4, 5, 6, 7), destino: Path = DIR_MAPA / "mundo.pmtiles", rehacer: bool = False) -> Path:
+    """Mapa de todo el mundo con menos detalle (países, ciudades, carreteras principales) para alejar el mapa."""
+    _recortar(destino, None, zooms, rehacer)
+    return destino
 
 
 # ------------------------------------------------------------------ ortofoto PNOA (3D)

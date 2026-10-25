@@ -24,7 +24,7 @@ y un marcador público contra el TAF.
 > proporcionar proveedores certificados (Reglamento (UE) 2017/373), en España AEMET, y es la que vale para las
 > decisiones de vuelo. NOVOK no emite METAR ni TAF: traduce la previsión en impacto operativo.
 
-**Mapa de la red en directo:** https://gelan03.github.io/novok/
+**Mapa de la red en directo:** https://angelvf3.github.io/novok/
 
 ## Estado
 
@@ -269,8 +269,11 @@ NWP (Open-Meteo) ────────┘        │                         
 - **Fuente intercambiable** (`web/vuelos.json`): hoy [adsb.lol](https://adsb.lol), gratuita y con datos abiertos
   (ODbL, uso comercial permitido citando la fuente). Para un cliente se cambia por una antena ADS-B propia
   (readsb/tar1090, mismo formato) o un proveedor de pago editando solo ese fichero.
-- **Mapa 2D con relieve** (`python -m novok.red mapa`): teselas de relieve sombreado con tintas hipsométricas
-  generadas a partir de AWS Terrain Tiles y servidas desde el propio sitio.
+- **Mapa 2D de verdad** (`python -m novok.red mapa`): calles, pueblos, ríos y bosques de OpenStreetMap (ODbL, uso
+  comercial permitido citando la fuente) en un único fichero PMTiles del propio sitio, recortado del mapa mundial de
+  Protomaps, con el relieve sombreado en el navegador a partir de AWS Terrain Tiles. Sin servicios de mapas externos.
+  Al alejar se ve el mundo entero, con menos detalle, desde un segundo fichero (`mundo.pmtiles`).
+  En local hay que abrirlo con `python -m novok.servidor`, que sirve el fichero por trozos como necesita el mapa.
 - **Visor 3D con ortofoto** (`python -m novok.red terreno`): el relieve de cada aeropuerto cubierto con la ortofoto
   del PNOA del Instituto Geográfico Nacional (CC BY 4.0, uso comercial permitido citando la fuente), descargada
   una vez y servida desde el sitio. Se descartó Google Earth (Photorealistic 3D Tiles): es de pago a partir de
@@ -308,11 +311,11 @@ python -m novok.red preparar                    # o solo algunos: python -m novo
 python -m novok.red estado
 python -m novok.red elegir                      # v1 o v2 por suceso y antelación (con la validación ya hecha)
 python -m novok.red terreno                     # relieve + ortofoto PNOA para el visor 3D (una vez; se sube al repo)
-python -m novok.red mapa                        # teselas de relieve del mapa 2D (una vez, ~5 min; se suben al repo)
+python -m novok.red mapa                        # mapa 2D de OpenStreetMap y relieve (una vez, ~10 min; se sube al repo)
 python -m novok.red independiente --actualizar  # verificación en 2026 (no usada) frente al TAF y valor en EUR
 python -m novok.red briefing                    # en directo -> web/datos/
 python -m novok.red briefing --repetir 2025-06-30T04:40
-python -m http.server 8000 -d web               # abre http://localhost:8000
+python -m novok.servidor                        # abre http://localhost:8010 (con los vuelos en directo)
 
 # Paso a paso para un aeropuerto (todas las órdenes aceptan --estacion; por defecto LEAS)
 # 1. Descargar el histórico de METAR (un CSV por año en data/raw/)

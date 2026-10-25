@@ -1,0 +1,6 @@
+modelos/** -text
+*.parquet binary
+*.png binary
+*.jpg binary
+*.pmtiles binary
+*.pbf binary

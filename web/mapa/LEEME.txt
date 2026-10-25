@@ -1,0 +1,5 @@
+capas_osm.json: capas del mapa 2D generadas con @protomaps/basemaps 5.7.2 (BSD-3-Clause), con una paleta propia
+y rótulos en español. Para regenerarlas: npm i @protomaps/basemaps y layers("protomaps", sabor, { lang: "es" }).
+norte.pmtiles: recorte de OpenStreetMap del norte de España, con detalle; mundo.pmtiles: el mundo entero con menos
+detalle (python -m novok.red mapa). © OpenStreetMap (ODbL).
+dem/: alturas para sombrear el relieve (AWS Terrain Tiles). fuentes/: Noto Sans (OFL). sprites/: iconos (MIT).
