@@ -46,4 +46,14 @@ assert.strictEqual(ibe.riesgo.nivel, "alto");
 assert.strictEqual(ibe.alternativo.icao, "LEXJ");                      // mejor previsión y cerca
 assert.strictEqual(vlg.destino, "LEAS"); assert.ok(vlg.destino_inferido);
 assert.strictEqual(res.find(a => a.hex === "ffffff").llegada, undefined);   // en tierra: sin llegada
+// coste del desvío con los costes de ejemplo
+const costes = JSON.parse(require("fs").readFileSync(__dirname + "/../web/costes.json", "utf8"));
+const conCoste = V.analizar(aviones, { IBE0532: { airport_codes: "LEMD-LEAS" } }, red, ahora, costes);
+const c = conCoste.find(a => a.indicativo === "IBE0532").coste;
+assert.ok(Math.abs(c.km_extra - 179) < 3);                              // LEAS -> LEXJ
+assert.strictEqual(c.pasajeros, Math.round(180 * 0.85));                // A320
+const suma = Object.values(c.desglose).reduce((a, b) => a + b, 0);
+assert.ok(Math.abs(suma - c.total) < 1e-6 && c.total > 3000 && c.total < 15000, c.total);
+assert.ok(Math.abs(c.esperado - c.total * conCoste.find(a => a.indicativo === "IBE0532").riesgo.p) < 1e-6);
+assert.strictEqual(conCoste.find(a => a.indicativo === "VLG1234").coste?.tipo_supuesto ?? true, true);  // sin tipo: avión medio
 console.log("vuelos.js: todo bien");

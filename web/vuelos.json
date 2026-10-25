@@ -1,10 +1,11 @@
 {
-  "comentario": "Fuente de los vuelos en directo. Para cambiarla (antena propia, proveedor de pago) basta con editar este fichero. Si el navegador no puede pedir los datos directamente al proveedor, la página usa el intermediario de python -m novok.servidor.",
+  "comentario": "Fuente de los vuelos en directo. Para cambiarla (antena propia, proveedor de pago) basta con editar este fichero. Si el navegador no puede pedir los datos directamente al proveedor, la página usa el intermediario de python -m novok.servidor. En la web publicada, el intermediario es el Worker de infra/vuelos-worker: pon su dirección en intermediario_publico.",
   "proveedor": "adsb.lol",
   "posiciones": "https://api.adsb.lol/v2/point/{lat}/{lon}/{radio}",
   "posiciones_intermediario": "api/vuelos/adsblol/v2/point/{lat}/{lon}/{radio}",
   "rutas": "https://api.adsb.lol/api/0/routeset",
   "rutas_intermediario": "api/vuelos/adsblol/api/0/routeset",
+  "intermediario_publico": "https://novok-vuelos.angelvf3.workers.dev",
   "atribucion": "Vuelos: adsb.lol (datos abiertos, ODbL)",
   "centro": [
     42.9,

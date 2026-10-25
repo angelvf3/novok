@@ -40,6 +40,7 @@
     return lista.filter(a => a.lat != null && a.lon != null).map(a => ({
       hex: String(a.hex || "").replace("~", ""),
       indicativo: (a.flight || "").trim() || null,
+      operador: /^[A-Z]{3}\d/.test((a.flight || "").trim()) ? a.flight.trim().slice(0, 3) : null,
       matricula: a.r || null,
       tipo: a.t || null,
       lat: a.lat, lon: a.lon,
@@ -114,8 +115,31 @@
     return mejor;
   }
 
+  // Coste de desviar un vuelo de su destino al alternativo, con los parámetros de costes.json (cada aerolínea los suyos).
+  // Incluye el combustible y la tripulación del tramo extra, la asistencia en el alternativo, llevar a los pasajeros
+  // a su destino por carretera, atenderlos mientras esperan y devolver el avión vacío. No incluye compensaciones:
+  // la niebla es una circunstancia extraordinaria y no da derecho a ellas (sí a asistencia).
+  function costeDesvio(av, destino, alt, c) {
+    const tipo = av.tipo && c.consumo_kg_h[av.tipo] ? av.tipo : "_otros";
+    const consumo = c.consumo_kg_h[tipo], plazas = c.plazas[tipo] ?? c.plazas._otros;
+    const kmAlt = distanciaKm(destino.lat, destino.lon, alt.lat, alt.lon);
+    const minTramo = kmAlt / c.velocidad_desvio_kmh * 60 + c.aproximacion_min;   // del destino al alternativo
+    const minExtra = c.espera_min + minTramo;                                     // esperar en el destino y desviarse
+    const pasajeros = Math.round(plazas * c.ocupacion);
+    const horasVuelta = (kmAlt / c.velocidad_desvio_kmh * 60 + c.aproximacion_min) / 60;  // reposicionar el avión
+    const d = {
+      combustible: (minExtra / 60 + horasVuelta) * consumo * c.combustible_eur_kg,
+      tripulacion: (minExtra / 60 + horasVuelta) * c.tripulacion_eur_h,
+      handling: c.handling_desvio_eur + c.tasas_alternativo_eur,
+      traslado: pasajeros * c.traslado_pasajero_eur,
+      atencion: pasajeros * c.atencion_pasajero_eur,
+    };
+    return { total: Object.values(d).reduce((a, b) => a + b, 0), desglose: d, km_extra: kmAlt, min_extra: minExtra,
+             pasajeros, tipo_supuesto: tipo === "_otros" };
+  }
+
   // Vuelos hacia la red, con su llegada estimada y el riesgo en destino a esa hora
-  function analizar(aviones, rutas, aeropuertos, ahoraMs) {
+  function analizar(aviones, rutas, aeropuertos, ahoraMs, costes = null) {
     const porIcao = Object.fromEntries(aeropuertos.map(a => [a.icao, a]));
     return aviones.map(av => {
       const ruta = av.indicativo ? leerRuta(rutas[av.indicativo]) : null;
@@ -126,8 +150,13 @@
       const llegada = llegadaEstimada(av, dest, ahoraMs);
       if (!llegada || llegada.min > 16 * 60) return r;
       const p = riesgoEnHora(dest, llegada.ms, ahoraMs);
-      return { ...r, llegada, riesgo: p == null ? null : { p, nivel: nivel(p) },
-               alternativo: p != null && p >= NIVELES[0] ? alternativo(dest, aeropuertos, llegada.ms, ahoraMs) : null };
+      const alt = p != null && p >= NIVELES[0] ? alternativo(dest, aeropuertos, llegada.ms, ahoraMs) : null;
+      let coste = null;
+      if (alt && costes) {
+        const dv = costeDesvio(av, dest, porIcao[alt.icao], costes);
+        coste = { ...dv, esperado: p * dv.total };      // lo que cuesta, de media, seguir con el plan previsto
+      }
+      return { ...r, llegada, riesgo: p == null ? null : { p, nivel: nivel(p) }, alternativo: alt, coste };
     });
   }
 
@@ -142,10 +171,16 @@
   // El proveedor puede no aceptar peticiones directas desde otra web (CORS). Entonces se usa el intermediario
   // del propio servidor de NOVOK (python -m novok.servidor), definido en vuelos.json como "*_intermediario".
   let viaIntermediario = false;
+  // En local el intermediario es el propio servidor (api/vuelos/...); en la web publicada, el Worker de Cloudflare
+  const enLocal = () => typeof location === "undefined" || ["localhost", "127.0.0.1", ""].includes(location.hostname);
+  const intermediario = (cfg, u) => (u && !enLocal() && cfg.intermediario_publico
+    ? cfg.intermediario_publico.replace(/\/$/, "") + "/" + u.replace(/^\//, "") : u);
+  // Un proveedor saturado puede tardar mucho en contestar: mejor fallar pronto y probar el siguiente
+  const conPlazo = (o, ms = 12000) => (typeof AbortSignal !== "undefined" && AbortSignal.timeout ? { ...o, signal: AbortSignal.timeout(ms) } : o);
   async function pedir(directa, intermediaria, opciones) {
     if (!viaIntermediario && directa) {
       try {
-        const r = await fetch(directa, opciones);
+        const r = await fetch(directa, conPlazo(opciones, 6000));
         if (r.ok) return r;
       } catch (e) {
         if (!intermediaria) throw e;
@@ -153,7 +188,7 @@
       if (!intermediaria) throw new Error("proveedor no disponible");
       viaIntermediario = true;
     }
-    const r = await fetch(intermediaria, opciones);
+    const r = await fetch(intermediaria, conPlazo(opciones));
     if (!r.ok) throw new Error(`HTTP ${r.status}`);
     return r;
   }
@@ -161,18 +196,21 @@
   async function posicionesDe(cfg) {
     const rellenar = u => u && u.replace("{lat}", cfg.centro[0]).replace("{lon}", cfg.centro[1])
       .replace("{radio}", Math.min(cfg.radio_nm, cfg.radio_max_nm || Infinity));
-    const r = await pedir(rellenar(cfg.posiciones), rellenar(cfg.posiciones_intermediario), { cache: "no-store" });
+    const r = await pedir(rellenar(cfg.posiciones), intermediario(cfg, rellenar(cfg.posiciones_intermediario)), { cache: "no-store" });
     const json = await r.json();          // un aviso en texto (p. ej. "down for maintenance") no es JSON y falla aquí
     return normalizar(json, Date.now());
   }
 
   // Proveedor principal y, si falla, los de respaldo de vuelos.json (si los hay), en orden. cfg.atribucion_actual dice cuál se usó.
+  let principalCaidoHasta = 0;            // si el principal falla, se deja descansar 2 minutos
   async function posiciones(cfg) {
     try {
+      if (Date.now() < principalCaidoHasta && cfg.respaldos?.length) throw new Error("principal en pausa");
       const av = await posicionesDe(cfg);
       cfg.atribucion_actual = cfg.atribucion;
       return av;
     } catch (e) {
+      if (Date.now() >= principalCaidoHasta) principalCaidoHasta = Date.now() + 120000;
       let error = e;
       for (const r of cfg.respaldos || []) {          // se prueban en orden hasta que uno responda
         try {
@@ -188,14 +226,21 @@
   }
 
   const cacheRutas = {};
-  async function rutas(cfg, aviones) {
+  let rutasEnCurso = null;
+  const rutasConocidas = () => cacheRutas;
+  // Las rutas (origen y destino) se piden aparte y sin bloquear: los aviones se dibujan aunque tarden o fallen
+  function rutas(cfg, aviones) {
+    if (!rutasEnCurso) rutasEnCurso = pedirRutas(cfg, aviones).finally(() => { rutasEnCurso = null; });
+    return rutasEnCurso;
+  }
+  async function pedirRutas(cfg, aviones) {
     if (!cfg.rutas) return cacheRutas;
     const ahora = Date.now();
     const faltan = aviones.filter(a => a.indicativo && !a.en_tierra && !(a.indicativo in cacheRutas && ahora - cacheRutas[a.indicativo]._t < 30 * 60000));
     for (let k = 0; k < faltan.length; k += 100) {
       const lote = faltan.slice(k, k + 100);
       try {
-        const r = await pedir(cfg.rutas, cfg.rutas_intermediario, { method: "POST",
+        const r = await pedir(cfg.rutas, intermediario(cfg, cfg.rutas_intermediario), { method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ planes: lote.map(a => ({ callsign: a.indicativo, lat: a.lat, lng: a.lon })) }) });
         const datos = await r.json();
@@ -206,8 +251,26 @@
     return cacheRutas;
   }
 
+  async function json(url) {
+    try {
+      const r = await fetch(url, { cache: "no-store" });
+      return r.ok ? r.json() : null;
+    } catch {
+      return null;
+    }
+  }
+
+  async function costes(url = "costes.json") {
+    try {
+      const r = await fetch(url, { cache: "no-store" });
+      return r.ok ? r.json() : null;
+    } catch {
+      return null;
+    }
+  }
+
   const api = { distanciaKm, rumbo, nivel, normalizar, leerRuta, destinoProbable, llegadaEstimada, riesgoEnHora,
-                alternativo, analizar, config, posiciones, rutas };
+                alternativo, costeDesvio, analizar, config, posiciones, rutas, rutasConocidas, costes, json };
   global.NovokVuelos = api;
   if (typeof module !== "undefined" && module.exports) module.exports = api;
 })(typeof window !== "undefined" ? window : globalThis);

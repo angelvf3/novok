@@ -11,3 +11,9 @@ import pytest
 def test_logica_de_vuelos():
     r = subprocess.run(["node", str(Path(__file__).with_name("vuelos.test.cjs"))], capture_output=True, text=True)
     assert r.returncode == 0, r.stderr or r.stdout
+
+
+@pytest.mark.skipif(shutil.which("node") is None, reason="Node.js no está instalado")
+def test_intermediario_de_cloudflare():
+    r = subprocess.run(["node", str(Path(__file__).with_name("worker.test.mjs"))], capture_output=True, text=True)
+    assert r.returncode == 0, r.stderr or r.stdout

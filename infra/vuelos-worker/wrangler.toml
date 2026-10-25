@@ -1,0 +1,7 @@
+name = "novok-vuelos"
+main = "worker.js"
+compatibility_date = "2026-10-01"
+
+[vars]
+# Webs que pueden usar el intermediario, separadas por comas
+ORIGENES = "https://angelvf3.github.io,http://localhost:8010"

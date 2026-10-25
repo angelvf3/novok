@@ -110,6 +110,11 @@
   .fila .pct .sin { font-size: 12px; color: var(--tinta-3); font-weight: 500; }
   .barra-vuelos { position: absolute; z-index: 2; left: 12px; top: 12px; background: rgb(255 255 255 / .95); border: 1px solid var(--borde);
     border-radius: 10px; padding: 7px 11px; font-size: 13px; display: flex; gap: 12px; align-items: center; flex-wrap: wrap; max-width: calc(100% - 70px); }
+  .barra-vuelos select { font: 500 13px/1 "Public Sans", sans-serif; border: 1px solid var(--borde); border-radius: 7px; padding: 4px 6px; background: #fff; color: var(--tinta); max-width: 190px; }
+  .operador { display: inline-block; font: 700 10.5px/1 "Public Sans", sans-serif; letter-spacing: .02em; color: var(--azul-noche); background: #e8eef5; border-radius: 4px; padding: 3px 5px; margin-right: 6px; vertical-align: 1px; }
+  .cliente { border-left: 1px solid rgb(255 255 255 / .3); padding-left: 12px; font-size: 13px; }
+  .cliente img { height: 26px; background: #fff; border-radius: 3px; padding: 2px 6px; vertical-align: middle; }
+  .barra-vuelos label.suave { font-weight: 500; }
   .barra-vuelos label { font-weight: 700; display: flex; gap: 6px; align-items: center; cursor: pointer; }
   .leyenda i.avion { width: 14px; height: 14px; clip-path: polygon(50% 0, 62% 38%, 100% 58%, 100% 66%, 62% 56%, 58% 84%, 70% 94%, 70% 100%, 50% 94%, 30% 100%, 30% 94%, 42% 84%, 38% 56%, 0 66%, 0 58%, 38% 38%); border-radius: 0; }
   .pestanas { display: flex; border-bottom: 1px solid var(--borde-suave); }
@@ -128,6 +133,10 @@
   .pop .datos-vuelo { display: grid; grid-template-columns: auto 1fr; gap: 2px 10px; font-size: 13px; margin: 6px 0; }
   .pop .datos-vuelo dt { color: var(--tinta-3); }
   .pop .datos-vuelo dd { margin: 0; font-weight: 600; }
+  .impacto { margin: 0; padding: 10px 16px; font-size: 13px; background: #fff7ec; border-bottom: 1px solid var(--borde-suave); }
+  .impacto:empty { display: none; }
+  .maplibregl-popup-content:has(.coste) { max-height: 340px; overflow: auto; }
+  .pop .coste { border-top: 1px solid var(--borde-suave); margin-top: 8px; padding-top: 6px; }
   .nota-lista { padding: 10px 16px; font-size: 12px; color: var(--tinta-3); }
 
   .pie { border-top: 1px solid var(--borde); background: var(--blanco); color: var(--tinta-2); font-size: 13px; }
@@ -161,7 +170,7 @@
 <body>
 <header class="cabecera">
   <div class="ancho">
-    <div class="logo"><img src="novok-logo.png" alt="NOVOK"><span>Niebla y techo bajo<br>Aeropuertos del norte de España</span></div>
+    <div class="logo"><img src="novok-logo.png" alt="NOVOK"><span>Niebla y techo bajo<br>Aeropuertos del norte de España</span><span id="cliente" class="cliente" hidden></span></div>
     <div class="relojes" aria-label="Hora actual">
       <div><b class="tab" id="reloj-l">--:--:--</b><small>HORA PENINSULAR</small></div>
     </div>
@@ -185,6 +194,8 @@
         <div id="mapa"></div>
         <div class="barra-vuelos">
           <label><input type="checkbox" id="ver-vuelos" checked> Vuelos en directo</label>
+          <select id="aerolinea" aria-label="Aerolínea"><option value="">Todas las aerolíneas</option></select>
+          <label class="suave"><input type="checkbox" id="solo-riesgo"> Solo con riesgo</label>
           <span id="estado-vuelos" class="gris">cargando…</span>
         </div>
         <div class="leyenda" aria-label="Leyenda">
@@ -206,8 +217,9 @@
         <div class="nota-lista">Riesgo: probabilidad de visibilidad &lt; 550 m o techo ≤ 200 ft a +1, +3, +6 o +12 h; se muestra la más alta.</div>
       </div>
       <div id="panel-lleg" role="tabpanel" hidden>
+        <p class="impacto" id="impacto" aria-live="polite"></p>
         <div class="lista" id="llegadas"></div>
-        <div class="nota-lista">Vuelos en el aire hacia aeropuertos de la red, ordenados por riesgo a su llegada: probabilidad de bajo mínimos CAT I en el destino a la hora estimada de aterrizaje. El alternativo es el aeropuerto de la red con mejor previsión cerca del destino (orientativo: cada aerolínea fija los suyos).</div>
+        <div class="nota-lista">Vuelos en el aire hacia aeropuertos de la red, ordenados por riesgo a su llegada: probabilidad de bajo mínimos CAT I en el destino a la hora estimada de aterrizaje. El alternativo es el aeropuerto de la red con mejor previsión cerca del destino (orientativo: cada aerolínea fija los suyos). Coste esperado = probabilidad × coste del desvío, con los costes de costes.json (de ejemplo; cada aerolínea pone los suyos).</div>
       </div>
     </section>
   </div>
@@ -414,7 +426,7 @@ function render(r) {
 
 /* ---------- vuelos en directo (F7) ---------- */
 const V = window.NovokVuelos;
-const vuelos = { cfg: null, aviones: [], analizados: [], t: 0, error: null, seleccionado: null, rastros: {} };
+const vuelos = { cfg: null, aviones: [], analizados: [], t: 0, error: null, seleccionado: null, rastros: {}, filtro: "", aerolineas: {} };
 const COLOR_RIESGO = { alto: "#d83933", moderado: "#c05600", bajo: "#2e8540" };
 const altTxt = a => a.en_tierra ? "en tierra" : a.alt_ft == null ? "—" : a.alt_ft >= 6000 ? "FL" + String(Math.round(a.alt_ft / 100)).padStart(3, "0") : Math.round(a.alt_ft) + " ft";
 
@@ -431,12 +443,19 @@ function capasVuelos() {
   mapa.addImage("avion", iconoAvion(), { sdf: true });
   mapa.addSource("rastro", { type: "geojson", data: { type: "FeatureCollection", features: [] } });
   mapa.addLayer({ id: "rastro", type: "line", source: "rastro", paint: { "line-color": "#0b2545", "line-width": 2, "line-opacity": .6, "line-dasharray": [2, 1] } });
+  // ruta del vuelo elegido: hasta su destino y, si hay riesgo, del destino al alternativo
+  mapa.addSource("ruta-alt", { type: "geojson", data: { type: "FeatureCollection", features: [] } });
+  mapa.addLayer({ id: "ruta-destino", type: "line", source: "ruta-alt", filter: ["==", ["get", "tramo"], "destino"],
+    paint: { "line-color": "#0b2545", "line-width": 2, "line-opacity": .55 } });
+  mapa.addLayer({ id: "ruta-desvio", type: "line", source: "ruta-alt", filter: ["==", ["get", "tramo"], "desvio"],
+    paint: { "line-color": "#c05600", "line-width": 2.5, "line-dasharray": [2, 1.5] } });
   mapa.addSource("aviones", { type: "geojson", data: { type: "FeatureCollection", features: [] } });
   mapa.addLayer({ id: "aviones", type: "symbol", source: "aviones", layout: {
       "icon-image": "avion", "icon-rotate": ["get", "rumbo"], "icon-rotation-alignment": "map", "icon-allow-overlap": true,
       "icon-size": ["interpolate", ["linear"], ["zoom"], 5, ["case", ["get", "red"], .42, .3], 9, ["case", ["get", "red"], .7, .5]],
       "symbol-sort-key": ["get", "orden"] },
-    paint: { "icon-color": ["get", "color"], "icon-halo-color": "#ffffff", "icon-halo-width": 1.2 } });
+    paint: { "icon-color": ["get", "color"], "icon-halo-color": "#ffffff", "icon-halo-width": 1.2,
+      "icon-opacity": ["case", ["get", "atenuado"], .28, 1] } });
   mapa.on("click", "aviones", e => { e.preventDefault(); seleccionarVuelo(e.features[0].properties.hex); });
   mapa.on("mouseenter", "aviones", () => mapa.getCanvas().style.cursor = "pointer");
   mapa.on("mouseleave", "aviones", () => mapa.getCanvas().style.cursor = "");
@@ -452,12 +471,52 @@ function posicionActual(a, ahora) {
 function dibujarVuelos() {
   if (!mapa?.getSource("aviones")) return;
   const ver = document.getElementById("ver-vuelos").checked, ahora = Date.now();
-  mapa.getSource("aviones").setData({ type: "FeatureCollection", features: !ver ? [] : vuelos.analizados.map(a => ({
+  const visibles = vuelos.soloRiesgo ? vuelos.analizados.filter(a => a.riesgo && a.riesgo.nivel !== "bajo") : vuelos.analizados;
+  mapa.getSource("aviones").setData({ type: "FeatureCollection", features: !ver ? [] : visibles.map(a => ({
     type: "Feature", geometry: { type: "Point", coordinates: posicionActual(a, ahora) },
     properties: { hex: a.hex, rumbo: a.rumbo ?? 0, red: !!a.destino, orden: a.riesgo ? a.riesgo.p : a.destino ? -1 : -2,
+      atenuado: !!vuelos.filtro && a.operador !== vuelos.filtro,
       color: a.riesgo ? COLOR_RIESGO[a.riesgo.nivel] : a.destino ? "#0b2545" : "#5b6b7c" } })) });
+  const sel = vuelos.seleccionado && vuelos.analizados.find(x => x.hex === vuelos.seleccionado);
+  const aero = icao => datos?.aeropuertos.find(x => x.icao === icao);
+  const tramos = [];
+  if (ver && sel?.llegada && aero(sel.destino)) {
+    const d = aero(sel.destino);
+    tramos.push({ type: "Feature", properties: { tramo: "destino" }, geometry: { type: "LineString", coordinates: [posicionActual(sel, ahora), [d.lon, d.lat]] } });
+    const al = sel.alternativo && aero(sel.alternativo.icao);
+    if (al) tramos.push({ type: "Feature", properties: { tramo: "desvio" }, geometry: { type: "LineString", coordinates: [[d.lon, d.lat], [al.lon, al.lat]] } });
+  }
+  mapa.getSource("ruta-alt")?.setData({ type: "FeatureCollection", features: tramos });
   const r = vuelos.seleccionado && vuelos.rastros[vuelos.seleccionado];
   mapa.getSource("rastro").setData({ type: "FeatureCollection", features: r && r.length > 1 && ver ? [{ type: "Feature", geometry: { type: "LineString", coordinates: r } }] : [] });
+}
+
+const eur = x => Math.round(x / 10) * 10 >= 1000 ? (Math.round(x / 100) * 100).toLocaleString("es-ES") + " €" : Math.round(x / 10) * 10 + " €";
+
+// Coste de un desvío y coste esperado (probabilidad × coste). Costes de costes.json: cada aerolínea pone los suyos.
+function textoCoste(a) {
+  const c = a.coste, d = c.desglose;
+  return `<div class="coste"><p><b>Si hay que desviar a ${esc(a.alternativo.icao)}:</b> +${Math.round(c.km_extra)} km, +${Math.round(c.min_extra)} min
+      (con ${vuelos.costes.espera_min} min de espera), unos <b>${eur(c.total)}</b></p>
+    <dl class="datos-vuelo"><dt>Combustible</dt><dd>${eur(d.combustible)}</dd><dt>Tripulación</dt><dd>${eur(d.tripulacion)}</dd>
+      <dt>Handling y tasas</dt><dd>${eur(d.handling)}</dd><dt>Autobús</dt><dd>${eur(d.traslado)} (${c.pasajeros} pasajeros)</dd>
+      <dt>Atención</dt><dd>${eur(d.atencion)}</dd></dl>
+    <p>Coste esperado: <b>${eur(c.esperado)}</b> <span class="gris">(${pct(a.riesgo.p)} × ${eur(c.total)})</span></p>
+    <p class="gris" style="font-size:11.5px">Estimación con los costes de costes.json${c.tipo_supuesto ? "; tipo de avión no reconocido, se supone uno medio" : ""}.</p></div>`;
+}
+
+const nombreOperador = a => (a.operador && vuelos.aerolineas[a.operador]) || null;
+const chapaOperador = a => a.operador ? `<span class="operador" title="${esc(nombreOperador(a) || "")}">${esc(a.operador)}</span>` : "";
+
+// Filtro por aerolínea: las opciones son las aerolíneas que hay ahora en el aire, de más a menos vuelos
+function pintarFiltro() {
+  const sel = document.getElementById("aerolinea"), cuenta = {};
+  for (const a of vuelos.analizados) if (a.operador) cuenta[a.operador] = (cuenta[a.operador] || 0) + 1;
+  if (vuelos.filtro && !cuenta[vuelos.filtro]) cuenta[vuelos.filtro] = 0;
+  const codigos = Object.keys(cuenta).sort((x, y) => cuenta[y] - cuenta[x] || x.localeCompare(y));
+  const html = `<option value="">Todas las aerolíneas</option>` + codigos.map(c =>
+    `<option value="${esc(c)}"${c === vuelos.filtro ? " selected" : ""}>${esc(vuelos.aerolineas[c] || c)} (${cuenta[c]})</option>`).join("");
+  if (sel.dataset.html !== html) { sel.innerHTML = html; sel.dataset.html = html; }
 }
 
 function textoVuelo(a) {
@@ -468,9 +527,11 @@ function textoVuelo(a) {
     riesgo = `<p>Llegada estimada a ${esc(dest?.nombre || a.destino)}: <b>${fmtZ(new Date(a.llegada.ms).toISOString())}</b> (en ${Math.round(a.llegada.min)} min, ${Math.round(a.llegada.km)} km)</p>`;
     if (a.riesgo) riesgo += `<p><b style="color:${COLOR_RIESGO[a.riesgo.nivel]}">${pct(a.riesgo.p)} ${NIVEL[a.riesgo.nivel].toLowerCase()}</b> de bajo mínimos CAT I en destino a esa hora</p>`;
     if (a.alternativo) riesgo += `<p>Alternativo con mejor previsión: <b>${esc(a.alternativo.icao)} ${esc(a.alternativo.nombre)}</b> (${pct(a.alternativo.p)}, a ${Math.round(a.alternativo.km)} km)</p>`;
+    if (a.coste) riesgo += textoCoste(a);
   }
   const emerg = { "7500": "interferencia ilícita", "7600": "fallo de comunicaciones", "7700": "emergencia" }[a.squawk];
   return `<div class="pop"><h3>${esc(a.indicativo || a.hex.toUpperCase())}${a.tipo ? ` <span class="gris" style="font-weight:500">${esc(a.tipo)}</span>` : ""}</h3>
+    ${nombreOperador(a) ? `<p style="margin:-4px 0 4px;font-weight:600">${esc(nombreOperador(a))}</p>` : ""}
     ${emerg ? `<p style="color:var(--alto);font-weight:800">Código ${a.squawk}: ${emerg}</p>` : ""}
     <p class="gris">${esc(ruta)}</p>
     <dl class="datos-vuelo"><dt>Altitud</dt><dd>${altTxt(a)}${a.vs_fpm ? ` (${a.vs_fpm > 0 ? "sube" : "baja"} ${Math.abs(Math.round(a.vs_fpm / 100) * 100)} ft/min)` : ""}</dd>
@@ -492,14 +553,19 @@ function seleccionarVuelo(hex, volar) {
 }
 
 function pintarLlegadas() {
-  const lleg = vuelos.analizados.filter(a => a.llegada).sort((x, y) => (y.riesgo?.p ?? -1) - (x.riesgo?.p ?? -1) || x.llegada.ms - y.llegada.ms);
+  const lleg = vuelos.analizados.filter(a => a.llegada && (!vuelos.filtro || a.operador === vuelos.filtro)
+    && (!vuelos.soloRiesgo || (a.riesgo && a.riesgo.nivel !== "bajo"))).sort((x, y) => (y.riesgo?.p ?? -1) - (x.riesgo?.p ?? -1) || x.llegada.ms - y.llegada.ms);
   const conRiesgo = lleg.filter(a => a.riesgo && a.riesgo.nivel !== "bajo").length;
   document.getElementById("n-llegadas").textContent = conRiesgo || "";
+  const total = lleg.reduce((t, a) => t + (a.coste?.esperado || 0), 0);
+  document.getElementById("impacto").innerHTML = total > 0
+    ? `Coste esperado de los desvíos posibles ahora${vuelos.filtro ? " para " + esc(vuelos.aerolineas[vuelos.filtro] || vuelos.filtro) : ""}: <b>${eur(total)}</b> en ${((n) => n + (n === 1 ? " vuelo" : " vuelos"))(lleg.filter(a => a.coste).length)}`
+    : lleg.length ? "Ningún vuelo en el aire con riesgo de desvío ahora." : "";
   document.getElementById("llegadas").innerHTML = lleg.length ? lleg.map(a => `
     <div class="vuelo" data-hex="${esc(a.hex)}" role="button" tabindex="0">
-      <div><b>${esc(a.indicativo || a.hex.toUpperCase())}</b> <span class="ruta">${a.ruta ? esc(a.ruta.origen) + " → " : "→ "}${esc(a.destino)} · llega ${fmtZ(new Date(a.llegada.ms).toISOString())}</span></div>
+      <div>${chapaOperador(a)}<b>${esc(a.indicativo || a.hex.toUpperCase())}</b> <span class="ruta">${a.ruta ? esc(a.ruta.origen) + " → " : "→ "}${esc(a.destino)} · llega ${fmtZ(new Date(a.llegada.ms).toISOString())}</span></div>
       <div class="pct">${a.riesgo ? `<b class="tab">${pct(a.riesgo.p)}</b><span style="color:${COLOR_RIESGO[a.riesgo.nivel]}">${NIVEL[a.riesgo.nivel]}</span>` : `<span class="gris">sin previsión</span>`}</div>
-      ${a.alternativo ? `<div class="alt">Alternativo con mejor previsión: ${esc(a.alternativo.icao)} ${esc(a.alternativo.nombre)} (${pct(a.alternativo.p)})</div>` : ""}
+      ${a.alternativo ? `<div class="alt">Alternativo con mejor previsión: ${esc(a.alternativo.icao)} ${esc(a.alternativo.nombre)} (${pct(a.alternativo.p)})${a.coste ? ` · coste esperado <b>${eur(a.coste.esperado)}</b>` : ""}</div>` : ""}
     </div>`).join("") : `<p style="padding:16px" class="gris">${vuelos.error ? "Sin datos de vuelos ahora." : "Ningún vuelo en el aire hacia la red en este momento."}</p>`;
   document.querySelectorAll(".vuelo").forEach(el => {
     const ir = () => seleccionarVuelo(el.dataset.hex, true);
@@ -508,21 +574,26 @@ function pintarLlegadas() {
 }
 
 async function actualizarVuelos() {
-  if (!vuelos.cfg || !datos || document.hidden) return;
+  if (!vuelos.cfg || !datos || document.hidden || vuelos.ocupado) return;
+  vuelos.ocupado = true;                    // si el proveedor va lento, no se acumulan peticiones
+  const analizar = () => { vuelos.analizados = V.analizar(vuelos.aviones, V.rutasConocidas(), datos.aeropuertos.filter(a => a.lat != null), Date.now(), vuelos.costes); };
   try {
     const aviones = await V.posiciones(vuelos.cfg);
-    const rutas = await V.rutas(vuelos.cfg, aviones);
     vuelos.aviones = aviones; vuelos.error = null; vuelos.t = Date.now();
-    vuelos.analizados = V.analizar(aviones, rutas, datos.aeropuertos.filter(a => a.lat != null), Date.now());
+    analizar();
     for (const a of aviones) { (vuelos.rastros[a.hex] ||= []).push([a.lon, a.lat]); if (vuelos.rastros[a.hex].length > 60) vuelos.rastros[a.hex].shift(); }
+    // las rutas llegan después; cuando llegan, se vuelve a calcular el destino y el riesgo de cada vuelo
+    V.rutas(vuelos.cfg, aviones).then(() => { analizar(); pintarLlegadas(); dibujarVuelos(); }).catch(() => {});
   } catch (e) {
     vuelos.error = e;
+  } finally {
+    vuelos.ocupado = false;
   }
   const n = vuelos.analizados.length, hacia = vuelos.analizados.filter(a => a.llegada).length;
   document.getElementById("estado-vuelos").innerHTML = vuelos.error && !n
     ? `<span style="color:var(--alto)">No se pudieron cargar los vuelos</span> <span class="gris">(servicio no disponible o bloqueado por la red)</span>`
     : `${n} aviones · ${hacia} hacia la red · <span class="gris">${esc(vuelos.cfg.atribucion_actual || vuelos.cfg.atribucion)}</span>`;
-  pintarLlegadas(); dibujarVuelos();
+  pintarFiltro(); pintarLlegadas(); dibujarVuelos();
   if (vuelos.seleccionado && popup?.isOpen()) {
     const a = vuelos.analizados.find(x => x.hex === vuelos.seleccionado);
     if (a) popup.setHTML(textoVuelo(a));
@@ -531,6 +602,27 @@ async function actualizarVuelos() {
 
 async function iniciarVuelos() {
   try { vuelos.cfg = await V.config(); } catch { document.getElementById("estado-vuelos").textContent = "sin configuración de vuelos"; return; }
+  vuelos.costes = await V.costes();
+  vuelos.aerolineas = (await V.json("aerolineas.json"))?.aerolineas || {};
+  const cliente = await V.json("cliente.json");
+  let guardado = null; try { guardado = localStorage.getItem("novok-aerolinea"); } catch { /* sin almacenamiento */ }
+  vuelos.filtro = new URLSearchParams(location.search).get("aerolinea")?.toUpperCase() || cliente?.aerolinea || guardado || "";
+  if (cliente?.nombre) {
+    const c = document.getElementById("cliente");
+    c.innerHTML = cliente.logo ? `<img src="${esc(cliente.logo)}" alt="${esc(cliente.nombre)}">` : `Para <b>${esc(cliente.nombre)}</b>`;
+    c.hidden = false;
+  }
+  document.getElementById("solo-riesgo").addEventListener("change", e => {
+    vuelos.soloRiesgo = e.target.checked; pintarLlegadas(); dibujarVuelos();
+  });
+  document.getElementById("aerolinea").addEventListener("change", e => {
+    vuelos.filtro = e.target.value;
+    try { localStorage.setItem("novok-aerolinea", vuelos.filtro); } catch { /* sin almacenamiento */ }
+    const u = new URL(location.href);
+    vuelos.filtro ? u.searchParams.set("aerolinea", vuelos.filtro) : u.searchParams.delete("aerolinea");
+    history.replaceState(null, "", u);          // el enlace sirve para enviar la vista de una aerolínea
+    pintarFiltro(); pintarLlegadas(); dibujarVuelos();
+  });
   const arrancar = () => { capasVuelos(); actualizarVuelos(); setInterval(actualizarVuelos, (vuelos.cfg.refresco_s || 10) * 1000); setInterval(dibujarVuelos, 1000); };
   mapa.loaded() ? arrancar() : mapa.once("load", arrancar);
   document.getElementById("ver-vuelos").addEventListener("change", dibujarVuelos);

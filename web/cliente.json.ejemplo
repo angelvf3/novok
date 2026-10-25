@@ -1,0 +1,6 @@
+{
+  "comentario": "Renombra a cliente.json para personalizar la web para un cliente. 'aerolinea' filtra por su flota al abrir la página. 'logo' solo con el permiso del cliente (es su marca): pon el fichero en web/cliente/.",
+  "nombre": "Volotea",
+  "aerolinea": "VOE",
+  "logo": null
+}

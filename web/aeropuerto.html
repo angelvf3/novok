@@ -276,7 +276,7 @@
   <section class="caja llegadas" aria-labelledby="t-lleg" id="caja-llegadas" hidden>
     <h2 id="t-lleg">Llegadas en el aire <span id="estado-lleg">cargando vuelos…</span></h2>
     <div id="lista-lleg"></div>
-    <p class="nota-lleg">Vuelos con destino a este aeropuerto que ya están en el aire. El riesgo es la probabilidad de bajo mínimos CAT I aquí a su hora estimada de llegada; el alternativo, el aeropuerto de la red con mejor previsión cerca (orientativo: cada aerolínea fija los suyos).</p>
+    <p class="nota-lleg">Vuelos con destino a este aeropuerto que ya están en el aire. El riesgo es la probabilidad de bajo mínimos CAT I aquí a su hora estimada de llegada; el alternativo, el aeropuerto de la red con mejor previsión cerca (orientativo: cada aerolínea fija los suyos). Coste esperado: probabilidad × coste de desviar al alternativo (combustible, tripulación, handling, autobús y atención a los pasajeros), con los costes de ejemplo de costes.json.</p>
   </section>
 </main>
 
@@ -766,6 +766,43 @@ async function iniciarVisor() {
   const [orto, ortoDetalle] = conOrto ? await Promise.all([cargarTextura(`terreno/${AERO.icao}_orto.jpg`),
     cargarTextura(`terreno/${AERO.icao}_orto_detalle.jpg`)]) : [null, null];
   if (orto) { escena.children.filter(o => o.isLight).forEach(l => l.intensity *= .72); }
+  // La ortofoto PNOA no cubre el mar abierto: esas zonas llegan grises. Se pintan del color del mar de la propia foto.
+  const altBruta = (x, z) => {
+    const a = Math.round((x + A) / (2 * A) * (N - 1)), b = Math.round((z + A) / (2 * A) * (N - 1));
+    return relieve.alt[Math.max(0, Math.min(N - 1, b)) * N + Math.max(0, Math.min(N - 1, a))];
+  };
+  const pintarMar = (tex, semi) => {
+    if (!tex || !relieve) return;
+    const img = tex.image, w = img.width, h = img.height;
+    const cv = document.createElement("canvas"); cv.width = w; cv.height = h;
+    const g = cv.getContext("2d", { willReadFrequently: true }); g.drawImage(img, 0, 0);
+    const d = g.getImageData(0, 0, w, h), px = d.data;
+    const gris = k => { const r = px[k], gg = px[k + 1], b = px[k + 2]; return Math.max(r, gg, b) - Math.min(r, gg, b) < 14 && r > 150; };
+    const mar = new Uint8Array(w * h), suma = [0, 0, 0]; let n = 0;
+    for (let f = 0; f < h; f++) for (let c = 0; c < w; c++) {
+      const i = f * w + c, k = i * 4;
+      if (altBruta(-semi + (c + .5) / w * 2 * semi, -semi + (f + .5) / h * 2 * semi) > .5) continue;
+      if (gris(k)) mar[i] = 1; else if (px[k + 2] > px[k]) { suma[0] += px[k]; suma[1] += px[k + 1]; suma[2] += px[k + 2]; n++; }
+    }
+    const color = n > 500 ? suma.map(v => v / n) : [45, 84, 104];
+    for (let i = 0; i < w * h; i++) if (mar[i]) { px[i * 4] = color[0]; px[i * 4 + 1] = color[1]; px[i * 4 + 2] = color[2]; }
+    g.putImageData(d, 0, 0);
+    tex.image = cv; tex.needsUpdate = true;
+  };
+  pintarMar(orto, A);
+  pintarMar(ortoDetalle, relieve?.meta?.detalle_m || 3000);
+  // Bordes: en vez de acabar en un corte recto, el terreno se funde con el cielo en círculo
+  const COLOR_BORDE = escena.background;     // el mismo objeto: si la niebla cambia el cielo, el borde la sigue
+  const bordeSuave = material => {
+    material.onBeforeCompile = sh => {
+      sh.uniforms.uBorde = { value: COLOR_BORDE }; sh.uniforms.uRadio = { value: A };
+      sh.vertexShader = "varying vec3 vMundo;\n" + sh.vertexShader.replace("#include <begin_vertex>",
+        "#include <begin_vertex>\nvMundo = (modelMatrix * vec4(transformed, 1.0)).xyz;");
+      sh.fragmentShader = "uniform vec3 uBorde; uniform float uRadio; varying vec3 vMundo;\n" + sh.fragmentShader.replace("#include <dithering_fragment>",
+        "float rBorde = length(vMundo.xz) / uRadio;\ngl_FragColor.rgb = mix(gl_FragColor.rgb, linearToOutputTexel(vec4(uBorde, 1.0)).rgb, smoothstep(.72, .97, rBorde));\n#include <dithering_fragment>");
+    };
+    return material;
+  };
 
   // Explanada del aeropuerto: el relieve se aplana alrededor de cada pista (a su altura media en el relieve)
   const segmentos = paresPista((AERO.pistas || []).filter(p => p.lat != null)).filter(par => par.length === 2).map(([a, b]) => {
@@ -788,7 +825,7 @@ async function iniciarVisor() {
   for (let k = 0; k < pos.count && relieve; k++) pos.setY(k, aplanar(pos.getX(k), pos.getZ(k), pos.getY(k)));
   geo.setAttribute("color", new THREE.BufferAttribute(colores, 3));
   geo.computeVertexNormals();
-  escena.add(new THREE.Mesh(geo, orto ? new THREE.MeshLambertMaterial({ map: orto }) : new THREE.MeshLambertMaterial({ vertexColors: true })));
+  escena.add(new THREE.Mesh(geo, bordeSuave(orto ? new THREE.MeshLambertMaterial({ map: orto }) : new THREE.MeshLambertMaterial({ vertexColors: true }))));
   if (ortoDetalle) {                          // parche de más resolución alrededor del aeropuerto
     const D = relieve.meta.detalle_m || 3000, segs = 150;
     const det = new THREE.PlaneGeometry(2 * D, 2 * D, segs, segs); det.rotateX(-Math.PI / 2);
@@ -825,7 +862,7 @@ async function iniciarVisor() {
   // Niebla: discos horizontales y translúcidos que siguen el terreno y se mueven con el viento
   const texturas = [texturaNiebla(THREE), texturaNiebla(THREE), texturaNiebla(THREE)];
   const plano = new THREE.PlaneGeometry(1, 1); plano.rotateX(-Math.PI / 2);
-  const R = A * .92, discos = Array.from({ length: 1400 }, () => {
+  const R = A * .7, discos = Array.from({ length: 1400 }, () => {
     const m = new THREE.Mesh(plano, new THREE.MeshBasicMaterial({ map: texturas[Math.floor(Math.random() * 3)], transparent: true,
       depthWrite: false, opacity: 0, color: 0xf4f6f8, fog: false }));
     const s = 600 + Math.random() * 1400;
@@ -838,7 +875,7 @@ async function iniciarVisor() {
 
   // Cámara: controles de órbita y transiciones suaves entre vistas
   const controles = new OrbitControls(camara, renderer.domElement);
-  controles.enableDamping = true; controles.maxPolarAngle = Math.PI * .49; controles.minDistance = 300; controles.maxDistance = 30000;
+  controles.enableDamping = true; controles.maxPolarAngle = Math.PI * .49; controles.minDistance = 300; controles.maxDistance = A * 1.8;
   // Que ninguna vista quede tapada por el relieve: la cámara pasa por encima de lo que haya delante
   for (const v of Object.values(VISTAS)) {
     let maximo = 0;
@@ -973,6 +1010,7 @@ function cargar() {
     });
 }
 /* ---------- llegadas en el aire ---------- */
+const eur = x => Math.round(x / 10) * 10 >= 1000 ? (Math.round(x / 100) * 100).toLocaleString("es-ES") + " €" : Math.round(x / 10) * 10 + " €";
 const lleg = { cfg: null, red: null, temporizador: null };
 async function llegadas() {
   const V = window.NovokVuelos, caja = document.getElementById("caja-llegadas"), estado = document.getElementById("estado-lleg");
@@ -982,6 +1020,8 @@ async function llegadas() {
       lleg.cfg = await V.config();
       caja.hidden = false;
     }
+    if (lleg.costes === undefined) lleg.costes = await V.costes();
+    if (!lleg.aerolineas) lleg.aerolineas = (await V.json("aerolineas.json"))?.aerolineas || {};
     if (!lleg.red) lleg.red = await fetch("datos/red.json", { cache: "no-store" }).then(r => r.ok ? r.json() : null).catch(() => null);
     const a = ultimo.aeropuerto || {};
     // la propia previsión del aeropuerto (más fina que la de red.json) y la de la red para los alternativos
@@ -991,19 +1031,21 @@ async function llegadas() {
     const otros = (lleg.red?.aeropuertos || []).filter(x => x.icao !== propia.icao);
     const cfg = { ...lleg.cfg, centro: [a.lat, a.lon], radio_nm: Math.min(lleg.cfg.radio_nm || 250, 200) };
     const aviones = await V.posiciones(cfg);
-    const rutas = await V.rutas(cfg, aviones);
+    V.rutas(cfg, aviones).catch(() => {});   // las rutas se piden aparte; se usan en cuanto llegan
+    const rutas = V.rutasConocidas();
     const ahora = Date.now();
-    const vuelos = V.analizar(aviones, rutas, [propia, ...otros], ahora)
+    const vuelos = V.analizar(aviones, rutas, [propia, ...otros], ahora, lleg.costes)
       .filter(v => v.destino === propia.icao && v.llegada).sort((x, y) => x.llegada.ms - y.llegada.ms);
     estado.textContent = `${vuelos.length} ${vuelos.length === 1 ? "vuelo" : "vuelos"} · ${cfg.atribucion_actual || lleg.cfg.atribucion || ""}`;
     document.getElementById("lista-lleg").innerHTML = vuelos.length ? `<table>
-      <thead><tr><th>Vuelo</th><th class="op">Origen</th><th>Llega</th><th>Riesgo a su llegada</th><th class="op">Alternativo</th></tr></thead>
+      <thead><tr><th>Vuelo</th><th class="op">Origen</th><th>Llega</th><th>Riesgo a su llegada</th><th class="op">Alternativo</th><th>Coste esperado</th></tr></thead>
       <tbody>${vuelos.map(v => `<tr>
-        <td><b>${esc(v.indicativo || v.hex)}</b> <span class="gris">${esc(v.tipo || "")}</span></td>
+        <td><b>${esc(v.indicativo || v.hex)}</b> <span class="gris">${esc(v.tipo || "")}</span>${v.operador && lleg.aerolineas[v.operador] ? `<br><span class="gris" style="font-size:12.5px">${esc(lleg.aerolineas[v.operador])}</span>` : ""}</td>
         <td class="op">${esc(v.ruta?.origen || (v.destino_inferido ? "en aproximación" : "—"))}</td>
         <td class="num">${fmtZ(new Date(v.llegada.ms).toISOString())} <span class="gris">(${Math.round(v.llegada.min)} min)</span></td>
         <td>${v.riesgo ? `<span class="p" style="color:${COLOR_NIVEL[v.riesgo.nivel]}">${pct(v.riesgo.p)}</span> <span class="gris">${NIVEL[v.riesgo.nivel]}</span>` : '<span class="gris">sin previsión</span>'}</td>
         <td class="op">${v.alternativo ? `${esc(v.alternativo.icao)} ${esc(v.alternativo.nombre || "")} <span class="gris">(${pct(v.alternativo.p)})</span>` : '<span class="gris">—</span>'}</td>
+        <td class="num">${v.coste ? `<b>${eur(v.coste.esperado)}</b> <span class="gris">de ${eur(v.coste.total)}</span>` : '<span class="gris">—</span>'}</td>
       </tr>`).join("")}</tbody></table>`
       : `<p class="vacio">Ahora no hay vuelos en el aire con destino a ${esc(propia.icao)} dentro del alcance.</p>`;
   } catch (e) {

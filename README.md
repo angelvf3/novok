@@ -40,7 +40,9 @@ y un marcador público contra el TAF.
 | F7 | Vuelos en el aire con riesgo a su llegada y alternativo; mapa con relieve y ortofoto en 3D | ✅ |
 | F7b | Histórico de desvíos reales para validar el riesgo por vuelo | ⏳ |
 | F8 | Verificación independiente (temporada 2026 no usada) frente al TAF, y valor económico por llegada | ✅ código · 🔄 ejecutar con datos de 2026 |
-| F9 | Piloto: alertas configurables y API para el centro de operaciones de un cliente | ⏳ |
+| F9 | Impacto operativo: coste estimado de desviar cada vuelo, coste esperado y ruta al alternativo en el mapa | ✅ |
+| F10 | Alertas por Telegram o correo, con los vuelos y el coste por aerolínea; filtros por aerolínea y riesgo | ✅ |
+| F11 | Piloto: intermediario de vuelos para la web publicada, documento del proyecto y kit para el primer cliente | 🔄 |
 
 ## Primeros resultados (METAR 2017–2025)
 
@@ -278,6 +280,55 @@ NWP (Open-Meteo) ────────┘        │                         
   del PNOA del Instituto Geográfico Nacional (CC BY 4.0, uso comercial permitido citando la fuente), descargada
   una vez y servida desde el sitio. Se descartó Google Earth (Photorealistic 3D Tiles): es de pago a partir de
   1.000 cargas al mes, exige cuenta de facturación y prohíbe guardar las teselas.
+
+## Piloto (F11)
+
+- **Vuelos en la web publicada**: GitHub Pages solo sirve ficheros, así que los vuelos necesitan un intermediario como
+  el de `python -m novok.servidor`. `infra/vuelos-worker/` lo trae listo para Cloudflare Workers (gratis); su dirección
+  va en `"intermediario_publico"` de `web/vuelos.json`. Instrucciones en `infra/vuelos-worker/LEEME.md`.
+- **Documento del proyecto** (`docs/NOVOK_documento.pdf`): qué es, cómo funciona, resultados, límites y plan.
+
+## Alertas (F10)
+
+NOVOK avisa sin tener la web abierta. Después de cada briefing revisa la red y manda un único mensaje con lo que
+haya cambiado: **aviso** (un aeropuerto supera el 30 % de bajo mínimos en 12 h), **empeora**, **sigue** (recordatorio
+cada 3 h) y **fin**. Con `--vuelos` añade los vuelos en el aire hacia ese aeropuerto, su riesgo a la llegada y el coste
+esperado de los desvíos; con `"aerolinea": "VOE"` en `config/alertas.json`, solo los de esa aerolínea.
+
+```
+Aviso de bajo mínimos en LEAS Asturias: 72 % hacia las 07:00 (hora peninsular).
+Ahora IFR; despeje previsto hacia las 11:00.
+Vuelos de Volotea en el aire hacia LEAS: 1 — VOE2104 20:00 (70 %). Coste esperado de desvíos: 7.300 €.
+```
+
+- **Telegram** (lo más rápido): crea un bot con @BotFather, escríbele algo y guarda su token y tu número de chat en
+  las variables `NOVOK_TELEGRAM_TOKEN` y `NOVOK_TELEGRAM_CHAT`.
+- **Correo**: `NOVOK_SMTP_SERVIDOR`, `NOVOK_SMTP_PUERTO`, `NOVOK_SMTP_USUARIO`, `NOVOK_SMTP_CLAVE`, `NOVOK_CORREO_PARA`.
+- En GitHub, las mismas variables como *secrets* del repositorio: el flujo de publicación avisa cada 30 min.
+- En tu ordenador: `python -m novok.alertas --probar` y `python -m novok.alertas --vigilar --vuelos`.
+
+## Impacto operativo (F9)
+
+Para cada vuelo en el aire hacia la red con riesgo en su destino, NOVOK estima **lo que costaría desviarlo** al
+alternativo con mejor previsión y el **coste esperado** (probabilidad de bajo mínimos × coste del desvío):
+
+- Combustible y tripulación del tramo extra (espera, desvío y reposicionar el avión vacío), según el tipo de avión.
+- Handling y tasas en el alternativo, autobús hasta el destino y atención a los pasajeros mientras esperan.
+- Sin compensaciones: la niebla es una circunstancia extraordinaria (Reglamento 261/2004), sí obliga a asistencia.
+
+Los parámetros están en `web/costes.json` (consumo y plazas por tipo, precio del combustible, costes por pasajero...).
+Los del repositorio son de ejemplo: cada aerolínea pone los suyos. En el mapa, al pulsar un avión se dibuja su ruta
+hasta el destino y, en naranja discontinuo, el desvío al alternativo; la pestaña "Llegadas en el aire" suma el coste
+esperado de todos los vuelos en riesgo.
+
+### Vista por aerolínea
+
+- Cada vuelo muestra el nombre de su aerolínea (`web/aerolineas.json`, a partir del indicativo OACI). No se usan
+  logotipos: son marcas registradas de cada aerolínea.
+- El selector "Todas las aerolíneas" filtra la lista, el coste esperado y resalta sus aviones en el mapa. La elección
+  queda en el enlace (`index.html?aerolinea=VOE`), así se puede enviar la vista de una aerolínea.
+- Para un cliente, copia `web/cliente.json.ejemplo` a `web/cliente.json`: la web se abre filtrada por su flota y con
+  su nombre en la cabecera. Su logotipo, solo con su permiso, en `web/cliente/`.
 
 ## Verificación independiente y valor económico (F8)
 
