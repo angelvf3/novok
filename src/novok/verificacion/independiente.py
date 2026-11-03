@@ -285,6 +285,14 @@ def guardar(res: dict) -> dict:
     res["metricas"].round(4).to_csv(d / "independiente_resultados.csv", index=False)
     res["episodios"].to_csv(d / "independiente_episodios.csv", index=False)
     res["valor"].round(4).to_csv(d / "independiente_valor.csv", index=False)
+    # predicción hora a hora de la temporada de prueba: la usa F7b para ver si se avisó de cada desvío real
+    if res.get("series"):
+        partes = []
+        for (suceso, L), s in res["series"].items():
+            x = s[["y", "p_novok", "u_novok", "persistencia"]].copy()
+            x["suceso"], x["horizonte_h"], x["t"] = suceso, L, s.index
+            partes.append(x.reset_index(drop=True))
+        pd.concat(partes, ignore_index=True).to_parquet(d / "independiente_series.parquet", index=False)
     ep = resumen_episodios(res["episodios"])
     ep.round(3).to_csv(d / "independiente_episodios_resumen.csv", index=False)
     m = res["metricas"]

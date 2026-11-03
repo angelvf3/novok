@@ -5,8 +5,9 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>NOVOK · Red del norte</title>
 <meta name="description" content="Niebla y techo bajo en los aeropuertos del norte de España: situación actual y riesgo de bajo mínimos en las próximas 12 horas. Herramienta de apoyo a la planificación de operaciones.">
-<meta name="theme-color" content="#0b2545">
+<meta name="theme-color" content="#0b1116">
 <link rel="icon" href="novok-logo.png">
+<link rel="apple-touch-icon" href="marca/novok-icono-180.png">
 <link rel="stylesheet" href="vendor/fuentes.css">
 <link rel="stylesheet" href="vendor/maplibre-gl.css">
 <script src="vendor/maplibre-gl.js"></script>
@@ -161,35 +162,29 @@
     .modo { text-align: left; width: 100%; }
     .mapa-caja { height: 420px; }
     .leyenda div:nth-child(n+2) { display: none; }
-    /* en el móvil los aeropuertos están muy juntos: puntos de color; el detalle, al pulsar */
-    .marcador .chapa { font-size: 0; padding: 0; width: 18px; height: 18px; border-radius: 50%; }
-    .marcador .riesgo { display: none; }
   }
 </style>
+<link rel="stylesheet" href="nordico.css">
 </head>
 <body>
 <header class="cabecera">
   <div class="ancho">
-    <div class="logo"><img src="novok-logo.png" alt="NOVOK"><span>Niebla y techo bajo<br>Aeropuertos del norte de España</span><span id="cliente" class="cliente" hidden></span></div>
+    <div class="logo"><a class="marca" href="./"><img src="marca/novok-logo-oscuro-72.png" alt="NOVOK" width="153" height="34"></a><span>Niebla y techo bajo<br>Aeropuertos del norte de España</span><span id="cliente" class="cliente" hidden></span></div>
     <div class="relojes" aria-label="Hora actual">
       <div><b class="tab" id="reloj-l">--:--:--</b><small>HORA PENINSULAR</small></div>
     </div>
   </div>
 </header>
 
-<section class="franja">
-  <div class="ancho">
-    <h1>Red del norte<small id="subtitulo">Cargando…</small></h1>
-    <div class="recuento" id="recuento"></div>
-    <div class="modo" id="modo"></div>
-  </div>
-</section>
-<div id="banda"></div>
-
-<main class="ancho">
-  <div class="rejilla">
-    <section class="caja" aria-labelledby="t-mapa">
-      <h2 id="t-mapa">Situación ahora, riesgo en 12 h y vuelos en el aire <span>pulsa un aeropuerto o un avión</span></h2>
+<section class="franja b-hero" id="franja">
+  <div class="ancho b-hero-rejilla">
+    <div class="b-hero-texto">
+      <h1><span id="titular">Red del norte</span><small id="subtitulo">Cargando…</small></h1>
+      <ul class="b-avisos" id="avisos" aria-label="Aeropuertos con aviso"></ul>
+      <div class="b-hero-pie"><div class="recuento" id="recuento"></div><div class="modo" id="modo"></div></div>
+    </div>
+    <section class="b-mapa" aria-labelledby="t-mapa">
+      <h2 id="t-mapa" class="solo-lector">Mapa: situación ahora, riesgo en 12 h y vuelos en el aire</h2>
       <div class="mapa-caja">
         <div id="mapa"></div>
         <div class="barra-vuelos">
@@ -198,32 +193,36 @@
           <label class="suave"><input type="checkbox" id="solo-riesgo"> Solo con riesgo</label>
           <span id="estado-vuelos" class="gris">cargando…</span>
         </div>
-        <div class="leyenda" aria-label="Leyenda">
+        <details class="leyenda" id="leyenda" open><summary>Leyenda</summary>
           <div><span><i style="background:var(--vfr)"></i>VFR</span><span><i style="background:var(--mvfr)"></i>MVFR</span><span><i style="background:var(--ifr)"></i>IFR</span><span><i style="background:var(--lifr)"></i>LIFR</span></div>
           <div>Color: categoría de vuelo ahora (METAR)</div>
           <div>Cifra: probabilidad máxima de bajo mínimos en 12 h</div>
-          <div><span><i class="anillo"></i>supera el umbral de aviso del modelo</span></div>
-          <div class="ley-vuelos"><span><i class="avion" style="background:var(--alto)"></i>vuelo a la red con riesgo alto a su llegada</span><span><i class="avion" style="background:#5b6b7c"></i>otros vuelos</span></div>
-        </div>
-      </div>
-    </section>
-    <section class="caja" aria-labelledby="t-lista">
-      <div class="pestanas" role="tablist">
-        <button type="button" role="tab" id="tab-aero" aria-selected="true" aria-controls="panel-aero">Aeropuertos</button>
-        <button type="button" role="tab" id="tab-lleg" aria-selected="false" aria-controls="panel-lleg">Llegadas en el aire <b id="n-llegadas"></b></button>
-      </div>
-      <div id="panel-aero" role="tabpanel">
-        <div class="lista" id="lista"></div>
-        <div class="nota-lista">Riesgo: probabilidad de visibilidad &lt; 550 m o techo ≤ 200 ft a +1, +3, +6 o +12 h; se muestra la más alta.</div>
-      </div>
-      <div id="panel-lleg" role="tabpanel" hidden>
-        <p class="impacto" id="impacto" aria-live="polite"></p>
-        <div class="lista" id="llegadas"></div>
-        <div class="nota-lista">Vuelos en el aire hacia aeropuertos de la red, ordenados por riesgo a su llegada: probabilidad de bajo mínimos CAT I en el destino a la hora estimada de aterrizaje. El alternativo es el aeropuerto de la red con mejor previsión cerca del destino (orientativo: cada aerolínea fija los suyos). Coste esperado = probabilidad × coste del desvío, con los costes de costes.json (de ejemplo; cada aerolínea pone los suyos).</div>
+          <div><span><i class="anillo" style="border-color:#ff6b5e"></i>supera el umbral de aviso del modelo</span></div>
+          <div class="ley-vuelos"><span><i class="avion" style="background:#ff6b5e"></i>vuelo a la red con riesgo alto a su llegada</span><span><i class="avion" style="background:#7f9db8"></i>otros vuelos</span></div>
+        </details>
       </div>
     </section>
   </div>
+</section>
+<div id="banda" hidden></div>
+
+<main class="ancho b-cuerpo">
+  <section class="b-meteo" aria-labelledby="t-lista">
+    <div class="b-tit"><h2 id="t-lista">Las próximas 12 horas</h2><span>Cada punto es la probabilidad de bajo mínimos en esa hora</span></div>
+    <div class="b-meteo-horas" id="meteo-horas" aria-hidden="true"></div>
+    <div class="lista" id="lista"></div>
+    <p class="b-nota"><span><i class="b-punto bajo"></i>menos del 10 %</span><span><i class="b-punto moderado"></i>10–30 %, vigilar</span><span><i class="b-punto alto"></i>30 % o más, aviso</span>
+      <span>"Cuándo": horas con aviso (rojo) o a vigilar (ámbar).</span></p>
+    <p class="b-nota">Probabilidad de bajo mínimos CAT I (visibilidad &lt; 550 m o techo ≤ 200 ft) en cada hora, en hora peninsular. Pulsa un aeropuerto para ver su briefing.</p>
+  </section>
+  <section class="b-lleg" aria-labelledby="t-lleg">
+    <div class="b-tit"><h2 id="t-lleg">Llegadas en riesgo <b id="n-llegadas" class="b-cuenta"></b></h2></div>
+    <p class="impacto" id="impacto" aria-live="polite"></p>
+    <div class="lista" id="llegadas"></div>
+    <p class="b-nota">Vuelos en el aire hacia la red, por riesgo a su llegada. Coste esperado = probabilidad × coste del desvío al alternativo, con los costes de costes.json (cada aerolínea pone los suyos).</p>
+  </section>
 </main>
+<div class="hoja" id="hoja" role="dialog" aria-label="Detalle" hidden><button type="button" class="cerrar" id="cerrar-hoja" aria-label="Cerrar">×</button><div id="hoja-cuerpo"></div></div>
 
 <footer class="pie">
   <div class="ancho">
@@ -273,14 +272,43 @@ function contenidoPopup(a) {
     <p><a href="${enlace(a.icao)}">Ver briefing completo</a></p></div>`;
 }
 
+// En pantallas pequeñas el detalle no va en un globo sobre el mapa (tapa los aviones): va en una ficha abajo
+const movil = () => window.matchMedia("(max-width: 620px)").matches;
+let alCerrarHoja = null;
+function cerrarHoja(avisar = true) {
+  const h = document.getElementById("hoja");
+  if (h.hidden) return;
+  h.hidden = true;
+  const f = alCerrarHoja; alCerrarHoja = null;
+  if (avisar && f) f();
+}
+function mostrarFicha(lngLat, html, alCerrar, offset) {
+  popup?.remove(); popup = null;
+  cerrarHoja();
+  if (movil()) {
+    document.getElementById("hoja-cuerpo").innerHTML = html;
+    document.getElementById("hoja").hidden = false;
+    alCerrarHoja = alCerrar || null;
+    return;
+  }
+  popup = new maplibregl.Popup({ offset, maxWidth: "320px" }).setLngLat(lngLat).setHTML(html).addTo(mapa);
+  if (alCerrar) popup.on("close", alCerrar);
+}
+function actualizarFicha(html) {
+  if (!document.getElementById("hoja").hidden) document.getElementById("hoja-cuerpo").innerHTML = html;
+  else if (popup?.isOpen()) popup.setHTML(html);
+}
+document.getElementById("cerrar-hoja").addEventListener("click", () => cerrarHoja());
+if (movil()) document.getElementById("leyenda").open = false;      // en el móvil, la leyenda empieza plegada
+document.addEventListener("keydown", e => { if (e.key === "Escape") cerrarHoja(); });
+
 function seleccionar(icao, volar) {
   const a = datos.aeropuertos.find(x => x.icao === icao);
   if (!a || !mapa) return;
   document.querySelectorAll(".fila").forEach(f => f.classList.toggle("activo", f.dataset.icao === icao));
   Object.entries(marcadores).forEach(([k, m]) => m.getElement().classList.toggle("activo", k === icao));
   if (volar) mapa.flyTo({ center: [a.lon, a.lat], zoom: Math.max(mapa.getZoom(), 7), duration: 900 });
-  popup?.remove();
-  popup = new maplibregl.Popup({ offset: 14, maxWidth: "300px" }).setLngLat([a.lon, a.lat]).setHTML(contenidoPopup(a)).addTo(mapa);
+  mostrarFicha([a.lon, a.lat], contenidoPopup(a), null, 14);
 }
 
 function pintarMapa(lista) {
@@ -311,15 +339,15 @@ async function estiloOsm(info) {
   maplibregl.addProtocol("pmtiles", protocolo.tile);
   const atribucion = '<a href="https://www.openstreetmap.org/copyright" target="_blank">© OpenStreetMap</a> · Protomaps';
   const con = (fuente, prefijo) => capas.map(c => ({ ...c, id: prefijo + c.id, source: fuente }));
-  const sources = {}, layers = [{ id: "mar", type: "background", paint: { "background-color": "#a8d4e6" } }];
+  const sources = {}, layers = [{ id: "mar", type: "background", paint: { "background-color": "#0a1f33" } }];
   if (info.mundo) {
     sources.mundo = { type: "vector", url: "pmtiles://" + absoluta("mapa/mundo.pmtiles"), attribution: atribucion };
     // el mundo va debajo: dentro del norte lo tapa el mapa detallado (también sus rótulos, así no salen dobles)
     layers.push(...con("mundo", "mundo_"));
   } else {
     sources.base = { type: "geojson", data: "mapa/base.geojson", attribution: "Natural Earth" };
-    layers.push({ id: "tierra", type: "fill", source: "base", paint: { "fill-color": "#f2efe9" } },
-                { id: "fronteras", type: "line", source: "base", paint: { "line-color": "#8f8a9e", "line-width": 1 } });
+    layers.push({ id: "tierra", type: "fill", source: "base", paint: { "fill-color": "#163856" } },
+                { id: "fronteras", type: "line", source: "base", paint: { "line-color": "#6f93b3", "line-width": 1 } });
   }
   if (info.norte) {
     const [o, s, e, n] = info.caja;
@@ -329,8 +357,8 @@ async function estiloOsm(info) {
     // el sombreado del relieve va encima de la tierra y los bosques y debajo del agua, las carreteras y los rótulos
     const norte = con("norte", ""), corte = norte.findIndex(c => c.id === "water");
     const sombra = { id: "sombra", type: "hillshade", source: "dem", paint: {
-      "hillshade-exaggeration": ["interpolate", ["linear"], ["zoom"], 5, 0.55, 10, 0.35, 13, 0.2],
-      "hillshade-shadow-color": "#5b5446", "hillshade-highlight-color": "#ffffff", "hillshade-accent-color": "#7d735f",
+      "hillshade-exaggeration": ["interpolate", ["linear"], ["zoom"], 5, 0.5, 10, 0.32, 13, 0.18],
+      "hillshade-shadow-color": "#040d17", "hillshade-highlight-color": "#3d6c96", "hillshade-accent-color": "#0b2238",
       "hillshade-illumination-direction": 315 } };
     layers.push(...norte.slice(0, corte), sombra, ...norte.slice(corte));
   }
@@ -342,7 +370,7 @@ function iniciarMapa(lista, osm = null) {
   if (!window.maplibregl || !lista.length) { document.getElementById("mapa").innerHTML = `<p style="padding:20px" class="gris">No se pudo cargar el mapa.</p>`; return; }
   const lons = lista.map(a => a.lon), lats = lista.map(a => a.lat);
   mapa = new maplibregl.Map({
-    container: "mapa", attributionControl: { compact: true }, cooperativeGestures: true,
+    container: "mapa", attributionControl: { compact: true }, cooperativeGestures: !movil(),
     bounds: [[Math.min(...lons) - .7, Math.min(...lats) - .5], [Math.max(...lons) + .7, Math.max(...lats) + .5]],
     locale: { "CooperativeGesturesHandler.WindowsHelpText": "Usa Ctrl + rueda para acercar el mapa", "CooperativeGesturesHandler.MacHelpText": "Usa ⌘ + rueda para acercar el mapa",
       "CooperativeGesturesHandler.MobileHelpText": "Usa dos dedos para mover el mapa", "NavigationControl.ZoomIn": "Acercar", "NavigationControl.ZoomOut": "Alejar",
@@ -356,10 +384,10 @@ function iniciarMapa(lista, osm = null) {
           tileSize: 256, minzoom: 5, maxzoom: 9, bounds: [-10.2, 35.6, 4.6, 44.4], attribution: "Relieve: AWS Terrain Tiles" },
       },
       layers: [
-        { id: "mar", type: "background", paint: { "background-color": "#aad3ec" } },
-        { id: "tierra", type: "fill", source: "base", paint: { "fill-color": ["match", ["get", "pais"], "ES", "#eef2e6", "#e6e8df"] } },
+        { id: "mar", type: "background", paint: { "background-color": "#0a1f33" } },
+        { id: "tierra", type: "fill", source: "base", paint: { "fill-color": ["match", ["get", "pais"], "ES", "#1a4062", "#163856"] } },
         { id: "relieve", type: "raster", source: "relieve", layout: { visibility: "none" }, paint: { "raster-fade-duration": 0 } },
-        { id: "fronteras", type: "line", source: "base", paint: { "line-color": "#8c97a3", "line-width": ["interpolate", ["linear"], ["zoom"], 5, 0.6, 9, 1.3] } },
+        { id: "fronteras", type: "line", source: "base", paint: { "line-color": "#6f93b3", "line-width": ["interpolate", ["linear"], ["zoom"], 5, 0.6, 9, 1.3] } },
       ],
     },
     ...(osm?.mundo ? { minZoom: 1.5, renderWorldCopies: false } : { maxBounds: [[-14, 33], [8, 49]], minZoom: 4.5 }),
@@ -372,8 +400,9 @@ function iniciarMapa(lista, osm = null) {
     const ver = () => mapa.setLayoutProperty("relieve", "visibility", "visible");
     mapa.isStyleLoaded() ? ver() : mapa.once("load", ver);
   }).catch(() => {});
-  mapa.on("click", e => { if (!e.defaultPrevented) popup?.remove(); });
-  const lejos = () => mapa.getContainer().classList.toggle("lejos", mapa.getZoom() < 5.6);
+  mapa.on("click", e => { if (!e.defaultPrevented) { popup?.remove(); cerrarHoja(); } });
+  // lejos, los aeropuertos son puntos (en el móvil, hasta acercarse más: están muy juntos)
+  const lejos = () => mapa.getContainer().classList.toggle("lejos", mapa.getZoom() < (movil() ? 7.2 : 5.6));
   mapa.on("zoom", lejos);
   lejos();
   pintarMapa(lista);
@@ -383,7 +412,7 @@ function render(r) {
   datos = r;
   const lista = ordenar(r.aeropuertos || []);
   const rep = r.modo === "repeticion";
-  document.getElementById("subtitulo").textContent = `${lista.length} aeropuertos · niebla y techo bajo, ahora y en las próximas 12 h`;
+
   document.getElementById("modo").innerHTML = rep
     ? `<span class="punto rep"></span><b>Repetición</b> del ${new Date(r.generado_utc).toLocaleDateString("es-ES", { timeZone: ZONA, day: "numeric", month: "long", year: "numeric" })}, ${fmtZ(r.generado_utc)}<br>datos reales de ese día`
     : `<span class="punto"></span><b>En directo</b>, actualizado ${fmtZ(r.generado_utc)}<br>se renueva cada 30 min`;
@@ -396,20 +425,56 @@ function render(r) {
   const [clase, titulo, texto] = altos.length ? ["alto", "Aviso de bajo mínimos", altos.map(a => `${a.icao} ${a.nombre} (${pct(a.riesgo.p)})`).join(", ")]
     : moderados.length ? ["moderado", "Vigilancia de niebla", moderados.map(a => `${a.icao} ${a.nombre}`).join(", ")]
     : ["bajo", "Sin riesgo significativo", "en las próximas 12 horas en la red"];
-  document.getElementById("banda").innerHTML = `<section class="aviso-banda ${clase}" role="status"><div class="ancho"><b>${titulo}</b><span>${esc(texto)}</span></div></section>`;
+  // El titular resume la situación en una frase; el aviso detallado va debajo, en el subtítulo
+  const y = l => l.length > 1 ? l.slice(0, -1).join(", ") + " y " + l[l.length - 1] : l[0];
+  const despeje = altos.map(a => a.despeja_utc).filter(Boolean).sort().pop();
+  document.getElementById("titular").textContent = altos.length
+    ? `Niebla en ${y(altos.map(a => a.nombre))}.${despeje ? " Despeja hacia las " + fmtZ(despeje) + "." : ""}`
+    : moderados.length ? `Vigilancia de niebla en ${y(moderados.map(a => a.nombre))}.` : "Sin riesgo de niebla en la red en las próximas 12 horas.";
+  document.getElementById("subtitulo").textContent = (clase === "bajo" ? "" : `${titulo}: ${texto}. `)
+    + `${lista.length} aeropuertos del norte, ahora y en las próximas 12 h.`;
+  const franja = document.getElementById("franja");
+  franja.dataset.nivel = clase; franja.setAttribute("role", "status");
 
+  // Meteograma de la red: una fila por aeropuerto, un punto por hora (tamaño = probabilidad de bajo mínimos)
+  const base = Math.ceil(Date.parse(r.generado_utc) / 3600e3) * 3600e3, ahora = Date.parse(r.generado_utc);
+  const horas = Array.from({ length: 12 }, (_, k) => base + k * 3600e3);
+  const hh = t => new Date(t).toLocaleTimeString("es-ES", { timeZone: ZONA, hour: "2-digit" });
+  document.getElementById("meteo-horas").innerHTML = `<span></span>` + horas.map((t, k) =>
+    `<span class="${k % 2 ? "impar" : ""}">${hh(t)}</span>`).join("") + `<span>Cuándo</span>`;
+  const V0 = window.NovokVuelos;
   document.getElementById("lista").innerHTML = lista.map(a => {
     const rr = a.riesgo;
-    return `<a class="fila" data-icao="${esc(a.icao)}" href="${enlace(a.icao)}">
-      ${pastilla(a.categoria)}
-      <div class="nom"><b>${esc(a.icao)} · ${esc(a.nombre)}</b><span>${esc(condiciones(a))}</span></div>
-      <div class="pct">${rr ? `<b class="tab">${pct(rr.p)}</b><span style="color:${COLOR_NIVEL[rr.nivel]}">${NIVEL[rr.nivel]} · +${rr.horizonte_h} h</span>` : `<span class="sin">${a.error ? "sin datos" : "sin pronóstico"}</span>`}</div></a>`;
+    const puntos = horas.map(t => {
+      const p = V0 && a.serie?.length ? V0.riesgoEnHora(a, t, ahora) : null;
+      if (p == null) return `<span class="b-celda"></span>`;
+      const d = Math.max(5, Math.round(5 + Math.sqrt(p) * 17));
+      const n = p >= 0.3 ? "alto" : p >= 0.1 ? "moderado" : "bajo";
+      return `<span class="b-celda" title="${hh(t)}:00 · ${pct(p)} (${n})"><i style="width:${d}px;height:${d}px" class="${n}"></i></span>`;
+    }).join("");
+    // ventana de riesgo en palabras: de qué hora a qué hora pasa del 30 % (o del 10 %)
+    const ps = horas.map(t => (V0 && a.serie?.length ? V0.riesgoEnHora(a, t, ahora) : null));
+    const ventana = umbral => { const k = ps.map((p, i) => p != null && p >= umbral ? i : -1).filter(i => i >= 0);
+      return k.length ? `${hh(horas[k[0]])}–${hh(horas[k[k.length - 1]] + 3600e3)} h` : null; };
+    const alto = ventana(0.3), mod = alto ? null : ventana(0.1);
+    const cuando = alto ? `<b class="alto">${alto}</b>` : mod ? `<b class="moderado">${mod}</b>` : ps.some(p => p != null) ? `<span>sin riesgo</span>` : `<span>sin datos</span>`;
+    return `<a class="fila b-fila" data-icao="${esc(a.icao)}" href="${enlace(a.icao)}">
+      <span class="b-nom"><b>${esc(a.icao)}</b> <span class="b-nom-txt">${esc(a.nombre)}</span> ${pastilla(a.categoria)}</span>${puntos}
+      <span class="b-max" title="${rr ? "máximo " + pct(rr.p) : ""}">${cuando}</span></a>`;
+  }).join("");
+  // Avisos en la cabecera: los aeropuertos con riesgo, con su curva de las próximas 12 h
+  const conAviso = lista.filter(a => a.riesgo && a.riesgo.nivel !== "bajo").slice(0, 4);
+  document.getElementById("avisos").innerHTML = conAviso.map(a => {
+    const ps = horas.map(t => (V0 && a.serie?.length ? V0.riesgoEnHora(a, t, ahora) : 0) ?? 0);
+    const curva = "M0 28 " + ps.map((p, k) => `L${(k * 120 / 11).toFixed(1)} ${(28 - p * 28).toFixed(1)}`).join(" ") + " L120 28 Z";
+    const despeja = a.despeja_utc ? `despeja ${fmtZ(a.despeja_utc)}` : condiciones(a);
+    return `<li><a href="${enlace(a.icao)}"><span><b>${esc(a.nombre)}</b><small>${esc(a.icao)} · ${esc(despeja)}</small></span>
+      <svg viewBox="0 0 120 28" width="120" height="28" aria-hidden="true"><path d="${curva}" fill="#a9cbe4" opacity=".35"/><line x1="0" y1="19.6" x2="120" y2="19.6" stroke="#ff7a6e" stroke-dasharray="2 3"/></svg>
+      <strong style="color:${a.riesgo.nivel === "alto" ? "#ff7a6e" : "#ffb347"}">${pct(a.riesgo.p)}</strong></a></li>`;
   }).join("");
   document.querySelectorAll(".fila").forEach(f => {
     f.addEventListener("mouseenter", () => marcadores[f.dataset.icao]?.getElement().classList.add("activo"));
     f.addEventListener("mouseleave", () => marcadores[f.dataset.icao]?.getElement().classList.remove("activo"));
-    // en pantallas grandes, el primer clic centra el mapa; el enlace del globo abre el briefing
-    f.addEventListener("click", e => { if (window.innerWidth > 980 && !f.classList.contains("activo")) { e.preventDefault(); seleccionar(f.dataset.icao, true); } });
   });
   if (!mapa && !iniciandoMapa) {
     iniciandoMapa = true;
@@ -427,7 +492,7 @@ function render(r) {
 /* ---------- vuelos en directo (F7) ---------- */
 const V = window.NovokVuelos;
 const vuelos = { cfg: null, aviones: [], analizados: [], t: 0, error: null, seleccionado: null, rastros: {}, filtro: "", aerolineas: {} };
-const COLOR_RIESGO = { alto: "#d83933", moderado: "#c05600", bajo: "#2e8540" };
+const COLOR_RIESGO = { alto: "#ff6b5e", moderado: "#ffb347", bajo: "#5cc27a" };
 const altTxt = a => a.en_tierra ? "en tierra" : a.alt_ft == null ? "—" : a.alt_ft >= 6000 ? "FL" + String(Math.round(a.alt_ft / 100)).padStart(3, "0") : Math.round(a.alt_ft) + " ft";
 
 function iconoAvion() {               // silueta en SDF: el color lo pone el mapa según el riesgo
@@ -440,23 +505,33 @@ function iconoAvion() {               // silueta en SDF: el color lo pone el map
 }
 
 function capasVuelos() {
+  const k = movil() ? 1.45 : 1;          // en el móvil, aviones más grandes
   mapa.addImage("avion", iconoAvion(), { sdf: true });
   mapa.addSource("rastro", { type: "geojson", data: { type: "FeatureCollection", features: [] } });
-  mapa.addLayer({ id: "rastro", type: "line", source: "rastro", paint: { "line-color": "#0b2545", "line-width": 2, "line-opacity": .6, "line-dasharray": [2, 1] } });
+  mapa.addLayer({ id: "rastro", type: "line", source: "rastro", paint: { "line-color": "#a9cbe4", "line-width": 2, "line-opacity": .7, "line-dasharray": [2, 1] } });
   // ruta del vuelo elegido: hasta su destino y, si hay riesgo, del destino al alternativo
   mapa.addSource("ruta-alt", { type: "geojson", data: { type: "FeatureCollection", features: [] } });
   mapa.addLayer({ id: "ruta-destino", type: "line", source: "ruta-alt", filter: ["==", ["get", "tramo"], "destino"],
-    paint: { "line-color": "#0b2545", "line-width": 2, "line-opacity": .55 } });
+    paint: { "line-color": "#dce8f2", "line-width": 2, "line-opacity": .6 } });
   mapa.addLayer({ id: "ruta-desvio", type: "line", source: "ruta-alt", filter: ["==", ["get", "tramo"], "desvio"],
-    paint: { "line-color": "#c05600", "line-width": 2.5, "line-dasharray": [2, 1.5] } });
+    paint: { "line-color": "#ffb347", "line-width": 2.5, "line-dasharray": [2, 1.5] } });
   mapa.addSource("aviones", { type: "geojson", data: { type: "FeatureCollection", features: [] } });
   mapa.addLayer({ id: "aviones", type: "symbol", source: "aviones", layout: {
       "icon-image": "avion", "icon-rotate": ["get", "rumbo"], "icon-rotation-alignment": "map", "icon-allow-overlap": true,
-      "icon-size": ["interpolate", ["linear"], ["zoom"], 5, ["case", ["get", "red"], .42, .3], 9, ["case", ["get", "red"], .7, .5]],
+      "icon-size": ["interpolate", ["linear"], ["zoom"], 5, ["case", ["get", "red"], .42 * k, .3 * k], 9, ["case", ["get", "red"], .7 * k, .5 * k]],
       "symbol-sort-key": ["get", "orden"] },
-    paint: { "icon-color": ["get", "color"], "icon-halo-color": "#ffffff", "icon-halo-width": 1.2,
-      "icon-opacity": ["case", ["get", "atenuado"], .28, 1] } });
-  mapa.on("click", "aviones", e => { e.preventDefault(); seleccionarVuelo(e.features[0].properties.hex); });
+    paint: { "icon-color": ["get", "color"], "icon-halo-color": "#0a1f33", "icon-halo-width": 1.2,
+      "icon-opacity": ["case", ["get", "atenuado"], .45, 1] } });
+  // un toque cerca de un avión lo selecciona (con el dedo no se acierta al píxel): el más cercano dentro del margen
+  mapa.on("click", e => {
+    const r = movil() ? 24 : 8, p = e.point;
+    const f = mapa.queryRenderedFeatures([[p.x - r, p.y - r], [p.x + r, p.y + r]], { layers: ["aviones"] });
+    if (!f.length) return;
+    const d = x => { const q = mapa.project(x.geometry.coordinates); return (q.x - p.x) ** 2 + (q.y - p.y) ** 2; };
+    f.sort((a, b) => d(a) - d(b));
+    e.preventDefault();
+    seleccionarVuelo(f[0].properties.hex);
+  });
   mapa.on("mouseenter", "aviones", () => mapa.getCanvas().style.cursor = "pointer");
   mapa.on("mouseleave", "aviones", () => mapa.getCanvas().style.cursor = "");
 }
@@ -476,7 +551,7 @@ function dibujarVuelos() {
     type: "Feature", geometry: { type: "Point", coordinates: posicionActual(a, ahora) },
     properties: { hex: a.hex, rumbo: a.rumbo ?? 0, red: !!a.destino, orden: a.riesgo ? a.riesgo.p : a.destino ? -1 : -2,
       atenuado: !!vuelos.filtro && a.operador !== vuelos.filtro,
-      color: a.riesgo ? COLOR_RIESGO[a.riesgo.nivel] : a.destino ? "#0b2545" : "#5b6b7c" } })) });
+      color: a.riesgo ? COLOR_RIESGO[a.riesgo.nivel] : a.destino ? "#eef2f5" : "#7f9db8" } })) });
   const sel = vuelos.seleccionado && vuelos.analizados.find(x => x.hex === vuelos.seleccionado);
   const aero = icao => datos?.aeropuertos.find(x => x.icao === icao);
   const tramos = [];
@@ -546,9 +621,7 @@ function seleccionarVuelo(hex, volar) {
   vuelos.seleccionado = hex;
   const pos = posicionActual(a, Date.now());
   if (volar) mapa.flyTo({ center: pos, zoom: Math.max(mapa.getZoom(), 7.5), duration: 800 });
-  popup?.remove();
-  popup = new maplibregl.Popup({ offset: 12, maxWidth: "320px" }).setLngLat(pos).setHTML(textoVuelo(a)).addTo(mapa);
-  popup.on("close", () => { if (vuelos.seleccionado === hex) { vuelos.seleccionado = null; dibujarVuelos(); } });
+  mostrarFicha(pos, textoVuelo(a), () => { if (vuelos.seleccionado === hex) { vuelos.seleccionado = null; dibujarVuelos(); } }, 12);
   dibujarVuelos();
 }
 
@@ -568,7 +641,10 @@ function pintarLlegadas() {
       ${a.alternativo ? `<div class="alt">Alternativo con mejor previsión: ${esc(a.alternativo.icao)} ${esc(a.alternativo.nombre)} (${pct(a.alternativo.p)})${a.coste ? ` · coste esperado <b>${eur(a.coste.esperado)}</b>` : ""}</div>` : ""}
     </div>`).join("") : `<p style="padding:16px" class="gris">${vuelos.error ? "Sin datos de vuelos ahora." : "Ningún vuelo en el aire hacia la red en este momento."}</p>`;
   document.querySelectorAll(".vuelo").forEach(el => {
-    const ir = () => seleccionarVuelo(el.dataset.hex, true);
+    const ir = () => {
+      document.querySelector(".b-mapa").scrollIntoView({ behavior: "smooth", block: "start" });
+      seleccionarVuelo(el.dataset.hex, true);
+    };
     el.addEventListener("click", ir); el.addEventListener("keydown", e => { if (e.key === "Enter") ir(); });
   });
 }
@@ -591,14 +667,25 @@ async function actualizarVuelos() {
   }
   const n = vuelos.analizados.length, hacia = vuelos.analizados.filter(a => a.llegada).length;
   document.getElementById("estado-vuelos").innerHTML = vuelos.error && !n
-    ? `<span style="color:var(--alto)">No se pudieron cargar los vuelos</span> <span class="gris">(servicio no disponible o bloqueado por la red)</span>`
+    ? `<span style="color:#ff8a80">No se pudieron cargar los vuelos</span> <span class="gris">(${esc(motivoVuelos(vuelos.error))})</span>`
     : `${n} aviones · ${hacia} hacia la red · <span class="gris">${esc(vuelos.cfg.atribucion_actual || vuelos.cfg.atribucion)}</span>`;
   pintarFiltro(); pintarLlegadas(); dibujarVuelos();
-  if (vuelos.seleccionado && popup?.isOpen()) {
+  if (vuelos.seleccionado) {
     const a = vuelos.analizados.find(x => x.hex === vuelos.seleccionado);
-    if (a) popup.setHTML(textoVuelo(a));
+    if (a) actualizarFicha(textoVuelo(a));
   }
 }
+
+function motivoVuelos(e) {
+  const m = String(e?.message || e || "");
+  if (/HTTP 403/.test(m)) return "el intermediario rechaza esta dirección: revisa ORIGENES en el Worker";
+  if (/HTTP 404/.test(m)) return enLocalPagina() ? "abre la página con python -m novok.servidor" : "intermediario_publico de vuelos.json no apunta al Worker";
+  if (/HTTP 5\d\d/.test(m)) return "el proveedor de vuelos no responde ahora (" + m + ")";
+  if (/JSON|Unexpected token/.test(m)) return "el proveedor devolvió un aviso en lugar de datos (mantenimiento)";
+  if (/abort|timeout/i.test(m)) return "el proveedor tarda demasiado en contestar";
+  return (enLocalPagina() ? "sin conexión con el proveedor o bloqueado por la red" : "sin conexión con el Worker o el proveedor") + (m ? ": " + m : "");
+}
+const enLocalPagina = () => ["localhost", "127.0.0.1", ""].includes(location.hostname);
 
 async function iniciarVuelos() {
   try { vuelos.cfg = await V.config(); } catch { document.getElementById("estado-vuelos").textContent = "sin configuración de vuelos"; return; }
@@ -628,13 +715,6 @@ async function iniciarVuelos() {
   document.getElementById("ver-vuelos").addEventListener("change", dibujarVuelos);
 }
 
-for (const [tab, panel] of [["tab-aero", "panel-aero"], ["tab-lleg", "panel-lleg"]]) {
-  document.getElementById(tab).addEventListener("click", () => {
-    for (const [t, p] of [["tab-aero", "panel-aero"], ["tab-lleg", "panel-lleg"]]) {
-      document.getElementById(t).setAttribute("aria-selected", String(t === tab)); document.getElementById(p).hidden = p !== panel;
-    }
-  });
-}
 
 function cargar() {
   return fetch("datos/red.json", { cache: "no-store" })

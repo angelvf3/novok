@@ -5,8 +5,9 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>NOVOK · Briefing de aeropuerto</title>
 <meta name="description" content="Probabilidad de niebla y de condiciones bajo mínimos en un aeropuerto de la red de NOVOK para las próximas 12 horas, frente al TAF de AEMET. Herramienta de apoyo a la planificación.">
-<meta name="theme-color" content="#0b2545">
+<meta name="theme-color" content="#0b1116">
 <link rel="icon" href="novok-logo.png">
+<link rel="apple-touch-icon" href="marca/novok-icono-180.png">
 <link rel="stylesheet" href="vendor/fuentes.css">
 <script type="importmap">{ "imports": { "three": "./vendor/three.module.min.js" } }</script>
 <style>
@@ -239,28 +240,41 @@
     .aviso-banda b { font-size: 17px; }
   }
 </style>
+<link rel="stylesheet" href="nordico.css">
 </head>
 <body>
 <header class="cabecera">
   <div class="ancho">
-    <div class="logo"><img src="novok-logo.png" alt="NOVOK"><span>Niebla y techo bajo<br><a href="./" style="color:inherit">← Red del norte</a></span></div>
+    <div class="logo"><a class="marca" href="./"><img src="marca/novok-logo-oscuro-72.png" alt="NOVOK" width="153" height="34"></a><span>Niebla y techo bajo<br><a href="./" style="color:inherit">← Red del norte</a></span></div>
     <div class="relojes" aria-label="Hora actual">
       <div><b class="tab" id="reloj-l">--:--:--</b><small>HORA PENINSULAR</small></div>
     </div>
   </div>
 </header>
 
-<section class="estacion">
-  <div class="ancho">
-    <h1 id="icao">····</h1>
-    <span id="cat-actual"></span>
-    <div class="nombre" id="nombre-aero"><b>Cargando…</b>&nbsp;</div>
-    <div class="modo" id="modo">Cargando…</div>
+<section class="estacion b-aero">
+  <div class="ancho b-aero-rejilla">
+    <div class="b-aero-texto">
+      <p class="b-miga"><a href="./">Red del norte</a> / <span id="icao">····</span></p>
+      <div class="b-aero-nombre"><h1 id="nombre-grande">Cargando…</h1><span id="cat-actual"></span></div>
+      <p class="b-aero-frase" id="frase"></p>
+      <p class="b-metar mono" id="metar-bruto" hidden></p>
+      <div class="b-aero-pie"><span class="nombre" id="nombre-aero"></span><span class="modo" id="modo">Cargando…</span></div>
+    </div>
+    <dl class="b-datos" id="datos-ahora"></dl>
   </div>
 </section>
-
-<div id="banda"></div>
+<div id="banda" hidden></div>
 <main class="ancho">
+  <section class="b-meteo-aero" aria-labelledby="t-meteo">
+    <div class="b-tit"><h2 id="t-meteo">Meteograma de niebla</h2><span>Probabilidad de bajo mínimos CAT I en las próximas 12 h, frente al TAF de AEMET</span></div>
+    <div class="b-meteo-caja" id="meteograma"></div>
+    <p class="b-nota" id="nota-meteo"></p>
+  </section>
+  <div class="b-dos">
+    <div id="hueco-llegadas"></div>
+    <section class="b-taf" aria-labelledby="t-taf"><h2 id="t-taf">Último TAF</h2><div id="taf-bruto"></div></section>
+  </div>
   <section aria-labelledby="t-visor">
     <div class="seccion-tit"><h2 id="t-visor">Simulación 3D del aeropuerto</h2><span>Relieve real; arrastra para girar y usa la rueda para acercar</span></div>
     <div class="visor" id="visor">
@@ -974,6 +988,70 @@ function dibujarTiempo() {
   if (c && ultimo) c.innerHTML = lineaTiempo(ultimo, c.clientWidth - 28);
 }
 
+/* ---------- cabecera (disposición B) ---------- */
+function cabeceraB(b) {
+  const ah = b.ahora || {}, pr = b.pronostico || [], ep = b.episodio, d = ep?.disipacion;
+  const peor = pr.reduce((m, p) => (!m || p.bajo_minimos.p > m.bajo_minimos.p ? p : m), null);
+  let frase;
+  if (ah.bajo_minimos) frase = "Bajo mínimos ahora." + (d ? ` Lo más probable es que despeje a las ${fmtZ(d.despeja_utc_q50)}, entre las ${fmtZ(d.despeja_utc_q10)} y las ${fmtZ(d.despeja_utc_q90)}.` : "");
+  else if (ah.niebla) frase = "Niebla ahora, por encima de los mínimos." + (d ? ` Despeje probable hacia las ${fmtZ(d.despeja_utc_q50)}.` : "");
+  else if (peor && peor.bajo_minimos.nivel !== "bajo") frase = `Sin niebla ahora. Riesgo ${peor.bajo_minimos.nivel} de bajo mínimos hacia las ${fmtZ(peor.hora_utc)} (${pct(peor.bajo_minimos.p)}).`;
+  else frase = b.calidad?.pronostico_emitido ? "Sin niebla ahora ni riesgo significativo en las próximas 12 horas." : "Sin pronóstico ahora: faltan datos recientes.";
+  document.getElementById("frase").textContent = frase;
+  const nivel = ah.bajo_minimos || (peor && peor.bajo_minimos.nivel === "alto") ? "alto" : peor && peor.bajo_minimos.nivel === "moderado" ? "moderado" : "bajo";
+  document.querySelector(".b-aero").dataset.nivel = nivel;
+  const m = document.getElementById("metar-bruto");
+  m.hidden = !ah.metar; m.textContent = ah.metar ? "METAR " + ah.metar : "";
+  const dato = (t, v) => `<div><dt>${t}</dt><dd>${v}</dd></div>`;
+  document.getElementById("datos-ahora").innerHTML =
+    dato("Visibilidad", visTxt(ah.vis_m)) +
+    dato(ah.rvr_min_m != null ? "Alcance visual en pista" : "Techo", ah.rvr_min_m != null ? Math.round(ah.rvr_min_m) + " m" : ah.techo_ft == null ? "sin techo" : Math.round(ah.techo_ft) + " ft") +
+    dato(ah.rvr_min_m != null ? "Techo" : "Viento", ah.rvr_min_m != null ? (ah.techo_ft == null ? "sin techo" : Math.round(ah.techo_ft) + " ft") : esc(ah.viento_texto || "—")) +
+    dato("Temperatura y rocío", ah.temp_c == null ? "—" : `${Math.round(ah.temp_c)}° / ${Math.round(ah.rocio_c)}°`);
+}
+
+/* ---------- meteograma de las próximas 12 h ---------- */
+function meteograma(b) {
+  const V = window.NovokVuelos, base = ms(b.calidad?.hora_base_utc || b.ahora.hora_utc), ahora = ms(b.generado_utc);
+  const serie = { serie: (b.pronostico || []).map(p => ({ hora_utc: p.hora_utc, p_bajo_minimos: p.bajo_minimos.p })),
+                  bajo_minimos: !!b.ahora?.bajo_minimos, niebla: !!b.ahora?.niebla };
+  const horas = Array.from({ length: 12 }, (_, k) => base + (k + 1) * 3600e3);
+  const ps = horas.map(t => V ? V.riesgoEnHora(serie, t, ahora) ?? 0 : 0);
+  const W = 1280, X0 = 60, X1 = 1260, Y0 = 10, Y1 = 200;
+  const x = k => X0 + k * (X1 - X0) / 11, y = p => Y1 - p * (Y1 - Y0);
+  let s = `<svg viewBox="0 0 ${W} 262" role="img" aria-label="Probabilidad de bajo mínimos en las próximas 12 horas">`;
+  [0, .25, .5, .75, 1].forEach(v => { s += `<line x1="${X0}" x2="${X1}" y1="${y(v)}" y2="${y(v)}" stroke="#e3e9ee"/><text x="0" y="${y(v) + 4}" font-size="12" fill="var(--tinta-3)">${v * 100} %</text>`; });
+  const d = b.episodio?.disipacion;
+  if (d) {
+    const kx = t => Math.max(0, Math.min(11, (ms(t) - horas[0]) / 3600e3));
+    const a1 = kx(d.despeja_utc_q10), a2 = kx(d.despeja_utc_q90);
+    if (a2 > a1) s += `<rect x="${x(a1)}" y="${Y0}" width="${x(a2) - x(a1)}" height="${Y1 - Y0}" fill="#a9cbe4" opacity=".3"><title>Despeje: 80 % entre las ${fmtZ(d.despeja_utc_q10)} y las ${fmtZ(d.despeja_utc_q90)}</title></rect>`;
+  }
+  const linea = ps.map((p, k) => `${k ? "L" : "M"}${x(k).toFixed(1)} ${y(p).toFixed(1)}`).join(" ");
+  s += `<path d="${linea} L${x(11)} ${Y1} L${x(0)} ${Y1} Z" fill="var(--azul-noche)" opacity=".13"/>`;
+  s += `<path d="${linea}" fill="none" stroke="var(--azul-noche)" stroke-width="2.5" stroke-linejoin="round"/>`;
+  s += `<line x1="${X0}" x2="${X1}" y1="${y(.3)}" y2="${y(.3)}" stroke="var(--alto)" stroke-width="1.5" stroke-dasharray="5 4"/>`;
+  s += `<text x="${X1}" y="${y(.3) - 6}" text-anchor="end" font-size="12" fill="var(--alto)">umbral de aviso, 30 %</text>`;
+  ps.forEach((p, k) => {
+    s += `<circle cx="${x(k)}" cy="${y(p)}" r="4.5" fill="${p >= .3 ? "var(--alto)" : "var(--azul-noche)"}" stroke="#fff" stroke-width="2"><title>${fmtZ(new Date(horas[k]).toISOString())}: ${pct(p)}</title></circle>`;
+    s += `<text x="${x(k)}" y="222" text-anchor="middle" font-size="12" fill="var(--tinta-3)">${fmtZ(new Date(horas[k]).toISOString())}</text>`;
+  });
+  // TAF hora a hora debajo: categoría predominante (y la temporal, si es peor)
+  const th = Object.fromEntries((b.taf_horas || []).map(h => [ms(h.hora_utc), h]));
+  s += `<text x="0" y="248" font-size="12" fill="var(--tinta-3)">TAF</text>`;
+  horas.forEach((t, k) => {
+    const h = th[t], w = (X1 - X0) / 11 - 4;
+    const c = h ? categoria(h.vis_peor_m ?? h.vis_predominante_m, h.techo_peor_ft ?? h.techo_predominante_ft) : null;
+    s += `<rect x="${x(k) - w / 2}" y="236" width="${w}" height="16" rx="2" fill="${c ? COLOR_CAT[c] : "#e3e9ee"}"><title>${fmtZ(new Date(t).toISOString())} TAF: ${c || "sin TAF"}</title></rect>`;
+  });
+  s += `</svg>`;
+  const pico = Math.max(...ps), kp = ps.indexOf(pico), baja = ps.findIndex((p, k) => k > kp && p < .3);
+  document.getElementById("nota-meteo").innerHTML = (d ? `<span><i class="b-franja"></i>intervalo de despeje (80 %)</span>` : "")
+    + `<span>Máximo ${pct(pico)} a las ${fmtZ(new Date(horas[kp]).toISOString())}${pico >= .3 && baja > 0 ? `; baja del umbral a las ${fmtZ(new Date(horas[baja]).toISOString())}` : ""}.</span>`
+    + `<span>Franja inferior: categoría del TAF (la peor, si hay grupo temporal).</span>`;
+  return s;
+}
+
 function render(b) {
   ultimo = b;
   const cal = b.calidad || {}, ok = cal.pronostico_emitido, rep = b.modo === "repeticion";
@@ -981,12 +1059,17 @@ function render(b) {
   document.getElementById("modo").innerHTML = rep
     ? `<span class="punto rep"></span><b>Repetición</b> del ${new Date(b.generado_utc).toLocaleDateString("es-ES", { timeZone: ZONA, day: "numeric", month: "long", year: "numeric" })}, ${fmtZ(b.generado_utc)}<br>datos reales de ese día`
     : `<span class="punto ${ok ? "" : "mal"}"></span><b>En directo</b>, actualizado ${fmtZ(b.generado_utc)}<br>se renueva cada 30 min`;
-  document.getElementById("banda").innerHTML = banda(b);
   const a = b.aeropuerto || {};
   document.title = `NOVOK · ${b.estacion} ${a.nombre || ""}`;
   document.getElementById("icao").textContent = b.estacion;
+  document.getElementById("nombre-grande").textContent = a.nombre || b.estacion;
   const pares = paresPista(a.pistas || []).map(par => par.map(p => p.ident).join("/"));
-  document.getElementById("nombre-aero").innerHTML = `<b>${esc(a.nombre || "")}, España</b>${pares.length > 1 ? "Pistas" : "Pista"} ${esc(pares.join(", "))}, elevación ${Math.round(a.elev_ft ?? 0)} ft`;
+  document.getElementById("nombre-aero").textContent = `${b.estacion} · ${pares.length > 1 ? "pistas" : "pista"} ${pares.join(", ")} · ${Math.round(a.elev_ft ?? 0)} ft`;
+  cabeceraB(b);
+  document.getElementById("meteograma").innerHTML = ok ? meteograma(b) : `<p class="gris" style="margin:0">Sin pronóstico ahora.</p>`;
+  document.getElementById("taf-bruto").innerHTML = b.taf?.texto
+    ? `<p class="mono">${esc(b.taf.texto).replace(/ (PROB\d\d(?: TEMPO)?|TEMPO|BECMG|FM\d{6})/g, "<br>$1")}</p><p>Emitido a las ${fmtZ(b.taf.emision_utc)}${b.taf.enmienda ? " (enmienda)" : ""}. El TAF dice qué puede pasar, sin probabilidad; NOVOK lo cuantifica hora a hora.</p>`
+    : `<p>No hay TAF vigente de AEMET para este aeropuerto ahora mismo. NOVOK sigue pronosticando con los METAR y el pronóstico numérico.</p>`;
   if (!visor.iniciado && a.lat != null) { visor.iniciado = true; configurarAeropuerto(a); iniciarVisor(); }
 
   let html = `<div class="rejilla-2">${actuales(b)}${ok ? pronostico(b)
@@ -1049,12 +1132,17 @@ async function llegadas() {
       </tr>`).join("")}</tbody></table>`
       : `<p class="vacio">Ahora no hay vuelos en el aire con destino a ${esc(propia.icao)} dentro del alcance.</p>`;
   } catch (e) {
-    if (lleg.cfg) estado.textContent = "no se pudieron cargar los vuelos; se reintenta";
+    if (lleg.cfg) {
+      estado.textContent = "sin datos de vuelos ahora";
+      const l = document.getElementById("lista-lleg");
+      if (!l.innerHTML.trim()) l.innerHTML = `<p class="vacio">No se pudieron cargar los vuelos en directo (el proveedor no responde o la red lo bloquea). Se vuelve a intentar solo cada medio minuto.</p>`;
+    }
   }
   clearTimeout(lleg.temporizador);
   lleg.temporizador = setTimeout(llegadas, Math.max(15, lleg.cfg?.refresco_s || 30) * 1000);
 }
 
+document.getElementById("hueco-llegadas").replaceWith(document.getElementById("caja-llegadas"));
 cargar().then(llegadas);
 setInterval(() => { if (!ultimo || ultimo.modo !== "repeticion") cargar(); }, 5 * 60e3);
 let espera; addEventListener("resize", () => { clearTimeout(espera); espera = setTimeout(dibujarTiempo, 120); });

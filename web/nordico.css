@@ -1,0 +1,286 @@
+/* Estilo nórdico de NOVOK: negro y azul noche arriba y abajo, blanco frío en el cuerpo, carta nocturna en el mapa.
+   Se carga después del estilo de cada página y solo cambia el aspecto: la estructura y el comportamiento son los mismos. */
+:root {
+  --negro: #0b1116;
+  --azul-noche: #0f2a44;
+  --azul-hondo: #0a1f33;
+  --linea-noche: #24476a;
+  --hielo: #a9cbe4;
+  --texto-noche: #c3d3e0;
+  --texto-noche-2: #8fa9bf;
+  --azul: #1d4f80;
+  --azul-claro: #dce8f2;
+  --fondo: #eef2f5;
+  --blanco: #ffffff;
+  --tinta: #0b1116;
+  --tinta-2: #3e4d5a;
+  --tinta-3: #5e6e7c;
+  --borde: #d3dce3;
+  --borde-suave: #e3e9ee;
+  --alto: #d93a30;
+  --moderado: #b8660f;
+  --bajo: #2f7a4a;
+  --niebla: #5e7a92;
+  --radio: 4px;
+}
+body { font-family: "Familjen Grotesk", "Segoe UI", system-ui, sans-serif; font-size: 15.5px; }
+.mono { font-family: "IBM Plex Mono", "Roboto Mono", ui-monospace, monospace; }
+a { color: var(--azul); }
+:focus-visible { outline-color: var(--hielo); }
+
+/* Cabecera negra con la marca */
+.cabecera { background: var(--negro); }
+.marca { display: flex; align-items: center; }
+.marca img { display: block; height: 34px; width: auto; }
+.logo .marca img { background: none; padding: 0; border-radius: 0; }
+.logo span { color: var(--texto-noche-2); border-left-color: #26323b; font-weight: 500; }
+.logo span a { color: var(--texto-noche) !important; }
+.relojes b { font-weight: 600; letter-spacing: .01em; }
+.relojes small { color: var(--texto-noche-2); font-weight: 500; letter-spacing: .02em; }
+.cliente { border-left-color: #26323b; }
+
+/* Franja de título en azul noche */
+.franja, .estacion { background: var(--azul-noche); color: #eef2f5; border-bottom: 0; }
+.franja .ancho { padding-top: 30px; padding-bottom: 28px; align-items: flex-end; gap: 28px; }
+.franja h1 { font-size: 38px; font-weight: 600; letter-spacing: -.02em; line-height: 1.1; max-width: 22ch; }
+.franja h1 small { margin-top: 10px; font-size: 16px; font-weight: 400; letter-spacing: 0; line-height: 1.45; color: var(--texto-noche); max-width: 60ch; }
+.franja[data-nivel="alto"] h1::before, .franja[data-nivel="moderado"] h1::before { content: ""; display: block; width: 36px; height: 3px; margin-bottom: 16px; background: var(--alto); }
+.franja[data-nivel="moderado"] h1::before { background: #e3a33b; }
+.estacion .ancho { padding-top: 24px; padding-bottom: 22px; }
+.estacion h1 { font-size: 40px; font-weight: 600; letter-spacing: -.02em; }
+.estacion .nombre { color: var(--texto-noche-2); }
+.estacion .nombre b { color: #eef2f5; font-weight: 600; font-size: 17px; }
+.modo { color: var(--texto-noche-2); }
+.modo b { color: #eef2f5; font-weight: 600; }
+.punto { background: #5cc27a; }
+.punto.rep { background: var(--hielo); }
+
+/* Categorías: pastillas sobrias */
+.cat { border-radius: 3px; font-weight: 700; letter-spacing: .05em; }
+.cat b { font-weight: 700; }
+
+/* Banda de aviso: azul hondo con la marca de color a la izquierda */
+.aviso-banda, .aviso-banda.alto, .aviso-banda.moderado, .aviso-banda.bajo, .aviso-banda.sin { background: var(--azul-hondo); }
+.aviso-banda .ancho { border-left: 4px solid var(--alto); padding-left: 16px; }
+.aviso-banda.moderado .ancho { border-left-color: #e3a33b; }
+.aviso-banda.bajo .ancho { border-left-color: #5cc27a; }
+.aviso-banda.sin .ancho { border-left-color: var(--texto-noche-2); }
+.aviso-banda b { font-weight: 600; }
+.aviso-banda p, .aviso-banda span { color: var(--texto-noche); opacity: 1; }
+
+/* Secciones: planas, sin sombras, esquinas casi rectas */
+main { padding-top: 32px; }
+.caja { border-radius: var(--radio); box-shadow: none; border-color: var(--borde); }
+.caja > h2 { font-size: 16px; font-weight: 600; padding: 14px 18px; }
+.seccion-tit h2 { font-size: 20px; font-weight: 600; letter-spacing: -.01em; }
+.fila:hover, .fila.activo, .vuelo:hover { background: #f2f6f9; }
+.fila .pct b, .vuelo .pct b, .prob b, .cifra { font-weight: 600; }
+.pestanas button { font-family: inherit; font-weight: 600; }
+.pestanas button[aria-selected="true"] { border-bottom-color: var(--azul-noche); }
+.impacto { background: #eaf1f7; }
+.operador { background: var(--azul-claro); color: var(--azul-noche); border-radius: 3px; font-family: inherit; }
+.bruto { background: #f4f7f9; }
+table.pron thead th, table.pron-movil thead th { background: #f4f7f9; }
+table.pron thead th b, table.pron-movil tbody th b { font-weight: 600; }
+.linea-tiempo svg text { font-family: "Familjen Grotesk", sans-serif; }
+
+/* Mapa: carta nocturna; leyenda y controles en negro translúcido */
+.mapa-caja { background: var(--azul-hondo); }
+.mapa-caja .leyenda, .barra-vuelos { background: rgb(11 17 22 / .82); border-color: #26323b; color: var(--texto-noche); border-radius: var(--radio); backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px); }
+.barra-vuelos .gris { color: var(--texto-noche-2); }
+.barra-vuelos select { font-family: inherit; background: var(--negro); color: #eef2f5; border-color: #33424e; border-radius: 3px; }
+.mapa-caja .leyenda .anillo { background: transparent; }
+.mapa-caja .leyenda { display: block; }
+.mapa-caja .leyenda > div { margin-top: 5px; }
+.mapa-caja .leyenda summary { cursor: pointer; font-weight: 600; color: #eef2f5; list-style-position: inside; }
+.mapa-caja .leyenda:not([open]) { padding-block: 6px; }
+
+/* Ficha de detalle abajo (móvil): sustituye al globo sobre el mapa */
+.hoja { position: fixed; left: 0; right: 0; bottom: 0; z-index: 50; background: var(--blanco); color: var(--tinta);
+  border-top: 3px solid var(--azul-noche); max-height: 62svh; overflow: auto;
+  padding: 14px 16px calc(18px + env(safe-area-inset-bottom)); box-shadow: 0 -10px 30px rgb(11 17 22 / .35); }
+.hoja[hidden] { display: none; }
+.hoja .cerrar { position: absolute; top: 6px; right: 6px; width: 44px; height: 44px; border: 0; background: none;
+  font-size: 28px; line-height: 1; color: var(--tinta-2); cursor: pointer; }
+.hoja .pop h3 { padding-right: 40px; font-size: 18px; }
+.hoja .pop p { font-size: 14.5px; }
+.hoja .pop a[href*="aeropuerto.html"] { display: block; margin-top: 12px; padding: 13px; border-radius: var(--radio);
+  background: var(--negro); color: #fff; text-align: center; text-decoration: none; font-weight: 600; }
+.lejos .marcador .chapa { position: relative; }
+.lejos .marcador .chapa::after { content: ""; position: absolute; inset: -12px; }   /* zona de toque más grande */
+.marcador .chapa { font-family: "Familjen Grotesk", sans-serif; font-weight: 700; border-radius: 3px; border-color: var(--azul-hondo); box-shadow: 0 0 0 1px rgb(255 255 255 / .35); }
+.marcador .riesgo { font-family: "Familjen Grotesk", sans-serif; font-weight: 700; border-radius: 3px; border: 0; box-shadow: none; }
+.marcador.alerta .chapa { outline-color: #ff6b5e; }
+.maplibregl-popup-content { font-family: "Familjen Grotesk", sans-serif; border-radius: var(--radio); }
+
+/* Visor 3D */
+.visor { border-radius: var(--radio); box-shadow: none; }
+.hud { border-radius: var(--radio); background: rgb(11 17 22 / .76); }
+.hud-tiempo button, .hud-vistas button { font-family: "Familjen Grotesk", sans-serif; border-radius: 3px; }
+.hud-tiempo button[aria-pressed="true"], .hud-vistas button[aria-pressed="true"] { color: var(--negro); }
+.marca-pista { font-family: "Familjen Grotesk", sans-serif; border-radius: 3px; background: var(--negro); }
+.marca-pista.leas { color: var(--negro); }
+
+/* Pie negro */
+.pie { background: var(--negro); color: var(--texto-noche-2); border-top: 0; }
+.pie strong { color: #eef2f5; font-weight: 600; }
+.pie a { color: var(--hielo); }
+
+/* Ficha del aeropuerto: título grande */
+.estacion h1 { font-size: 52px; letter-spacing: -.03em; }
+
+@media (max-width: 620px) {
+  .marca img { height: 28px; }
+  /* El mapa ocupa todo el ancho y casi toda la pantalla; los controles van encima y la leyenda debajo */
+  .rejilla > .caja { border-radius: 0; border-inline: 0; }
+  .caja > h2 { padding-inline: 14px; }
+  .caja > h2 span { display: none; }
+  .mapa-caja { height: auto; display: flex; flex-direction: column; background: var(--negro); }
+  #mapa { position: relative; inset: auto; height: max(440px, 66svh); }
+  .barra-vuelos { order: -1; position: static; max-width: none; border: 0; border-radius: 0; backdrop-filter: none;
+    -webkit-backdrop-filter: none; background: var(--negro); padding: 9px 14px; gap: 6px 14px; }
+  .barra-vuelos select { max-width: 170px; padding: 6px; font-size: 14px; }
+  .barra-vuelos #estado-vuelos { flex-basis: 100%; font-size: 12px; }
+  .mapa-caja .leyenda { position: static; max-width: none; border: 0; border-radius: 0; background: var(--negro); padding: 10px 14px; }
+  .mapa-caja .leyenda div:nth-child(n+2) { display: flex; }
+  .lejos .marcador .chapa { width: 20px; height: 20px; }
+  .fila, .vuelo { padding-inline: 14px; }
+  .estacion h1 { font-size: 36px; }
+  /* en el móvil, lo primero que se ve es el titular y enseguida el mapa */
+  .franja .ancho { padding-top: 16px; padding-bottom: 14px; gap: 10px; }
+  .franja h1 { font-size: 23px; max-width: none; }
+  .franja h1::before { display: none !important; }
+  .franja h1 small { font-size: 13.5px; margin-top: 6px; }
+  .franja .modo { font-size: 12px; }
+  .rejilla > .caja:first-child > h2 { display: none; }
+  .franja .ancho { padding-top: 22px; padding-bottom: 20px; }
+  .estacion h1 { font-size: 30px; }
+}
+
+/* ------------------------------------------------------------------ Disposición B (portada)
+   Cabecera azul noche con el titular, los avisos y el mapa; debajo, el meteograma de la red y las llegadas. */
+.solo-lector { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+.b-hero .ancho.b-hero-rejilla { display: grid; grid-template-columns: 400px minmax(0, 1fr); gap: 48px; align-items: start;
+  padding-top: 44px; padding-bottom: 40px; }
+.b-hero-texto { display: flex; flex-direction: column; gap: 24px; padding-top: 6px; }
+.b-hero h1 { font-size: 42px; max-width: none; }
+.b-avisos { list-style: none; margin: 0; padding: 0; border-top: 1px solid var(--linea-noche); }
+.b-avisos:empty { display: none; }
+.b-avisos a { display: grid; grid-template-columns: minmax(0, 1fr) 120px 56px; align-items: center; gap: 14px; padding: 13px 0;
+  border-bottom: 1px solid var(--linea-noche); color: #eef2f5; text-decoration: none; }
+.b-avisos a:hover { background: rgb(255 255 255 / .04); }
+.b-avisos b { font-weight: 600; display: block; }
+.b-avisos small { font-size: 13px; color: var(--texto-noche-2); }
+.b-avisos strong { text-align: right; font-size: 20px; font-weight: 600; }
+.b-hero-pie { display: flex; flex-wrap: wrap; gap: 14px 20px; align-items: center; }
+.b-hero-pie .modo { text-align: left; }
+.b-hero .ancho.b-hero-rejilla { align-items: stretch; }
+.b-mapa { display: flex; }
+.b-mapa .mapa-caja { flex: 1; height: auto; min-height: 540px; border-radius: var(--radio); overflow: hidden; }
+
+.b-cuerpo { display: grid; grid-template-columns: minmax(0, 1.3fr) minmax(0, 1fr); gap: 56px; align-items: start;
+  padding-top: 48px; padding-bottom: 56px; }
+.b-tit { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; margin-bottom: 14px; flex-wrap: wrap; }
+.b-tit h2 { margin: 0; font-size: 22px; font-weight: 600; letter-spacing: -.01em; }
+.b-tit span { font-size: 13px; color: var(--tinta-3); }
+.b-cuenta { display: inline-block; min-width: 22px; padding: 1px 7px; margin-left: 6px; border-radius: 11px; background: var(--alto);
+  color: #fff; font-size: 13px; text-align: center; vertical-align: 3px; }
+.b-cuenta:empty { display: none; }
+.b-cuerpo .lista { max-height: none; overflow: visible; }
+.b-meteo-horas, .b-fila { display: grid; grid-template-columns: 190px repeat(12, minmax(0, 1fr)) 96px; align-items: center; }
+.b-meteo-horas { font-size: 12px; color: var(--tinta-3); padding-bottom: 8px; border-bottom: 1px solid #c9d3dc; }
+.b-meteo-horas span { text-align: center; }
+.b-meteo-horas span:last-child { text-align: right; }
+.fila.b-fila { gap: 0; padding: 0; height: 38px; border-bottom: 1px solid var(--borde-suave); }
+.b-nom { display: flex; align-items: center; gap: 7px; font-size: 14px; white-space: nowrap; overflow: hidden; }
+.b-nom b { font-weight: 600; }
+.b-nom .cat { min-width: 0; font-size: 10.5px; padding: 1px 5px; }
+.b-celda { display: flex; justify-content: center; align-items: center; height: 100%; }
+.b-celda i, .b-punto { display: inline-block; border-radius: 50%; background: var(--azul-noche); }
+.b-celda i.alto, .b-punto.alto { background: var(--alto); }
+.b-celda i.moderado, .b-punto.moderado { background: #e3a33b; }
+.b-celda i.bajo, .b-punto.bajo { background: #9fb3c4; }
+.b-max b { font-weight: 600; }
+.b-max b.alto { color: var(--alto); }
+.b-max b.moderado { color: #a8650c; }
+.b-max span { color: var(--tinta-3); font-weight: 400; font-size: 13px; }
+.b-fila:hover .b-celda i { transform: scale(1.12); }
+.b-max { text-align: right; font-weight: 600; font-size: 14px; white-space: nowrap; }
+.b-nota { display: flex; flex-wrap: wrap; gap: 6px 16px; align-items: center; margin: 14px 0 0; font-size: 12.5px; color: var(--tinta-3); }
+.b-nota span { display: inline-flex; align-items: center; gap: 6px; }
+.b-punto { width: 10px; height: 10px; }
+.b-lleg .impacto { margin: 0 0 4px; padding: 12px 14px; border: 0; border-radius: var(--radio); }
+.b-lleg #llegadas { border-top: 1px solid var(--tinta); }
+.b-lleg .vuelo { padding: 14px 2px; background: none; }
+.b-lleg .vuelo:hover { background: #f2f6f9; }
+
+@media (max-width: 1100px) {
+  .b-hero .ancho.b-hero-rejilla { grid-template-columns: 1fr; gap: 28px; }
+  .b-cuerpo { grid-template-columns: 1fr; gap: 40px; }
+}
+@media (max-width: 620px) {
+  .b-hero .ancho.b-hero-rejilla { padding-top: 16px; padding-bottom: 0; gap: 16px; }
+  .b-hero-texto { gap: 14px; }
+  .b-hero h1 { font-size: 23px; }
+  .b-avisos a { grid-template-columns: minmax(0, 1fr) 80px 48px; padding: 10px 0; }
+  .b-avisos svg { width: 80px; }
+  .b-mapa { margin-inline: -12px; }
+  .b-mapa .mapa-caja { height: auto; border-radius: 0; }
+  main.ancho.b-cuerpo { padding: 28px 14px 40px; }
+  .b-meteo-horas, .b-fila { grid-template-columns: 46px repeat(12, minmax(0, 1fr)) 70px; }
+  .b-meteo-horas .impar { visibility: hidden; }
+  .b-max, .b-max span { font-size: 12px; }
+  .b-nom span, .b-nom .cat, .b-nom { font-size: 13px; }
+  .b-nom .cat, .b-nom-txt { display: none; }
+  .b-tit span { flex-basis: 100%; }
+}
+
+/* ------------------------------------------------------------------ Disposición B (aeropuerto) */
+.estacion.b-aero .ancho.b-aero-rejilla { display: grid; grid-template-columns: minmax(0, 1fr) 500px; gap: 56px; align-items: end;
+  padding-top: 40px; padding-bottom: 40px; flex-wrap: nowrap; }
+.b-miga { margin: 0 0 10px; font-size: 15px; color: var(--texto-noche-2); }
+.b-miga a { color: var(--hielo); text-decoration: none; }
+.b-aero-nombre { display: flex; align-items: center; gap: 18px; flex-wrap: wrap; }
+.estacion.b-aero h1 { font-size: 84px; line-height: .95; letter-spacing: -.035em; font-weight: 600; margin: 0; }
+.b-aero[data-nivel="alto"] .b-miga::after, .b-aero[data-nivel="moderado"] .b-miga::after { content: ""; display: block; width: 36px;
+  height: 3px; margin-top: 18px; background: var(--alto); }
+.b-aero[data-nivel="moderado"] .b-miga::after { background: #e3a33b; }
+.b-aero-frase { margin: 18px 0 0; font-size: 20px; line-height: 1.4; color: var(--texto-noche); max-width: 34em; }
+.b-metar { margin: 22px 0 0; font-size: 14px; line-height: 1.6; color: var(--hielo); background: var(--azul-hondo); border-radius: var(--radio);
+  padding: 12px 14px; word-break: break-word; }
+.b-aero-pie { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 6px 20px; margin-top: 16px; font-size: 13px; }
+.b-aero-pie .nombre { color: var(--texto-noche-2); margin: 0; }
+.b-aero-pie .modo { text-align: left; }
+.b-datos { margin: 0; display: grid; grid-template-columns: 1fr 1fr; border-top: 1px solid var(--linea-noche); }
+.b-datos div { padding: 16px 0; border-bottom: 1px solid var(--linea-noche); }
+.b-datos div:nth-child(even) { padding-left: 24px; border-left: 1px solid var(--linea-noche); }
+.b-datos dt { font-size: 13px; color: var(--texto-noche-2); }
+.b-datos dd { margin: 4px 0 0; font-size: 30px; font-weight: 600; font-variant-numeric: tabular-nums; }
+
+.b-meteo-aero { margin-bottom: 40px; }
+.b-meteo-caja { background: var(--blanco); border-radius: var(--radio); padding: 24px 24px 16px; overflow-x: auto; }
+.b-meteo-caja svg { display: block; width: 100%; min-width: 640px; height: auto; font-family: "Familjen Grotesk", sans-serif; }
+.b-franja { display: inline-block; width: 18px; height: 10px; background: #a9cbe4; opacity: .6; }
+.b-dos { display: grid; grid-template-columns: minmax(0, 1.4fr) minmax(0, 1fr); gap: 32px; align-items: start; margin-bottom: 40px; }
+.b-dos { align-items: stretch; }
+.b-dos .llegadas { margin-top: 0; }
+.b-taf { background: var(--negro); color: #eef2f5; border-radius: var(--radio); padding: 22px 24px; }
+.b-taf h2 { margin: 0 0 12px; font-size: 18px; font-weight: 600; }
+.b-taf .mono { font-size: 13px; line-height: 1.7; color: var(--hielo); margin: 0; word-break: break-word; }
+.b-taf p { margin: 12px 0 0; font-size: 14.5px; line-height: 1.5; color: var(--texto-noche); }
+.b-taf p:first-child { margin-top: 0; }
+
+@media (max-width: 1000px) {
+  .estacion.b-aero .ancho.b-aero-rejilla { grid-template-columns: 1fr; gap: 24px; }
+  .b-dos { grid-template-columns: 1fr; }
+}
+@media (max-width: 620px) {
+  .estacion.b-aero .ancho.b-aero-rejilla { padding-top: 18px; padding-bottom: 22px; }
+  .estacion.b-aero h1 { font-size: 46px; }
+  .b-aero-frase { font-size: 17px; }
+  .b-metar { font-size: 12.5px; }
+  .b-datos dd { font-size: 22px; }
+  .b-datos div:nth-child(even) { padding-left: 14px; }
+  .b-meteo-caja { padding: 14px 10px 10px; margin-inline: -12px; border-radius: 0; }
+}
+.b-lleg #llegadas > p { padding: 14px 2px !important; }

@@ -26,3 +26,6 @@ _site/
 .alertas/
 .pytest_tmp/
 data/alertas_estado.json
+
+# F7b: pistas de vuelo descargadas (se regeneran con python -m novok.desvios descargar)
+data/desvios/
