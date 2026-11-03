@@ -334,7 +334,7 @@ const promesaOsm = Promise.all([leerJson("mapa/norte.json"), leerJson("mapa/mund
 const absoluta = u => new URL(u, location.href).href.replace(/%7B/g, "{").replace(/%7D/g, "}");
 
 async function estiloOsm(info) {
-  const capas = await fetch("mapa/capas_osm.json").then(r => r.json());
+  const capas = await fetch("mapa/capas_osm.json?v=noche-1", { cache: "no-cache" }).then(r => r.json());   // ?v: que el móvil no use la paleta antigua guardada
   const protocolo = new pmtiles.Protocol();
   maplibregl.addProtocol("pmtiles", protocolo.tile);
   const atribucion = '<a href="https://www.openstreetmap.org/copyright" target="_blank">© OpenStreetMap</a> · Protomaps';
@@ -441,7 +441,7 @@ function render(r) {
   const horas = Array.from({ length: 12 }, (_, k) => base + k * 3600e3);
   const hh = t => new Date(t).toLocaleTimeString("es-ES", { timeZone: ZONA, hour: "2-digit" });
   document.getElementById("meteo-horas").innerHTML = `<span></span>` + horas.map((t, k) =>
-    `<span class="${k % 2 ? "impar" : ""}">${hh(t)}</span>`).join("") + `<span>Cuándo</span>`;
+    `<span class="${k % 2 ? "impar" : ""}">${hh(t)}</span>`).join("") + `<span>Máx.</span><span>Cuándo</span>`;
   const V0 = window.NovokVuelos;
   document.getElementById("lista").innerHTML = lista.map(a => {
     const rr = a.riesgo;
@@ -460,7 +460,7 @@ function render(r) {
     const cuando = alto ? `<b class="alto">${alto}</b>` : mod ? `<b class="moderado">${mod}</b>` : ps.some(p => p != null) ? `<span>sin riesgo</span>` : `<span>sin datos</span>`;
     return `<a class="fila b-fila" data-icao="${esc(a.icao)}" href="${enlace(a.icao)}">
       <span class="b-nom"><b>${esc(a.icao)}</b> <span class="b-nom-txt">${esc(a.nombre)}</span> ${pastilla(a.categoria)}</span>${puntos}
-      <span class="b-max" title="${rr ? "máximo " + pct(rr.p) : ""}">${cuando}</span></a>`;
+      <span class="b-pct ${rr?.nivel || ""}">${rr ? pct(rr.p) : "—"}</span><span class="b-max">${cuando}</span></a>`;
   }).join("");
   // Avisos en la cabecera: los aeropuertos con riesgo, con su curva de las próximas 12 h
   const conAviso = lista.filter(a => a.riesgo && a.riesgo.nivel !== "bajo").slice(0, 4);

@@ -965,20 +965,20 @@ function actualizarVisor(b) {
   visor.escenarios = escenarios(b);
   visor.actual = Math.min(visor.actual, Math.max(0, visor.escenarios.length - 1));
   const barra = document.getElementById("hud-tiempo");
-  barra.innerHTML = `<button type="button" class="play" aria-label="Reproducir la secuencia">▶</button>`
+  barra.innerHTML = `<button type="button" class="play" aria-label="Reproducir la secuencia"><svg width="12" height="12" viewBox="0 0 12 12" aria-hidden="true"><path d="M2 1l9 5-9 5z" fill="currentColor"/></svg></button>`
     + visor.escenarios.map((e, i) => `<button type="button" data-i="${i}" aria-pressed="${i === visor.actual}">${e.etiqueta}</button>`).join("");
   barra.querySelectorAll("button[data-i]").forEach(bt => bt.addEventListener("click", () => { pararSecuencia(); elegirEscenario(+bt.dataset.i); }));
   barra.querySelector(".play").addEventListener("click", () => visor.reproduciendo ? pararSecuencia() : reproducir());
   elegirEscenario(visor.actual);
 }
 function reproducir() {
-  const bt = document.querySelector("#hud-tiempo .play"); bt.textContent = "❚❚"; bt.setAttribute("aria-label", "Pausar");
+  const bt = document.querySelector("#hud-tiempo .play"); bt.innerHTML = '<svg width="12" height="12" viewBox="0 0 12 12" aria-hidden="true"><path d="M2 1h3v10H2zM7 1h3v10H7z" fill="currentColor"/></svg>'; bt.setAttribute("aria-label", "Pausar");
   const paso = () => elegirEscenario((visor.actual + 1) % visor.escenarios.length);
   paso(); visor.reproduciendo = setInterval(paso, 3500);
 }
 function pararSecuencia() {
   clearInterval(visor.reproduciendo); visor.reproduciendo = null;
-  const bt = document.querySelector("#hud-tiempo .play"); if (bt) { bt.textContent = "▶"; bt.setAttribute("aria-label", "Reproducir la secuencia"); }
+  const bt = document.querySelector("#hud-tiempo .play"); if (bt) { bt.innerHTML = '<svg width="12" height="12" viewBox="0 0 12 12" aria-hidden="true"><path d="M2 1l9 5-9 5z" fill="currentColor"/></svg>'; bt.setAttribute("aria-label", "Reproducir la secuencia"); }
 }
 
 /* ---------- montaje ---------- */

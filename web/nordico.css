@@ -187,7 +187,7 @@ table.pron thead th b, table.pron-movil tbody th b { font-weight: 600; }
   color: #fff; font-size: 13px; text-align: center; vertical-align: 3px; }
 .b-cuenta:empty { display: none; }
 .b-cuerpo .lista { max-height: none; overflow: visible; }
-.b-meteo-horas, .b-fila { display: grid; grid-template-columns: 190px repeat(12, minmax(0, 1fr)) 96px; align-items: center; }
+.b-meteo-horas, .b-fila { display: grid; grid-template-columns: 190px repeat(12, minmax(0, 1fr)) 56px 92px; align-items: center; }
 .b-meteo-horas { font-size: 12px; color: var(--tinta-3); padding-bottom: 8px; border-bottom: 1px solid #c9d3dc; }
 .b-meteo-horas span { text-align: center; }
 .b-meteo-horas span:last-child { text-align: right; }
@@ -201,6 +201,10 @@ table.pron thead th b, table.pron-movil tbody th b { font-weight: 600; }
 .b-celda i.moderado, .b-punto.moderado { background: #e3a33b; }
 .b-celda i.bajo, .b-punto.bajo { background: #9fb3c4; }
 .b-max b { font-weight: 600; }
+.b-pct { text-align: right; font-weight: 600; font-size: 14px; font-variant-numeric: tabular-nums; white-space: nowrap; color: var(--tinta-2); }
+.b-pct.alto { color: var(--alto); }
+.b-pct.moderado { color: #a8650c; }
+.b-meteo-horas span:nth-last-child(2) { text-align: right; }
 .b-max b.alto { color: var(--alto); }
 .b-max b.moderado { color: #a8650c; }
 .b-max span { color: var(--tinta-3); font-weight: 400; font-size: 13px; }
@@ -227,7 +231,9 @@ table.pron thead th b, table.pron-movil tbody th b { font-weight: 600; }
   .b-mapa { margin-inline: -12px; }
   .b-mapa .mapa-caja { height: auto; border-radius: 0; }
   main.ancho.b-cuerpo { padding: 28px 14px 40px; }
-  .b-meteo-horas, .b-fila { grid-template-columns: 46px repeat(12, minmax(0, 1fr)) 70px; }
+  .b-meteo-horas, .b-fila { grid-template-columns: 42px repeat(12, minmax(0, 1fr)) 40px 64px; }
+  .b-pct { font-size: 12.5px; }
+  .b-celda i { max-width: 15px; max-height: 15px; }
   .b-meteo-horas .impar { visibility: hidden; }
   .b-max, .b-max span { font-size: 12px; }
   .b-nom span, .b-nom .cat, .b-nom { font-size: 13px; }
@@ -284,3 +290,4 @@ table.pron thead th b, table.pron-movil tbody th b { font-weight: 600; }
   .b-meteo-caja { padding: 14px 10px 10px; margin-inline: -12px; border-radius: 0; }
 }
 .b-lleg #llegadas > p { padding: 14px 2px !important; }
+.hud-tiempo .play { display: inline-flex; align-items: center; justify-content: center; }
