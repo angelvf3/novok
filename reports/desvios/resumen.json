@@ -1,0 +1,35 @@
+{
+ "desvios_detectados": 338,
+ "desvios_con_bajo_minimos": 54,
+ "por_aeropuerto": {
+  "LECO": 23,
+  "LEVX": 11,
+  "LEST": 10,
+  "LEXJ": 5,
+  "LEBB": 3,
+  "LELN": 1,
+  "LEVT": 1
+ },
+ "avisados": {
+  "1h": {
+   "novok": 38,
+   "persistencia": 40,
+   "total": 54
+  },
+  "3h": {
+   "novok": 24,
+   "persistencia": 17,
+   "total": 53
+  },
+  "6h": {
+   "novok": 25,
+   "persistencia": 5,
+   "total": 53
+  },
+  "12h": {
+   "novok": 25,
+   "persistencia": 1,
+   "total": 54
+  }
+ }
+}
