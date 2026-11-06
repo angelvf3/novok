@@ -553,14 +553,30 @@ function posicionActual(a, ahora) {
   return [a.lon + Math.sin(r) * km / (111.32 * Math.cos(a.lat * Math.PI / 180)), a.lat + Math.cos(r) * km / 111.32];
 }
 
+// Cuántos aviones hay (de la aerolínea elegida, si hay filtro) y cuántos van a la red
+function pintarEstado() {
+  if (!vuelos.cfg) return;
+  const todos = vuelos.analizados, lista = vuelos.filtro ? todos.filter(a => a.operador === vuelos.filtro) : todos;
+  const n = lista.length, hacia = lista.filter(a => a.llegada).length;
+  const de = vuelos.filtro ? ` de ${esc(vuelos.aerolineas[vuelos.filtro] || vuelos.filtro)}` : "";
+  document.getElementById("estado-vuelos").innerHTML = vuelos.error && !todos.length
+    ? `<span style="color:#ff8a80">No se pudieron cargar los vuelos</span> <span class="gris">(${esc(motivoVuelos(vuelos.error))})</span>`
+    : `${n} ${n === 1 ? "avión" : "aviones"}${de} · ${hacia} hacia la red · <span class="gris">${esc(vuelos.cfg.atribucion_actual || vuelos.cfg.atribucion)}</span>`;
+}
+
 function dibujarVuelos() {
   if (!mapa?.getSource("aviones")) return;
   const ver = document.getElementById("ver-vuelos").checked, ahora = Date.now();
-  const visibles = vuelos.soloRiesgo ? vuelos.analizados.filter(a => a.riesgo && a.riesgo.nivel !== "bajo") : vuelos.analizados;
+  // Con una aerolínea elegida, en el mapa solo quedan sus aviones; con "Solo con riesgo", solo los que van a la red con riesgo
+  const visibles = vuelos.analizados.filter(a => (!vuelos.filtro || a.operador === vuelos.filtro)
+    && (!vuelos.soloRiesgo || (a.riesgo && a.riesgo.nivel !== "bajo")));
+  if (vuelos.seleccionado && !visibles.some(a => a.hex === vuelos.seleccionado)) {
+    vuelos.seleccionado = null; popup?.remove(); cerrarHoja(false);
+  }
   mapa.getSource("aviones").setData({ type: "FeatureCollection", features: !ver ? [] : visibles.map(a => ({
     type: "Feature", geometry: { type: "Point", coordinates: posicionActual(a, ahora) },
     properties: { hex: a.hex, rumbo: a.rumbo ?? 0, red: !!a.destino, orden: a.riesgo ? a.riesgo.p : a.destino ? -1 : -2,
-      atenuado: !!vuelos.filtro && a.operador !== vuelos.filtro,
+      atenuado: false,
       color: a.riesgo ? COLOR_RIESGO[a.riesgo.nivel] : a.destino ? "#eef2f5" : "#7f9db8" } })) });
   const sel = vuelos.seleccionado && vuelos.analizados.find(x => x.hex === vuelos.seleccionado);
   const aero = icao => datos?.aeropuertos.find(x => x.icao === icao);
@@ -675,11 +691,7 @@ async function actualizarVuelos() {
   } finally {
     vuelos.ocupado = false;
   }
-  const n = vuelos.analizados.length, hacia = vuelos.analizados.filter(a => a.llegada).length;
-  document.getElementById("estado-vuelos").innerHTML = vuelos.error && !n
-    ? `<span style="color:#ff8a80">No se pudieron cargar los vuelos</span> <span class="gris">(${esc(motivoVuelos(vuelos.error))})</span>`
-    : `${n} aviones · ${hacia} hacia la red · <span class="gris">${esc(vuelos.cfg.atribucion_actual || vuelos.cfg.atribucion)}</span>`;
-  pintarFiltro(); pintarLlegadas(); dibujarVuelos();
+  pintarEstado(); pintarFiltro(); pintarLlegadas(); dibujarVuelos();
   if (vuelos.seleccionado) {
     const a = vuelos.analizados.find(x => x.hex === vuelos.seleccionado);
     if (a) actualizarFicha(textoVuelo(a));
@@ -718,7 +730,7 @@ async function iniciarVuelos() {
     const u = new URL(location.href);
     vuelos.filtro ? u.searchParams.set("aerolinea", vuelos.filtro) : u.searchParams.delete("aerolinea");
     history.replaceState(null, "", u);          // el enlace sirve para enviar la vista de una aerolínea
-    pintarFiltro(); pintarLlegadas(); dibujarVuelos();
+    pintarEstado(); pintarFiltro(); pintarLlegadas(); dibujarVuelos();
   });
   const arrancar = () => { capasVuelos(); actualizarVuelos(); setInterval(actualizarVuelos, (vuelos.cfg.refresco_s || 10) * 1000); setInterval(dibujarVuelos, 1000); };
   mapa.loaded() ? arrancar() : mapa.once("load", arrancar);
