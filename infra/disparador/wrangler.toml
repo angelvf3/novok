@@ -1,0 +1,10 @@
+name = "novok-disparador"
+main = "worker.js"
+compatibility_date = "2026-10-01"
+
+[vars]
+REPO = "angelvf3/novok"
+
+# Hora UTC. Minutos 13 y 43, como el cron del workflow de publicar
+[triggers]
+crons = ["13,43 * * * *"]

@@ -17,7 +17,7 @@ permissions:
 
 concurrency:
   group: pages
-  cancel-in-progress: true
+  cancel-in-progress: false   # no cortar una publicación a medias si llega otra (disparador + schedule)
 
 jobs:
   publicar:
