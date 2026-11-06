@@ -1,0 +1,14 @@
+Copyright (c) 2026 Ángel Villabrille Fernández. Todos los derechos reservados.
+
+Este software, incluidos el código fuente, los modelos entrenados, los datos derivados, los informes y la
+documentación (en conjunto, "NOVOK"), es propiedad exclusiva de su autor.
+
+Queda prohibido, sin autorización previa y por escrito del autor: usar, copiar, modificar, fusionar, publicar,
+distribuir, sublicenciar o vender NOVOK o cualquier parte de él, así como utilizarlo para crear obras derivadas o
+para entrenar o evaluar otros sistemas.
+
+El acceso al repositorio o a la web pública no concede ninguna licencia. Las licencias de los componentes de
+terceros que incluye NOVOK (mapas, tipografías, bibliotecas y datos abiertos) se rigen por sus propios términos,
+recogidos en web/vendor/licencias y en web/mapa/LEEME.txt.
+
+Contacto para licencias: a través de https://novok.pages.dev
