@@ -291,3 +291,4 @@ table.pron thead th b, table.pron-movil tbody th b { font-weight: 600; }
 }
 .b-lleg #llegadas > p { padding: 14px 2px !important; }
 .hud-tiempo .play { display: inline-flex; align-items: center; justify-content: center; }
+.punto.mal { background: #ff6b5e; }

@@ -408,6 +408,16 @@ function iniciarMapa(lista, osm = null) {
   pintarMapa(lista);
 }
 
+// Si el último briefing tiene más de 75 minutos, no es "en directo": se dice claramente y desde cuándo
+function estadoDirecto(g, extra = "") {
+  const min = Math.round((Date.now() - Date.parse(g)) / 60000);
+  if (min > 75) {
+    const hace = min < 120 ? `${min} min` : `${Math.round(min / 60)} h`;
+    return `<span class="punto mal"></span><b>Datos con retraso</b>: los últimos son de las ${fmtZ(g)} (hace ${hace})<br>las horas del pronóstico cuentan desde entonces`;
+  }
+  return `<span class="punto ${extra}"></span><b>En directo</b>, actualizado ${fmtZ(g)}<br>se renueva cada 30 min`;
+}
+
 function render(r) {
   datos = r;
   const lista = ordenar(r.aeropuertos || []);
@@ -415,7 +425,7 @@ function render(r) {
 
   document.getElementById("modo").innerHTML = rep
     ? `<span class="punto rep"></span><b>Repetición</b> del ${new Date(r.generado_utc).toLocaleDateString("es-ES", { timeZone: ZONA, day: "numeric", month: "long", year: "numeric" })}, ${fmtZ(r.generado_utc)}<br>datos reales de ese día`
-    : `<span class="punto"></span><b>En directo</b>, actualizado ${fmtZ(r.generado_utc)}<br>se renueva cada 30 min`;
+    : estadoDirecto(r.generado_utc);
   const cuenta = {};
   lista.forEach(a => { if (a.categoria) cuenta[a.categoria] = (cuenta[a.categoria] || 0) + 1; });
   document.getElementById("recuento").innerHTML = ["LIFR", "IFR", "MVFR", "VFR"].filter(c => cuenta[c])

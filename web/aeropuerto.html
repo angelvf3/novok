@@ -1001,7 +1001,7 @@ function cabeceraB(b) {
   const nivel = ah.bajo_minimos || (peor && peor.bajo_minimos.nivel === "alto") ? "alto" : peor && peor.bajo_minimos.nivel === "moderado" ? "moderado" : "bajo";
   document.querySelector(".b-aero").dataset.nivel = nivel;
   const m = document.getElementById("metar-bruto");
-  m.hidden = !ah.metar; m.textContent = ah.metar ? "METAR " + ah.metar : "";
+  m.hidden = !ah.metar; m.textContent = ah.metar ? (/^(METAR|SPECI) /.test(ah.metar) ? ah.metar : "METAR " + ah.metar) : "";
   const dato = (t, v) => `<div><dt>${t}</dt><dd>${v}</dd></div>`;
   document.getElementById("datos-ahora").innerHTML =
     dato("Visibilidad", visTxt(ah.vis_m)) +
@@ -1052,13 +1052,23 @@ function meteograma(b) {
   return s;
 }
 
+// Si el último briefing tiene más de 75 minutos, no es "en directo": se dice claramente y desde cuándo
+function estadoDirecto(g, extra = "") {
+  const min = Math.round((Date.now() - Date.parse(g)) / 60000);
+  if (min > 75) {
+    const hace = min < 120 ? `${min} min` : `${Math.round(min / 60)} h`;
+    return `<span class="punto mal"></span><b>Datos con retraso</b>: los últimos son de las ${fmtZ(g)} (hace ${hace})<br>las horas del pronóstico cuentan desde entonces`;
+  }
+  return `<span class="punto ${extra}"></span><b>En directo</b>, actualizado ${fmtZ(g)}<br>se renueva cada 30 min`;
+}
+
 function render(b) {
   ultimo = b;
   const cal = b.calidad || {}, ok = cal.pronostico_emitido, rep = b.modo === "repeticion";
   document.getElementById("cat-actual").innerHTML = b.ahora ? pastilla(categoria(b.ahora.vis_m, b.ahora.techo_ft), true) : "";
   document.getElementById("modo").innerHTML = rep
     ? `<span class="punto rep"></span><b>Repetición</b> del ${new Date(b.generado_utc).toLocaleDateString("es-ES", { timeZone: ZONA, day: "numeric", month: "long", year: "numeric" })}, ${fmtZ(b.generado_utc)}<br>datos reales de ese día`
-    : `<span class="punto ${ok ? "" : "mal"}"></span><b>En directo</b>, actualizado ${fmtZ(b.generado_utc)}<br>se renueva cada 30 min`;
+    : estadoDirecto(b.generado_utc, ok ? "" : "mal");
   const a = b.aeropuerto || {};
   document.title = `NOVOK · ${b.estacion} ${a.nombre || ""}`;
   document.getElementById("icao").textContent = b.estacion;
