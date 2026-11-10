@@ -36,9 +36,10 @@ jobs:
       - name: Generar briefings de la red
         run: |
           mkdir -p _site
-          cp -r web/index.html web/aeropuerto.html web/vuelos.js web/vuelos.json web/costes.json web/aerolineas.json web/novok-logo.png web/nordico.css web/marca web/vendor web/mapa _site/
+          cp -r web/index.html web/aeropuerto.html web/vuelos.js web/vuelos.json web/costes.json web/aerolineas.json web/novok-logo.png web/nordico.css web/pro.css web/marca web/vendor web/mapa _site/
           if [ -d web/terreno ]; then cp -r web/terreno _site/; fi
           if [ -f web/cliente.json ]; then cp web/cliente.json _site/; fi
+          if [ -f web/desvios.json ]; then cp web/desvios.json _site/; fi
           if [ -d web/cliente ]; then cp -r web/cliente _site/; fi
           python -m novok.red briefing --salida _site/datos
       # Alertas (F10): el estado de lo ya avisado se guarda entre ejecuciones en la caché de Actions.
