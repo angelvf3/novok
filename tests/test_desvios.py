@@ -60,16 +60,18 @@ def test_vuelo_normal_sin_aproximacion_extra():
 def test_web_resumen_por_aeropuerto(tmp_path, monkeypatch):
     import json
     informe, raiz = tmp_path / "informe", tmp_path / "raiz"
-    informe.mkdir(); (raiz / "web").mkdir(parents=True)
+    informe.mkdir()
+    (raiz / "web").mkdir(parents=True)
     monkeypatch.setattr(dv, "DIR_INFORME", informe)
     monkeypatch.setattr(dv, "RAIZ", raiz)
+    base = {"previsto": "LECO", "bajo_minimos_obs": True, "en_prueba": True}
     pd.DataFrame([
-        {"dia": "2026-01-10", "indicativo": "AEA7233", "previsto": "LECO", "aterriza": "LEST", "hora_prevista_utc": "2026-01-10T07:00:00+00:00",
-         "bajo_minimos_obs": True, "aviso_6h": True, "persistencia_6h": False, "en_prueba": True},
-        {"dia": "2026-02-03", "indicativo": "IBE512", "previsto": "LECO", "aterriza": "LEVX", "hora_prevista_utc": "2026-02-03T08:00:00+00:00",
-         "bajo_minimos_obs": True, "aviso_6h": False, "persistencia_6h": True, "en_prueba": True},
-        {"dia": "2026-02-04", "indicativo": "VLG1", "previsto": "LECO", "aterriza": "LEST", "hora_prevista_utc": "2026-02-04T08:00:00+00:00",
-         "bajo_minimos_obs": False, "aviso_6h": False, "persistencia_6h": False, "en_prueba": True},
+        {**base, "dia": "2026-01-10", "indicativo": "AEA7233", "aterriza": "LEST",
+         "hora_prevista_utc": "2026-01-10T07:00:00+00:00", "aviso_6h": True, "persistencia_6h": False},
+        {**base, "dia": "2026-02-03", "indicativo": "IBE512", "aterriza": "LEVX",
+         "hora_prevista_utc": "2026-02-03T08:00:00+00:00", "aviso_6h": False, "persistencia_6h": True},
+        {**base, "dia": "2026-02-04", "indicativo": "VLG1", "aterriza": "LEST", "bajo_minimos_obs": False,
+         "hora_prevista_utc": "2026-02-04T08:00:00+00:00", "aviso_6h": False, "persistencia_6h": False},
     ]).to_csv(informe / "desvios_evaluados.csv", index=False)
     out = dv.web()
     x = out["aeropuertos"]["LECO"]

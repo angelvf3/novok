@@ -499,13 +499,15 @@ def web(antelacion: int = 6) -> dict:
             "casos": int(len(g)), "evaluados": int(len(ev)),
             "avisados": int((ev[c_av] == True).sum()) if len(ev) else 0,  # noqa: E712
             "persistencia": int((ev[c_pe] == True).sum()) if len(ev) else 0,  # noqa: E712
-            "ultimos": [{"fecha": pd.Timestamp(r.dia).strftime("%d/%m"), "indicativo": r.indicativo, "aterriza": r.aterriza,
-                         "avisado": bool(getattr(r, c_av)) if c_av in g and pd.notna(getattr(r, c_av)) else False}
+            "ultimos": [{"fecha": pd.Timestamp(r.dia).strftime("%d/%m"), "indicativo": r.indicativo,
+                         "aterriza": r.aterriza,
+                         "avisado": bool(c_av in g and pd.notna(getattr(r, c_av)) and getattr(r, c_av))}
                         for r in g.head(4).itertuples()],
         }
     destino = RAIZ / "web" / "desvios.json"
     destino.write_text(json.dumps(out, ensure_ascii=False, indent=1), encoding="utf-8")
-    print(f"{destino}: {sum(x['casos'] for x in out['aeropuertos'].values())} casos en {len(out['aeropuertos'])} aeropuertos")
+    casos = sum(x["casos"] for x in out["aeropuertos"].values())
+    print(f"{destino}: {casos} casos en {len(out['aeropuertos'])} aeropuertos")
     return out
 
 
