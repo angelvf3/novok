@@ -55,3 +55,25 @@ def test_vuelo_normal_sin_aproximacion_extra():
     final = [(leas[1] - 0.05, leas[2] + 0.1, 2000), (leas[1], leas[2], 0)]
     v = dv.vuelos_del_dia(_pista(0x111111, "IBE0532", crucero + final))
     assert v["aterriza"].iat[0] == "LEAS" and v["aproximaciones"].iat[0] == []
+
+
+def test_web_resumen_por_aeropuerto(tmp_path, monkeypatch):
+    import json
+    informe, raiz = tmp_path / "informe", tmp_path / "raiz"
+    informe.mkdir(); (raiz / "web").mkdir(parents=True)
+    monkeypatch.setattr(dv, "DIR_INFORME", informe)
+    monkeypatch.setattr(dv, "RAIZ", raiz)
+    pd.DataFrame([
+        {"dia": "2026-01-10", "indicativo": "AEA7233", "previsto": "LECO", "aterriza": "LEST", "hora_prevista_utc": "2026-01-10T07:00:00+00:00",
+         "bajo_minimos_obs": True, "aviso_6h": True, "persistencia_6h": False, "en_prueba": True},
+        {"dia": "2026-02-03", "indicativo": "IBE512", "previsto": "LECO", "aterriza": "LEVX", "hora_prevista_utc": "2026-02-03T08:00:00+00:00",
+         "bajo_minimos_obs": True, "aviso_6h": False, "persistencia_6h": True, "en_prueba": True},
+        {"dia": "2026-02-04", "indicativo": "VLG1", "previsto": "LECO", "aterriza": "LEST", "hora_prevista_utc": "2026-02-04T08:00:00+00:00",
+         "bajo_minimos_obs": False, "aviso_6h": False, "persistencia_6h": False, "en_prueba": True},
+    ]).to_csv(informe / "desvios_evaluados.csv", index=False)
+    out = dv.web()
+    x = out["aeropuertos"]["LECO"]
+    assert (x["casos"], x["evaluados"], x["avisados"], x["persistencia"]) == (2, 2, 1, 1)
+    assert x["ultimos"][0] == {"fecha": "03/02", "indicativo": "IBE512", "aterriza": "LEVX", "avisado": False}
+    assert out["periodo"] == "enero a febrero de 2026"
+    assert json.loads((raiz / "web" / "desvios.json").read_text())["aeropuertos"]["LECO"]["casos"] == 2

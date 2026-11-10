@@ -165,34 +165,66 @@
   }
 </style>
 <link rel="stylesheet" href="nordico.css">
+<link rel="stylesheet" href="pro.css">
 </head>
-<body>
-<header class="cabecera">
-  <div class="ancho">
-    <div class="logo"><a class="marca" href="./"><img src="marca/novok-logo-oscuro-72.png" alt="NOVOK" width="153" height="34"></a><span>Niebla y techo bajo<br>Aeropuertos del norte de España</span><span id="cliente" class="cliente" hidden></span></div>
-    <div class="relojes" aria-label="Hora actual">
-      <div><b class="tab" id="reloj-l">--:--:--</b><small>HORA PENINSULAR</small></div>
-    </div>
+<body class="pro">
+<aside class="p-lateral" id="lateral" aria-label="Navegación">
+  <div class="p-lat-cab">
+    <a class="marca" href="./"><img src="marca/novok-logo-oscuro-72.png" alt="NOVOK" width="126" height="28"></a>
+    <button type="button" class="p-cerrar-lat" id="cerrar-lateral" aria-label="Cerrar menú">×</button>
   </div>
+  <label class="p-vista" for="aerolinea"><span>Vista</span><b id="vista-nombre">Todas las aerolíneas</b><span id="cliente" class="cliente" hidden></span></label>
+  <nav class="p-nav" aria-label="Principal">
+    <a href="./" aria-current="page"><i></i>Panel de red</a>
+    <a href="#p-alertas"><i></i>Alertas<b id="nav-alertas"></b></a>
+    <a href="#p-lleg"><i></i>Llegadas en riesgo<b id="nav-llegadas"></b></a>
+    <a href="#p-matriz"><i></i>Próximas 12 horas</a>
+  </nav>
+  <h2 class="p-lat-tit">Aeropuertos</h2>
+  <ul class="p-lat-red" id="lateral-red"></ul>
+  <p class="p-lat-pie">Apoyo a la planificación. No sustituye al METAR y TAF oficiales de AEMET.</p>
+</aside>
+<div class="p-velo" id="velo" hidden></div>
+
+<div class="p-contenido">
+<header class="p-barra">
+  <button type="button" class="p-menu" id="abrir-lateral" aria-label="Abrir menú" aria-controls="lateral" aria-expanded="false"><svg width="20" height="20" viewBox="0 0 20 20" aria-hidden="true"><path d="M3 5h14M3 10h14M3 15h14" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg></button>
+  <a class="marca p-marca-movil" href="./"><img src="marca/novok-logo-claro-72.png" alt="NOVOK" width="99" height="22"></a>
+  <div class="p-barra-tit"><h1>Panel de red</h1><span>13 aeropuertos del norte de España</span></div>
+  <div class="p-relojes mono" aria-label="Hora actual"><span><b id="reloj-u">--:--</b> UTC</span><span><b id="reloj-l">--:--</b> peninsular</span></div>
+  <span class="p-estado" id="estado-corto"></span>
 </header>
 
-<section class="franja b-hero" id="franja">
-  <div class="ancho b-hero-rejilla">
-    <div class="b-hero-texto">
-      <h1><span id="titular">Red del norte</span><small id="subtitulo">Cargando…</small></h1>
-      <ul class="b-avisos" id="avisos" aria-label="Aeropuertos con aviso"></ul>
-      <div class="b-hero-pie"><div class="recuento" id="recuento"></div><div class="modo" id="modo"></div></div>
+<main class="p-main">
+  <section class="p-situacion" id="franja" aria-labelledby="titular">
+    <div class="p-sit-texto">
+      <h2 id="titular">Red del norte</h2>
+      <p id="subtitulo">Cargando…</p>
+      <p class="modo" id="modo"></p>
     </div>
-    <section class="b-mapa" aria-labelledby="t-mapa">
-      <h2 id="t-mapa" class="solo-lector">Mapa: situación ahora, riesgo en 12 h y vuelos en el aire</h2>
-      <div class="mapa-caja">
-        <div id="mapa"></div>
+    <div class="recuento" id="recuento" aria-label="Aeropuertos por categoría de vuelo"></div>
+  </section>
+
+  <section class="p-resumen" aria-label="Resumen">
+    <div><span>Aeropuertos en aviso</span><b id="r-aviso">—</b><small id="r-aviso-sub"></small></div>
+    <div><span>Llegadas en riesgo</span><b id="r-lleg">—</b><small id="r-lleg-sub">vuelos en el aire</small></div>
+    <div><span>Coste esperado</span><b id="r-coste">—</b><small id="r-coste-sub">de los desvíos posibles</small></div>
+    <div><span>Despeje previsto</span><b id="r-despeje">—</b><small id="r-despeje-sub"></small></div>
+  </section>
+
+  <div class="p-fila p-fila-mapa">
+    <section class="p-tarjeta p-mapa" aria-labelledby="t-mapa">
+      <div class="p-cab p-cab-oscura">
+        <h2 id="t-mapa">Situación y tráfico</h2>
         <div class="barra-vuelos">
-          <label><input type="checkbox" id="ver-vuelos" checked> Vuelos en directo</label>
+          <label><input type="checkbox" id="ver-vuelos" checked> Vuelos</label>
           <select id="aerolinea" aria-label="Aerolínea"><option value="">Todas las aerolíneas</option></select>
           <label class="suave"><input type="checkbox" id="solo-riesgo"> Solo con riesgo</label>
           <span id="estado-vuelos" class="gris">cargando…</span>
         </div>
+      </div>
+      <div class="mapa-caja">
+        <div id="mapa"></div>
         <details class="leyenda" id="leyenda" open><summary>Leyenda</summary>
           <div><span><i style="background:var(--vfr)"></i>VFR</span><span><i style="background:var(--mvfr)"></i>MVFR</span><span><i style="background:var(--ifr)"></i>IFR</span><span><i style="background:var(--lifr)"></i>LIFR</span></div>
           <div>Color: categoría de vuelo ahora (METAR)</div>
@@ -202,36 +234,40 @@
         </details>
       </div>
     </section>
+
+    <section class="p-tarjeta p-alertas" id="p-alertas" aria-labelledby="t-alertas">
+      <div class="p-cab"><h2 id="t-alertas">Alertas activas <b class="p-cuenta" id="n-alertas"></b></h2><span>próximas 12 h</span></div>
+      <div class="p-alertas-lista" id="avisos"></div>
+    </section>
   </div>
-</section>
-<div id="banda" hidden></div>
 
-<main class="ancho b-cuerpo">
-  <section class="b-meteo" aria-labelledby="t-lista">
-    <div class="b-tit"><h2 id="t-lista">Las próximas 12 horas</h2><span>Cada punto es la probabilidad de bajo mínimos en esa hora</span></div>
-    <div class="b-meteo-horas" id="meteo-horas" aria-hidden="true"></div>
-    <div class="lista" id="lista"></div>
-    <p class="b-nota"><span><i class="b-punto bajo"></i>menos del 10 %</span><span><i class="b-punto moderado"></i>10–30 %, vigilar</span><span><i class="b-punto alto"></i>30 % o más, aviso</span>
-      <span>"Cuándo": horas con aviso (rojo) o a vigilar (ámbar).</span></p>
-    <p class="b-nota">Probabilidad de bajo mínimos CAT I (visibilidad &lt; 550 m o techo ≤ 200 ft) en cada hora, en hora peninsular. Pulsa un aeropuerto para ver su briefing.</p>
-  </section>
-  <section class="b-lleg" aria-labelledby="t-lleg">
-    <div class="b-tit"><h2 id="t-lleg">Llegadas en riesgo <b id="n-llegadas" class="b-cuenta"></b></h2></div>
-    <p class="impacto" id="impacto" aria-live="polite"></p>
-    <div class="lista" id="llegadas"></div>
-    <p class="b-nota">Vuelos en el aire hacia la red, por riesgo a su llegada. Coste esperado = probabilidad × coste del desvío al alternativo, con los costes de costes.json (cada aerolínea pone los suyos).</p>
-  </section>
-</main>
-<div class="hoja" id="hoja" role="dialog" aria-label="Detalle" hidden><button type="button" class="cerrar" id="cerrar-hoja" aria-label="Cerrar">×</button><div id="hoja-cuerpo"></div></div>
+  <div class="p-fila p-fila-datos">
+    <section class="p-tarjeta p-matriz" id="p-matriz" aria-labelledby="t-lista">
+      <div class="p-cab"><h2 id="t-lista">Bajo mínimos CAT I, próximas 12 horas</h2><span>hora peninsular</span></div>
+      <div class="p-matriz-cuerpo">
+        <div class="p-m-horas mono" id="meteo-horas" aria-hidden="true"></div>
+        <div class="lista" id="lista"></div>
+      </div>
+      <p class="p-nota"><span class="p-escala"><i></i>0–30 %</span><span><i class="p-rojo"></i>30 % o más: aviso</span><span>Cifra: probabilidad en esa hora. "Cuándo": horas con aviso o a vigilar.</span></p>
+    </section>
 
-<footer class="pie">
-  <div class="ancho">
+    <section class="p-tarjeta p-lleg" id="p-lleg" aria-labelledby="t-lleg">
+      <div class="p-cab"><h2 id="t-lleg">Llegadas en riesgo <b id="n-llegadas" class="p-cuenta"></b></h2><span id="lleg-vista">ordenadas por riesgo</span></div>
+      <p class="impacto" id="impacto" aria-live="polite"></p>
+      <div id="llegadas"></div>
+      <p class="p-nota">Vuelos en el aire hacia la red. Riesgo: probabilidad de bajo mínimos en destino a su hora estimada de llegada. Coste esperado = probabilidad × coste del desvío al alternativo (costes de costes.json; cada aerolínea pone los suyos).</p>
+    </section>
+  </div>
+
+  <footer class="pie">
     <p><strong>Herramienta de apoyo a la planificación de operaciones. No sustituye a la información meteorológica aeronáutica oficial (METAR y TAF de AEMET), que es la que vale para las decisiones de vuelo.</strong></p>
     <p>NOVOK predice niebla y techo bajo con modelos entrenados con los METAR de cada aeropuerto y pronósticos numéricos emitidos 24 h antes.
-      Categorías de vuelo según los criterios de la FAA. Datos de aeropuertos: OurAirports. Mapa: © colaboradores de OpenStreetMap (ODbL), teselas de Protomaps y Natural Earth (dominio público); relieve: AWS Terrain Tiles (datos abiertos).
+      Bajo mínimos CAT I: visibilidad &lt; 550 m o techo ≤ 200 ft. Categorías de vuelo según los criterios de la FAA. Datos de aeropuertos: OurAirports. Mapa: © colaboradores de OpenStreetMap (ODbL), teselas de Protomaps y Natural Earth (dominio público); relieve: AWS Terrain Tiles (datos abiertos).
       Método y verificación: disponibles bajo petición.</p>
-  </div>
-</footer>
+  </footer>
+</main>
+</div>
+<div class="hoja" id="hoja" role="dialog" aria-label="Detalle" hidden><button type="button" class="cerrar" id="cerrar-hoja" aria-label="Cerrar">×</button><div id="hoja-cuerpo"></div></div>
 
 <script>
 const ZONA = "Europe/Madrid";
@@ -247,8 +283,9 @@ const ORDEN_CAT = { LIFR: 0, IFR: 1, MVFR: 2, VFR: 3 };
 const pastilla = c => `<span class="cat ${c || "NA"}">${c || "—"}</span>`;
 
 function reloj() {
-  const d = new Date();
-  document.getElementById("reloj-l").textContent = d.toLocaleTimeString("es-ES", { timeZone: ZONA, hour: "2-digit", minute: "2-digit", second: "2-digit" });
+  const d = new Date(), hm = zona => d.toLocaleTimeString("es-ES", { timeZone: zona, hour: "2-digit", minute: "2-digit" });
+  document.getElementById("reloj-l").textContent = hm(ZONA);
+  document.getElementById("reloj-u").textContent = hm("UTC");
 }
 reloj(); setInterval(reloj, 1000);
 
@@ -299,7 +336,19 @@ function actualizarFicha(html) {
   else if (popup?.isOpen()) popup.setHTML(html);
 }
 document.getElementById("cerrar-hoja").addEventListener("click", () => cerrarHoja());
-if (movil()) document.getElementById("leyenda").open = false;      // en el móvil, la leyenda empieza plegada
+// Menú lateral: fijo en pantallas anchas; en el móvil, cajón que se abre con el botón de la barra
+function lateral(abrir) {
+  document.body.classList.toggle("lat-abierto", abrir);
+  document.getElementById("velo").hidden = !abrir;
+  document.getElementById("abrir-lateral").setAttribute("aria-expanded", abrir);
+  if (abrir) document.getElementById("cerrar-lateral").focus();
+}
+document.getElementById("abrir-lateral").addEventListener("click", () => lateral(true));
+document.getElementById("cerrar-lateral").addEventListener("click", () => lateral(false));
+document.getElementById("velo").addEventListener("click", () => lateral(false));
+document.getElementById("lateral").addEventListener("click", e => { if (e.target.closest("a")) lateral(false); });
+document.addEventListener("keydown", e => { if (e.key === "Escape" && document.body.classList.contains("lat-abierto")) lateral(false); });
+document.getElementById("leyenda").open = false;      // la leyenda empieza plegada: no tapa Galicia
 document.addEventListener("keydown", e => { if (e.key === "Escape") cerrarHoja(); });
 
 function seleccionar(icao, volar) {
@@ -426,6 +475,7 @@ function render(r) {
   document.getElementById("modo").innerHTML = rep
     ? `<span class="punto rep"></span><b>Repetición</b> del ${new Date(r.generado_utc).toLocaleDateString("es-ES", { timeZone: ZONA, day: "numeric", month: "long", year: "numeric" })}, ${fmtZ(r.generado_utc)}<br>datos reales de ese día`
     : estadoDirecto(r.generado_utc);
+  document.getElementById("modo").innerHTML = document.getElementById("modo").innerHTML.replace("<br>", " · ");
   const cuenta = {};
   lista.forEach(a => { if (a.categoria) cuenta[a.categoria] = (cuenta[a.categoria] || 0) + 1; });
   document.getElementById("recuento").innerHTML = ["LIFR", "IFR", "MVFR", "VFR"].filter(c => cuenta[c])
@@ -446,42 +496,81 @@ function render(r) {
   const franja = document.getElementById("franja");
   franja.dataset.nivel = clase; franja.setAttribute("role", "status");
 
-  // Meteograma de la red: una fila por aeropuerto, un punto por hora (tamaño = probabilidad de bajo mínimos)
+  // Estado corto en la barra de arriba: en directo o con retraso (el detalle va en #modo)
+  const minutos = Math.round((Date.now() - Date.parse(r.generado_utc)) / 60000);
+  document.getElementById("estado-corto").innerHTML = rep ? `<span class="punto rep"></span>Repetición`
+    : minutos > 75 ? `<span class="punto mal"></span>Datos con retraso · ${minutos < 120 ? minutos + " min" : Math.round(minutos / 60) + " h"}`
+    : `<span class="punto"></span>En directo · ${fmtZ(r.generado_utc)}`;
+  document.getElementById("estado-corto").classList.toggle("retraso", !rep && minutos > 75);
+
+  // Probabilidad hora a hora de cada aeropuerto (12 h) y la ventana de riesgo en palabras
   const base = Math.ceil(Date.parse(r.generado_utc) / 3600e3) * 3600e3, ahora = Date.parse(r.generado_utc);
   const horas = Array.from({ length: 12 }, (_, k) => base + k * 3600e3);
   const hh = t => new Date(t).toLocaleTimeString("es-ES", { timeZone: ZONA, hour: "2-digit" });
+  const V0 = window.NovokVuelos;
+  for (const a of lista) {
+    a._ps = horas.map(t => (V0 && a.serie?.length ? V0.riesgoEnHora(a, t, ahora) : null));
+    const ventana = umbral => { const k = a._ps.map((p, i) => p != null && p >= umbral ? i : -1).filter(i => i >= 0);
+      return k.length ? `${hh(horas[k[0]])}–${hh(horas[k[k.length - 1]] + 3600e3)} h` : null; };
+    a._alto = ventana(0.3); a._mod = a._alto ? null : ventana(0.1);
+  }
+
+  // Resumen de arriba
+  document.getElementById("r-aviso").textContent = altos.length;
+  document.getElementById("r-aviso").className = altos.length ? "alto" : "";
+  document.getElementById("r-aviso-sub").textContent = `de ${lista.length}` + (moderados.length ? ` · ${moderados.length} a vigilar` : "");
+  const despejes = lista.filter(a => a.despeja_utc).sort((x, y) => x.despeja_utc.localeCompare(y.despeja_utc));
+  const ultimoDespeje = despejes[despejes.length - 1];
+  document.getElementById("r-despeje").textContent = ultimoDespeje ? fmtZ(ultimoDespeje.despeja_utc) : "—";
+  document.getElementById("r-despeje-sub").textContent = ultimoDespeje
+    ? (despejes.length > 1 ? `${ultimoDespeje.icao}, el último en despejar` : `${ultimoDespeje.icao} ${ultimoDespeje.nombre}`)
+    : "no hay niebla en curso";
+
+  // Matriz: una fila por aeropuerto, una celda por hora con su probabilidad
+  const escala = p => {
+    if (p >= 0.3) return ["#d93a30", "#fff"];
+    const t = Math.pow(Math.min(1, p / 0.3), 0.7), a0 = [238, 242, 245], b0 = [15, 42, 68];
+    return [`rgb(${a0.map((v, i) => Math.round(v + (b0[i] - v) * t)).join(",")})`, t > 0.55 ? "#fff" : "var(--tinta-2)"];
+  };
   document.getElementById("meteo-horas").innerHTML = `<span></span>` + horas.map((t, k) =>
     `<span class="${k % 2 ? "impar" : ""}">${hh(t)}</span>`).join("") + `<span>Máx.</span><span>Cuándo</span>`;
-  const V0 = window.NovokVuelos;
   document.getElementById("lista").innerHTML = lista.map(a => {
     const rr = a.riesgo;
-    const puntos = horas.map(t => {
-      const p = V0 && a.serie?.length ? V0.riesgoEnHora(a, t, ahora) : null;
-      if (p == null) return `<span class="b-celda"></span>`;
-      const d = Math.max(5, Math.round(5 + Math.sqrt(p) * 17));
-      const n = p >= 0.3 ? "alto" : p >= 0.1 ? "moderado" : "bajo";
-      return `<span class="b-celda" title="${hh(t)}:00 · ${pct(p)} (${n})"><i style="width:${d}px;height:${d}px" class="${n}"></i></span>`;
+    const celdas = a._ps.map((p, k) => {
+      if (p == null) return `<span class="p-c vacia"></span>`;
+      const [fondo, tinta] = escala(p);
+      return `<span class="p-c" style="background:${fondo};color:${tinta}" title="${hh(horas[k])}:00 · ${pct(p)}">${p >= 0.1 ? Math.round(p * 100) : ""}</span>`;
     }).join("");
-    // ventana de riesgo en palabras: de qué hora a qué hora pasa del 30 % (o del 10 %)
-    const ps = horas.map(t => (V0 && a.serie?.length ? V0.riesgoEnHora(a, t, ahora) : null));
-    const ventana = umbral => { const k = ps.map((p, i) => p != null && p >= umbral ? i : -1).filter(i => i >= 0);
-      return k.length ? `${hh(horas[k[0]])}–${hh(horas[k[k.length - 1]] + 3600e3)} h` : null; };
-    const alto = ventana(0.3), mod = alto ? null : ventana(0.1);
-    const cuando = alto ? `<b class="alto">${alto}</b>` : mod ? `<b class="moderado">${mod}</b>` : ps.some(p => p != null) ? `<span>sin riesgo</span>` : `<span>sin datos</span>`;
-    return `<a class="fila b-fila" data-icao="${esc(a.icao)}" href="${enlace(a.icao)}">
-      <span class="b-nom"><b>${esc(a.icao)}</b> <span class="b-nom-txt">${esc(a.nombre)}</span> ${pastilla(a.categoria)}</span>${puntos}
-      <span class="b-pct ${rr?.nivel || ""}">${rr ? pct(rr.p) : "—"}</span><span class="b-max">${cuando}</span></a>`;
+    const cuando = a._alto ? `<b class="alto">${a._alto}</b>` : a._mod ? `<b class="moderado">${a._mod}</b>` : a._ps.some(p => p != null) ? `<span>sin riesgo</span>` : `<span>sin datos</span>`;
+    return `<a class="fila p-m-fila" data-icao="${esc(a.icao)}" href="${enlace(a.icao)}">
+      <span class="p-m-nom"><i class="p-dot" style="background:${COLOR_CAT[a.categoria] || "#a9aeb1"}" title="${esc(a.categoria || "sin datos")}"></i><b class="mono">${esc(a.icao)}</b><span>${esc(a.nombre)}</span></span>${celdas}
+      <span class="p-m-max ${rr?.nivel || ""}">${rr ? pct(rr.p) : "—"}</span><span class="p-m-cuando">${cuando}</span></a>`;
   }).join("");
-  // Avisos en la cabecera: los aeropuertos con riesgo, con su curva de las próximas 12 h
-  const conAviso = lista.filter(a => a.riesgo && a.riesgo.nivel !== "bajo").slice(0, 4);
-  document.getElementById("avisos").innerHTML = conAviso.map(a => {
-    const ps = horas.map(t => (V0 && a.serie?.length ? V0.riesgoEnHora(a, t, ahora) : 0) ?? 0);
-    const curva = "M0 28 " + ps.map((p, k) => `L${(k * 120 / 11).toFixed(1)} ${(28 - p * 28).toFixed(1)}`).join(" ") + " L120 28 Z";
-    const despeja = a.despeja_utc ? `despeja ${fmtZ(a.despeja_utc)}` : condiciones(a);
-    return `<li><a href="${enlace(a.icao)}"><span><b>${esc(a.nombre)}</b><small>${esc(a.icao)} · ${esc(despeja)}</small></span>
-      <svg viewBox="0 0 120 28" width="120" height="28" aria-hidden="true"><path d="${curva}" fill="#a9cbe4" opacity=".35"/><line x1="0" y1="19.6" x2="120" y2="19.6" stroke="#ff7a6e" stroke-dasharray="2 3"/></svg>
-      <strong style="color:${a.riesgo.nivel === "alto" ? "#ff7a6e" : "#ffb347"}">${pct(a.riesgo.p)}</strong></a></li>`;
-  }).join("");
+
+  // Barra lateral: los 13 aeropuertos con su categoría y su máximo en 12 h
+  document.getElementById("lateral-red").innerHTML = lista.map(a => `<li><a href="${enlace(a.icao)}">
+    <i class="p-dot" style="background:${COLOR_CAT[a.categoria] || "#a9aeb1"}"></i><b class="mono">${esc(a.icao)}</b><span>${esc(a.nombre)}</span>
+    <em class="${a.riesgo?.nivel || ""}">${a.riesgo ? Math.round(a.riesgo.p * 100) + " %" : "—"}</em></a></li>`).join("");
+
+  // Alertas activas: aviso (≥ 30 %) y vigilancia (≥ 10 %), con lo que pasa ahora y cuándo
+  const conAviso = lista.filter(a => a.riesgo && a.riesgo.nivel !== "bajo");
+  document.getElementById("n-alertas").textContent = conAviso.length || "";
+  document.getElementById("nav-alertas").textContent = conAviso.length || "";
+  document.getElementById("avisos").innerHTML = conAviso.length ? conAviso.map(a => {
+    const n = a.riesgo.nivel;
+    const ahoraTxt = a.categoria ? `Ahora ${a.categoria}: ${condiciones(a)}.` : "Sin observación reciente.";
+    return `<article class="p-alerta ${n}">
+      <div class="p-alerta-cab"><strong><span class="mono">${esc(a.icao)}</span> ${esc(a.nombre)}</strong><span class="mono">${esc(a._alto || a._mod || "")}</span></div>
+      <p><b class="${n}">${pct(a.riesgo.p)}</b> de bajo mínimos como máximo en 12 h · ${n === "alto" ? "aviso" : "vigilar"}. ${esc(ahoraTxt)}${a.despeja_utc ? ` Despeje probable hacia las ${fmtZ(a.despeja_utc)}.` : ""}</p>
+      <p class="p-alerta-lleg" data-icao="${esc(a.icao)}"></p>
+      <div class="p-botones"><button type="button" data-ver="${esc(a.icao)}">Ver en el mapa</button><a href="${enlace(a.icao)}">Briefing</a></div>
+    </article>`;
+  }).join("") : `<p class="p-vacio">Sin alertas. Ningún aeropuerto de la red pasa del 10 % de probabilidad de bajo mínimos en las próximas 12 horas.</p>`;
+  document.querySelectorAll("[data-ver]").forEach(b => b.addEventListener("click", () => {
+    document.querySelector(".p-mapa").scrollIntoView({ behavior: "smooth", block: "start" });
+    seleccionar(b.dataset.ver, true);
+  }));
+  if (vuelos.cfg) pintarLlegadas();
   document.querySelectorAll(".fila").forEach(f => {
     f.addEventListener("mouseenter", () => marcadores[f.dataset.icao]?.getElement().classList.add("activo"));
     f.addEventListener("mouseleave", () => marcadores[f.dataset.icao]?.getElement().classList.remove("activo"));
@@ -559,6 +648,7 @@ function pintarEstado() {
   const todos = vuelos.analizados, lista = vuelos.filtro ? todos.filter(a => a.operador === vuelos.filtro) : todos;
   const n = lista.length, hacia = lista.filter(a => a.llegada).length;
   const de = vuelos.filtro ? ` de ${esc(vuelos.aerolineas[vuelos.filtro] || vuelos.filtro)}` : "";
+  document.getElementById("vista-nombre").textContent = vuelos.filtro ? (vuelos.aerolineas[vuelos.filtro] || vuelos.filtro) : "Todas las aerolíneas";
   document.getElementById("estado-vuelos").innerHTML = vuelos.error && !todos.length
     ? `<span style="color:#ff8a80">No se pudieron cargar los vuelos</span> <span class="gris">(${esc(motivoVuelos(vuelos.error))})</span>`
     : `${n} ${n === 1 ? "avión" : "aviones"}${de} · ${hacia} hacia la red · <span class="gris">${esc(vuelos.cfg.atribucion_actual || vuelos.cfg.atribucion)}</span>`;
@@ -654,21 +744,40 @@ function seleccionarVuelo(hex, volar) {
 function pintarLlegadas() {
   const lleg = vuelos.analizados.filter(a => a.llegada && (!vuelos.filtro || a.operador === vuelos.filtro)
     && (!vuelos.soloRiesgo || (a.riesgo && a.riesgo.nivel !== "bajo"))).sort((x, y) => (y.riesgo?.p ?? -1) - (x.riesgo?.p ?? -1) || x.llegada.ms - y.llegada.ms);
-  const conRiesgo = lleg.filter(a => a.riesgo && a.riesgo.nivel !== "bajo").length;
+  const enRiesgo = lleg.filter(a => a.riesgo && a.riesgo.nivel !== "bajo"), conRiesgo = enRiesgo.length;
+  const deAero = vuelos.filtro ? esc(vuelos.aerolineas[vuelos.filtro] || vuelos.filtro) : "";
   document.getElementById("n-llegadas").textContent = conRiesgo || "";
+  document.getElementById("nav-llegadas").textContent = conRiesgo || "";
+  document.getElementById("lleg-vista").innerHTML = (deAero ? deAero + " · " : "") + "ordenadas por riesgo";
   const total = lleg.reduce((t, a) => t + (a.coste?.esperado || 0), 0);
+  const sinDatos = vuelos.error && !vuelos.analizados.length;
+  document.getElementById("r-lleg").textContent = sinDatos ? "—" : conRiesgo;
+  document.getElementById("r-lleg").className = conRiesgo ? "alto" : "";
+  document.getElementById("r-lleg-sub").innerHTML = sinDatos ? "sin datos de vuelos" : `de ${lleg.length} hacia la red${deAero ? " · " + deAero : ""}`;
+  document.getElementById("r-coste").textContent = sinDatos ? "—" : eur(total);
+  document.getElementById("r-coste-sub").textContent = `en ${lleg.filter(a => a.coste).length} ${lleg.filter(a => a.coste).length === 1 ? "vuelo" : "vuelos"} con alternativo`;
+  // en cada alerta, cuántas llegadas en el aire van a ese aeropuerto con riesgo
+  document.querySelectorAll(".p-alerta-lleg").forEach(el => {
+    const n = enRiesgo.filter(a => a.destino === el.dataset.icao).length;
+    el.textContent = n ? `${n} ${n === 1 ? "llegada" : "llegadas"} en el aire con riesgo${deAero ? " de " + (vuelos.aerolineas[vuelos.filtro] || vuelos.filtro) : ""}.` : "";
+  });
   document.getElementById("impacto").innerHTML = total > 0
-    ? `Coste esperado de los desvíos posibles ahora${vuelos.filtro ? " para " + esc(vuelos.aerolineas[vuelos.filtro] || vuelos.filtro) : ""}: <b>${eur(total)}</b> en ${((n) => n + (n === 1 ? " vuelo" : " vuelos"))(lleg.filter(a => a.coste).length)}`
-    : lleg.length ? "Ningún vuelo en el aire con riesgo de desvío ahora." : "";
-  document.getElementById("llegadas").innerHTML = lleg.length ? lleg.map(a => `
-    <div class="vuelo" data-hex="${esc(a.hex)}" role="button" tabindex="0">
-      <div>${chapaOperador(a)}<b>${esc(a.indicativo || a.hex.toUpperCase())}</b> <span class="ruta">${a.ruta ? esc(a.ruta.origen) + " → " : "→ "}${esc(a.destino)} · llega ${fmtZ(new Date(a.llegada.ms).toISOString())}</span></div>
-      <div class="pct">${a.riesgo ? `<b class="tab">${pct(a.riesgo.p)}</b><span style="color:${COLOR_RIESGO[a.riesgo.nivel]}">${NIVEL[a.riesgo.nivel]}</span>` : `<span class="gris">sin previsión</span>`}</div>
-      ${a.alternativo ? `<div class="alt">Alternativo con mejor previsión: ${esc(a.alternativo.icao)} ${esc(a.alternativo.nombre)} (${pct(a.alternativo.p)})${a.coste ? ` · coste esperado <b>${eur(a.coste.esperado)}</b>` : ""}</div>` : ""}
-    </div>`).join("") : `<p style="padding:16px" class="gris">${vuelos.error ? "Sin datos de vuelos ahora." : "Ningún vuelo en el aire hacia la red en este momento."}</p>`;
-  document.querySelectorAll(".vuelo").forEach(el => {
+    ? `Coste esperado de los desvíos posibles ahora${deAero ? " para " + deAero : ""}: <b>${eur(total)}</b> en ${((n) => n + (n === 1 ? " vuelo" : " vuelos"))(lleg.filter(a => a.coste).length)}`
+    : "";
+  const barra = a => a.riesgo ? `<span class="p-riesgo"><span><i style="width:${Math.max(3, a.riesgo.p * 100)}%;background:${COLOR_RIESGO[a.riesgo.nivel]}"></i></span><b style="color:${a.riesgo.nivel === "bajo" ? "var(--tinta-2)" : COLOR_NIVEL[a.riesgo.nivel]}">${pct(a.riesgo.p)}</b></span>` : `<span class="gris">sin previsión</span>`;
+  document.getElementById("llegadas").innerHTML = lleg.length ? `<table class="p-tabla">
+    <thead><tr><th scope="col">Vuelo</th><th scope="col">Ruta</th><th scope="col">Llega</th><th scope="col">Riesgo</th><th scope="col">Alternativo</th><th scope="col" class="num">Coste esp.</th></tr></thead>
+    <tbody>${lleg.map(a => `<tr data-hex="${esc(a.hex)}" tabindex="0">
+      <td class="p-t-vuelo">${chapaOperador(a)}<b class="mono">${esc(a.indicativo || a.hex.toUpperCase())}</b>${a.tipo ? ` <span class="gris">${esc(a.tipo)}</span>` : ""}</td>
+      <td class="mono p-t-ruta">${a.ruta ? esc(a.ruta.origen) + " → " : "→ "}${esc(a.destino)}</td>
+      <td class="mono p-t-eta">${fmtZ(new Date(a.llegada.ms).toISOString())}</td>
+      <td class="p-t-riesgo">${barra(a)}</td>
+      <td class="mono p-t-alt">${a.alternativo ? `${esc(a.alternativo.icao)} <span class="gris">${pct(a.alternativo.p)}</span>` : `<span class="gris">—</span>`}</td>
+      <td class="num p-t-coste">${a.coste ? eur(a.coste.esperado) : `<span class="gris">—</span>`}</td></tr>`).join("")}</tbody></table>`
+    : `<p class="p-vacio">${vuelos.error ? "Sin datos de vuelos ahora." : "Ningún vuelo en el aire hacia la red en este momento."}</p>`;
+  document.querySelectorAll("#llegadas [data-hex]").forEach(el => {
     const ir = () => {
-      document.querySelector(".b-mapa").scrollIntoView({ behavior: "smooth", block: "start" });
+      document.querySelector(".p-mapa").scrollIntoView({ behavior: "smooth", block: "start" });
       seleccionarVuelo(el.dataset.hex, true);
     };
     el.addEventListener("click", ir); el.addEventListener("keydown", e => { if (e.key === "Enter") ir(); });

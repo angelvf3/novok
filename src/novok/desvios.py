@@ -20,6 +20,7 @@ Uso:
     python -m novok.desvios detectar
     python -m novok.desvios evaluar
     python -m novok.desvios todo --desde 2026-01-01        # los tres pasos
+    python -m novok.desvios web                            # web/desvios.json (ficha de cada aeropuerto)
 
 Limitaciones: la cobertura de adsb.lol depende de sus colaboradores; cerca del suelo puede faltar señal, por
 eso un aterrizaje se da por bueno si el vuelo termina por debajo de 2.000 ft cerca de un aeropuerto. Los desvíos
@@ -475,6 +476,39 @@ def resumen(e: pd.DataFrame) -> dict:
     return out
 
 
+def web(antelacion: int = 6) -> dict:
+    """Resumen por aeropuerto para la web (web/desvios.json): casos con bajo mínimos, avisados y los últimos."""
+    ruta = DIR_INFORME / "desvios_evaluados.csv"
+    if not ruta.exists():
+        raise SystemExit("Primero: python -m novok.desvios evaluar")
+    e = pd.read_csv(ruta)
+    n = e[(e["bajo_minimos_obs"] == True) & e["previsto"].isin(list(RED))].copy()  # noqa: E712
+    if "en_prueba" in n:
+        n = n[n["en_prueba"] == True]  # noqa: E712
+    c_av, c_pe = f"aviso_{antelacion}h", f"persistencia_{antelacion}h"
+    out = {"antelacion_h": antelacion, "aeropuertos": {}}
+    if len(n):
+        dias = pd.to_datetime(n["dia"])
+        meses = ["enero", "febrero", "marzo", "abril", "mayo", "junio", "julio", "agosto", "septiembre", "octubre",
+                 "noviembre", "diciembre"]
+        out["periodo"] = f"{meses[dias.min().month - 1]} a {meses[dias.max().month - 1]} de {dias.max().year}"
+    for icao, g in n.groupby("previsto"):
+        ev = g[g[c_av].notna()] if c_av in g else g.iloc[0:0]
+        g = g.sort_values("hora_prevista_utc", ascending=False)
+        out["aeropuertos"][icao] = {
+            "casos": int(len(g)), "evaluados": int(len(ev)),
+            "avisados": int((ev[c_av] == True).sum()) if len(ev) else 0,  # noqa: E712
+            "persistencia": int((ev[c_pe] == True).sum()) if len(ev) else 0,  # noqa: E712
+            "ultimos": [{"fecha": pd.Timestamp(r.dia).strftime("%d/%m"), "indicativo": r.indicativo, "aterriza": r.aterriza,
+                         "avisado": bool(getattr(r, c_av)) if c_av in g and pd.notna(getattr(r, c_av)) else False}
+                        for r in g.head(4).itertuples()],
+        }
+    destino = RAIZ / "web" / "desvios.json"
+    destino.write_text(json.dumps(out, ensure_ascii=False, indent=1), encoding="utf-8")
+    print(f"{destino}: {sum(x['casos'] for x in out['aeropuertos'].values())} casos en {len(out['aeropuertos'])} aeropuertos")
+    return out
+
+
 def main() -> None:
     ap = argparse.ArgumentParser(description=__doc__.split("\n")[0])
     sub = ap.add_subparsers(dest="orden", required=True)
@@ -488,6 +522,8 @@ def main() -> None:
     sub.add_parser("detectar")
     pe = sub.add_parser("evaluar")
     pe.add_argument("--corte", default="2026-01-01")
+    pw = sub.add_parser("web", help="escribe web/desvios.json para la ficha de cada aeropuerto")
+    pw.add_argument("--antelacion", type=int, default=6)
     a = ap.parse_args()
     if a.orden in ("descargar", "todo"):
         descargar(a.desde, a.hasta, a.solo_niebla, a.control, a.rehacer)
@@ -495,6 +531,8 @@ def main() -> None:
         detectar()
     if a.orden in ("evaluar", "todo"):
         evaluar(getattr(a, "corte", "2026-01-01"))
+    if a.orden in ("evaluar", "todo", "web"):
+        web(getattr(a, "antelacion", 6))
 
 
 if __name__ == "__main__":

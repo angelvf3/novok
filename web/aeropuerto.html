@@ -241,42 +241,76 @@
   }
 </style>
 <link rel="stylesheet" href="nordico.css">
+<link rel="stylesheet" href="pro.css">
 </head>
-<body>
-<header class="cabecera">
-  <div class="ancho">
-    <div class="logo"><a class="marca" href="./"><img src="marca/novok-logo-oscuro-72.png" alt="NOVOK" width="153" height="34"></a><span>Niebla y techo bajo<br><a href="./" style="color:inherit">← Red del norte</a></span></div>
-    <div class="relojes" aria-label="Hora actual">
-      <div><b class="tab" id="reloj-l">--:--:--</b><small>HORA PENINSULAR</small></div>
-    </div>
+<body class="pro">
+<aside class="p-lateral" id="lateral" aria-label="Navegación">
+  <div class="p-lat-cab">
+    <a class="marca" href="./"><img src="marca/novok-logo-oscuro-72.png" alt="NOVOK" width="126" height="28"></a>
+    <button type="button" class="p-cerrar-lat" id="cerrar-lateral" aria-label="Cerrar menú">×</button>
   </div>
+  <nav class="p-nav" aria-label="Principal">
+    <a href="./"><i></i>Panel de red</a>
+    <a href="#" aria-current="page"><i></i>Briefing del aeropuerto</a>
+    <a href="#p-meteo"><i></i>Próximas 12 horas</a>
+    <a href="#caja-llegadas"><i></i>Llegadas en el aire</a>
+    <a href="#p-visor"><i></i>Simulación 3D</a>
+    <a href="#contenido"><i></i>Detalle técnico</a>
+  </nav>
+  <h2 class="p-lat-tit">Aeropuertos</h2>
+  <ul class="p-lat-red" id="lateral-red"></ul>
+  <p class="p-lat-pie">Apoyo a la planificación. No sustituye al METAR y TAF oficiales de AEMET.</p>
+</aside>
+<div class="p-velo" id="velo" hidden></div>
+
+<div class="p-contenido">
+<header class="p-barra">
+  <button type="button" class="p-menu" id="abrir-lateral" aria-label="Abrir menú" aria-controls="lateral" aria-expanded="false"><svg width="20" height="20" viewBox="0 0 20 20" aria-hidden="true"><path d="M3 5h14M3 10h14M3 15h14" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg></button>
+  <a class="marca p-marca-movil" href="./"><img src="marca/novok-logo-claro-72.png" alt="NOVOK" width="99" height="22"></a>
+  <div class="p-barra-tit"><h1><a href="./">Red del norte</a> / <span class="mono" id="icao">····</span></h1><span>Briefing de niebla y techo bajo</span></div>
+  <div class="p-relojes mono" aria-label="Hora actual"><span><b id="reloj-u">--:--</b> UTC</span><span><b id="reloj-l">--:--</b> peninsular</span></div>
+  <span class="p-estado" id="estado-corto"></span>
 </header>
 
-<section class="estacion b-aero">
-  <div class="ancho b-aero-rejilla">
-    <div class="b-aero-texto">
-      <p class="b-miga"><a href="./">Red del norte</a> / <span id="icao">····</span></p>
-      <div class="b-aero-nombre"><h1 id="nombre-grande">Cargando…</h1><span id="cat-actual"></span></div>
-      <p class="b-aero-frase" id="frase"></p>
-      <p class="b-metar mono" id="metar-bruto" hidden></p>
-      <div class="b-aero-pie"><span class="nombre" id="nombre-aero"></span><span class="modo" id="modo">Cargando…</span></div>
+<main class="p-main">
+  <section class="p-aero-cab" id="cabecera-aero" aria-labelledby="nombre-grande">
+    <div>
+      <div class="p-aero-nombre"><h2 id="nombre-grande">Cargando…</h2><span id="cat-actual"></span></div>
+      <p class="p-aero-frase" id="frase"></p>
+      <p class="p-aero-meta"><span id="nombre-aero"></span><span class="modo" id="modo">Cargando…</span></p>
     </div>
-    <dl class="b-datos" id="datos-ahora"></dl>
-  </div>
-</section>
-<div id="banda" hidden></div>
-<main class="ancho">
-  <section class="b-meteo-aero" aria-labelledby="t-meteo">
-    <div class="b-tit"><h2 id="t-meteo">Meteograma de niebla</h2><span>Probabilidad de bajo mínimos CAT I en las próximas 12 h, frente al TAF de AEMET</span></div>
-    <div class="b-meteo-caja" id="meteograma"></div>
-    <p class="b-nota" id="nota-meteo"></p>
+    <span class="p-pastilla" id="pastilla-nivel" hidden></span>
   </section>
-  <div class="b-dos">
-    <div id="hueco-llegadas"></div>
-    <section class="b-taf" aria-labelledby="t-taf"><h2 id="t-taf">Último TAF</h2><div id="taf-bruto"></div></section>
+  <div id="banda" hidden></div>
+
+  <div class="p-aero-rejilla">
+    <div class="p-col">
+      <section class="p-tarjeta p-meteo" id="p-meteo" aria-labelledby="t-meteo">
+        <div class="p-cab"><h2 id="t-meteo">Bajo mínimos CAT I, próximas 12 horas</h2><span>NOVOK frente al TAF de AEMET</span></div>
+        <div class="p-meteo-cuerpo" id="meteograma"></div>
+        <p class="b-nota" id="nota-meteo"></p>
+      </section>
+      <div id="hueco-llegadas"></div>
+    </div>
+    <div class="p-col">
+      <section class="p-tarjeta p-oscura" aria-labelledby="t-ahora">
+        <div class="p-cab"><h2 id="t-ahora">Condiciones ahora</h2><span id="hora-metar"></span></div>
+        <dl class="b-datos" id="datos-ahora"></dl>
+        <p class="b-metar mono" id="metar-bruto" hidden></p>
+      </section>
+      <section class="p-tarjeta p-taf" aria-labelledby="t-taf">
+        <div class="p-cab"><h2 id="t-taf">Último TAF</h2><span>AEMET</span></div>
+        <div class="p-taf-cuerpo" id="taf-bruto"></div>
+      </section>
+      <section class="p-tarjeta p-desvios" id="p-desvios" aria-labelledby="t-desvios" hidden>
+        <div class="p-cab"><h2 id="t-desvios">Desvíos por niebla</h2><span id="desvios-periodo"></span></div>
+        <div class="p-d-cuerpo" id="desvios-cuerpo"></div>
+      </section>
+    </div>
   </div>
-  <section aria-labelledby="t-visor">
-    <div class="seccion-tit"><h2 id="t-visor">Simulación 3D del aeropuerto</h2><span>Relieve real; arrastra para girar y usa la rueda para acercar</span></div>
+
+  <section class="p-tarjeta p-visor-tarjeta" id="p-visor" aria-labelledby="t-visor">
+    <div class="p-cab"><h2 id="t-visor">Simulación 3D del aeropuerto</h2><span>Relieve real; arrastra para girar</span></div>
     <div class="visor" id="visor">
       <div id="mapa3d"></div>
       <div class="hud hud-info" id="hud-info" aria-live="polite"></div>
@@ -292,17 +326,16 @@
     <div id="lista-lleg"></div>
     <p class="nota-lleg">Vuelos con destino a este aeropuerto que ya están en el aire. El riesgo es la probabilidad de bajo mínimos CAT I aquí a su hora estimada de llegada; el alternativo, el aeropuerto de la red con mejor previsión cerca (orientativo: cada aerolínea fija los suyos). Coste esperado: probabilidad × coste de desviar al alternativo (combustible, tripulación, handling, autobús y atención a los pasajeros), con los costes de ejemplo de costes.json.</p>
   </section>
-</main>
 
-<footer class="pie">
-  <div class="ancho">
+  <footer class="pie">
     <p><strong>Herramienta de apoyo a la planificación de operaciones. No sustituye a la información meteorológica aeronáutica oficial (METAR y TAF de AEMET), que es la que vale para las decisiones de vuelo.</strong></p>
     <p>NOVOK predice niebla y techo bajo con modelos entrenados con los METAR de cada aeropuerto (2017–2025) y pronósticos numéricos emitidos 24 h antes.
       Bajo mínimos tipo CAT I: visibilidad &lt; 550 m o techo ≤ 200 ft (aproximación; los mínimos reales dependen del procedimiento publicado).
       Categorías de vuelo según los criterios de la FAA: LIFR techo &lt; 500 ft o visibilidad &lt; 1600 m; IFR &lt; 1000 ft o &lt; 4800 m; MVFR ≤ 3000 ft o ≤ 8000 m.
       Método y verificación: disponibles bajo petición.</p>
-  </div>
-</footer>
+  </footer>
+</main>
+</div>
 
 <script src="vuelos.js"></script>
 <script>
@@ -334,7 +367,9 @@ const pastilla = (c, grande) => `<span class="cat ${c || "NA"}${grande ? " grand
 
 function reloj() {
   const d = new Date();
-  document.getElementById("reloj-l").textContent = d.toLocaleTimeString("es-ES", { timeZone: ZONA, hour: "2-digit", minute: "2-digit", second: "2-digit" });
+  const hm = zona => d.toLocaleTimeString("es-ES", { timeZone: zona, hour: "2-digit", minute: "2-digit" });
+  document.getElementById("reloj-l").textContent = hm(ZONA);
+  document.getElementById("reloj-u").textContent = hm("UTC");
 }
 reloj(); setInterval(reloj, 1000);
 
@@ -999,7 +1034,11 @@ function cabeceraB(b) {
   else frase = b.calidad?.pronostico_emitido ? "Sin niebla ahora ni riesgo significativo en las próximas 12 horas." : "Sin pronóstico ahora: faltan datos recientes.";
   document.getElementById("frase").textContent = frase;
   const nivel = ah.bajo_minimos || (peor && peor.bajo_minimos.nivel === "alto") ? "alto" : peor && peor.bajo_minimos.nivel === "moderado" ? "moderado" : "bajo";
-  document.querySelector(".b-aero").dataset.nivel = nivel;
+  document.getElementById("cabecera-aero").dataset.nivel = nivel;
+  const pas = document.getElementById("pastilla-nivel");
+  pas.hidden = false; pas.className = "p-pastilla " + nivel;
+  pas.innerHTML = `<i></i>${nivel === "alto" ? (ah.bajo_minimos ? "Bajo mínimos ahora" : "Aviso de bajo mínimos") : nivel === "moderado" ? "Vigilar" : "Sin riesgo significativo"}`;
+  document.getElementById("hora-metar").textContent = b.calidad?.metar_ultimo_utc ? "METAR de las " + fmtZ(b.calidad.metar_ultimo_utc) : "";
   const m = document.getElementById("metar-bruto");
   m.hidden = !ah.metar; m.textContent = ah.metar ? (/^(METAR|SPECI) /.test(ah.metar) ? ah.metar : "METAR " + ah.metar) : "";
   const dato = (t, v) => `<div><dt>${t}</dt><dd>${v}</dd></div>`;
@@ -1017,7 +1056,7 @@ function meteograma(b) {
                   bajo_minimos: !!b.ahora?.bajo_minimos, niebla: !!b.ahora?.niebla };
   const horas = Array.from({ length: 12 }, (_, k) => base + (k + 1) * 3600e3);
   const ps = horas.map(t => V ? V.riesgoEnHora(serie, t, ahora) ?? 0 : 0);
-  const W = 1280, X0 = 60, X1 = 1260, Y0 = 10, Y1 = 200;
+  const W = 920, X0 = 46, X1 = 900, Y0 = 10, Y1 = 200;
   const x = k => X0 + k * (X1 - X0) / 11, y = p => Y1 - p * (Y1 - Y0);
   let s = `<svg viewBox="0 0 ${W} 262" role="img" aria-label="Probabilidad de bajo mínimos en las próximas 12 horas">`;
   [0, .25, .5, .75, 1].forEach(v => { s += `<line x1="${X0}" x2="${X1}" y1="${y(v)}" y2="${y(v)}" stroke="#e3e9ee"/><text x="0" y="${y(v) + 4}" font-size="12" fill="var(--tinta-3)">${v * 100} %</text>`; });
@@ -1069,6 +1108,12 @@ function render(b) {
   document.getElementById("modo").innerHTML = rep
     ? `<span class="punto rep"></span><b>Repetición</b> del ${new Date(b.generado_utc).toLocaleDateString("es-ES", { timeZone: ZONA, day: "numeric", month: "long", year: "numeric" })}, ${fmtZ(b.generado_utc)}<br>datos reales de ese día`
     : estadoDirecto(b.generado_utc, ok ? "" : "mal");
+  document.getElementById("modo").innerHTML = document.getElementById("modo").innerHTML.replace("<br>", " · ");
+  const minutos = Math.round((Date.now() - Date.parse(b.generado_utc)) / 60000), ec = document.getElementById("estado-corto");
+  ec.innerHTML = rep ? `<span class="punto rep"></span>Repetición`
+    : minutos > 75 ? `<span class="punto mal"></span>Datos con retraso · ${minutos < 120 ? minutos + " min" : Math.round(minutos / 60) + " h"}`
+    : `<span class="punto"></span>En directo · ${fmtZ(b.generado_utc)}`;
+  ec.classList.toggle("retraso", !rep && minutos > 75);
   const a = b.aeropuerto || {};
   document.title = `NOVOK · ${b.estacion} ${a.nombre || ""}`;
   document.getElementById("icao").textContent = b.estacion;
@@ -1153,6 +1198,45 @@ async function llegadas() {
 }
 
 document.getElementById("hueco-llegadas").replaceWith(document.getElementById("caja-llegadas"));
+
+/* ---------- barra lateral: los aeropuertos de la red (de red.json) ---------- */
+const COLOR_CAT_RED = { VFR: "#2e8540", MVFR: "#0071bc", IFR: "#d83933", LIFR: "#b5179e" };
+function pintarLateral(red) {
+  const l = [...(red?.aeropuertos || [])].sort((x, y) => (y.riesgo?.p ?? -1) - (x.riesgo?.p ?? -1) || x.icao.localeCompare(y.icao));
+  document.getElementById("lateral-red").innerHTML = l.map(a => `<li><a href="aeropuerto.html?a=${encodeURIComponent(a.icao)}"${a.icao === ICAO ? ' aria-current="page"' : ""}>
+    <i class="p-dot" style="background:${COLOR_CAT_RED[a.categoria] || "#a9aeb1"}"></i><b class="mono">${esc(a.icao)}</b><span>${esc(a.nombre)}</span>
+    <em class="${a.riesgo?.nivel || ""}">${a.riesgo ? Math.round(a.riesgo.p * 100) + " %" : "—"}</em></a></li>`).join("");
+}
+fetch("datos/red.json", { cache: "no-store" }).then(r => r.ok ? r.json() : null).then(pintarLateral).catch(() => {});
+
+/* ---------- desvíos reales por niebla en este aeropuerto (python -m novok.desvios web) ---------- */
+fetch("desvios.json", { cache: "no-cache" }).then(r => r.ok ? r.json() : null).then(d => {
+  const x = d?.aeropuertos?.[ICAO];
+  if (!x || !x.casos) return;
+  const L = d.antelacion_h || 6, av = x.avisados, pe = x.persistencia;
+  document.getElementById("desvios-periodo").textContent = d.periodo || "";
+  document.getElementById("desvios-cuerpo").innerHTML = `
+    <div class="p-d-cifras"><span><b>${x.casos}</b><small>vuelos desviados con bajo mínimos</small></span>
+      <span><b>${av} de ${x.evaluados}</b><small>avisados por NOVOK ${L} h antes</small></span></div>
+    <div class="p-d-barra" role="img" aria-label="${av} de ${x.evaluados} avisados"><i style="width:${x.evaluados ? av / x.evaluados * 100 : 0}%"></i></div>
+    <p>Suponer que el tiempo sigue igual (persistencia) habría avisado de ${pe} de ${x.evaluados}. Desvíos detectados con datos abiertos de ADS-B (adsb.lol) y comprobados con el METAR.</p>
+    ${x.ultimos?.length ? `<ul class="p-d-lista">${x.ultimos.map(u => `<li><span class="mono">${esc(u.fecha)}</span><span><b class="mono">${esc(u.indicativo)}</b> → ${esc(u.aterriza)}</span>
+      <span class="${u.avisado ? "si" : "no"}">${u.avisado ? "avisado" : "sin aviso"}</span></li>`).join("")}</ul>` : ""}`;
+  document.getElementById("p-desvios").hidden = false;
+}).catch(() => {});
+
+/* ---------- menú lateral en el móvil ---------- */
+function lateral(abrir) {
+  document.body.classList.toggle("lat-abierto", abrir);
+  document.getElementById("velo").hidden = !abrir;
+  document.getElementById("abrir-lateral").setAttribute("aria-expanded", abrir);
+  if (abrir) document.getElementById("cerrar-lateral").focus();
+}
+document.getElementById("abrir-lateral").addEventListener("click", () => lateral(true));
+document.getElementById("cerrar-lateral").addEventListener("click", () => lateral(false));
+document.getElementById("velo").addEventListener("click", () => lateral(false));
+document.getElementById("lateral").addEventListener("click", e => { if (e.target.closest("a")) lateral(false); });
+document.addEventListener("keydown", e => { if (e.key === "Escape" && document.body.classList.contains("lat-abierto")) lateral(false); });
 cargar().then(llegadas);
 setInterval(() => { if (!ultimo || ultimo.modo !== "repeticion") cargar(); }, 5 * 60e3);
 let espera; addEventListener("resize", () => { clearTimeout(espera); espera = setTimeout(dibujarTiempo, 120); });

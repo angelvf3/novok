@@ -1,0 +1,188 @@
+{
+ "antelacion_h": 6,
+ "aeropuertos": {
+  "LEBB": {
+   "casos": 3,
+   "evaluados": 3,
+   "avisados": 0,
+   "persistencia": 0,
+   "ultimos": [
+    {
+     "fecha": "28/09",
+     "indicativo": "AEA27GB",
+     "aterriza": "LEMD",
+     "avisado": false
+    },
+    {
+     "fecha": "20/04",
+     "indicativo": "VLG883P",
+     "aterriza": "LEAS",
+     "avisado": false
+    },
+    {
+     "fecha": "20/04",
+     "indicativo": "VLG5PP",
+     "aterriza": "LEAS",
+     "avisado": false
+    }
+   ]
+  },
+  "LECO": {
+   "casos": 23,
+   "evaluados": 23,
+   "avisados": 16,
+   "persistencia": 0,
+   "ultimos": [
+    {
+     "fecha": "05/10",
+     "indicativo": "ANE1111",
+     "aterriza": "LEST",
+     "avisado": true
+    },
+    {
+     "fecha": "05/10",
+     "indicativo": "AEA7233",
+     "aterriza": "LEST",
+     "avisado": true
+    },
+    {
+     "fecha": "05/10",
+     "indicativo": "VLG1292",
+     "aterriza": "LEST",
+     "avisado": true
+    },
+    {
+     "fecha": "06/09",
+     "indicativo": "ANE1111",
+     "aterriza": "LEST",
+     "avisado": false
+    }
+   ]
+  },
+  "LELN": {
+   "casos": 1,
+   "evaluados": 0,
+   "avisados": 0,
+   "persistencia": 0,
+   "ultimos": [
+    {
+     "fecha": "04/02",
+     "indicativo": "ANE53GX",
+     "aterriza": "LEAS",
+     "avisado": false
+    }
+   ]
+  },
+  "LEST": {
+   "casos": 10,
+   "evaluados": 10,
+   "avisados": 1,
+   "persistencia": 2,
+   "ultimos": [
+    {
+     "fecha": "18/06",
+     "indicativo": "BCS3JM",
+     "aterriza": "LEMD",
+     "avisado": true
+    },
+    {
+     "fecha": "26/05",
+     "indicativo": "BCS3JM",
+     "aterriza": "LEVT",
+     "avisado": false
+    },
+    {
+     "fecha": "13/04",
+     "indicativo": "VLG1GC",
+     "aterriza": "LECO",
+     "avisado": false
+    },
+    {
+     "fecha": "13/04",
+     "indicativo": "VLG68VC",
+     "aterriza": "LECO",
+     "avisado": false
+    }
+   ]
+  },
+  "LEVT": {
+   "casos": 1,
+   "evaluados": 1,
+   "avisados": 1,
+   "persistencia": 0,
+   "ultimos": [
+    {
+     "fecha": "17/03",
+     "indicativo": "BCS422",
+     "aterriza": "LEMD",
+     "avisado": true
+    }
+   ]
+  },
+  "LEVX": {
+   "casos": 11,
+   "evaluados": 11,
+   "avisados": 7,
+   "persistencia": 3,
+   "ultimos": [
+    {
+     "fecha": "15/09",
+     "indicativo": "VLG701K",
+     "aterriza": "LEST",
+     "avisado": true
+    },
+    {
+     "fecha": "13/03",
+     "indicativo": "ANE17ZM",
+     "aterriza": "LEST",
+     "avisado": true
+    },
+    {
+     "fecha": "16/02",
+     "indicativo": "ANE17ZM",
+     "aterriza": "LEST",
+     "avisado": true
+    },
+    {
+     "fecha": "11/02",
+     "indicativo": "VLG1702",
+     "aterriza": "LEST",
+     "avisado": true
+    }
+   ]
+  },
+  "LEXJ": {
+   "casos": 5,
+   "evaluados": 5,
+   "avisados": 0,
+   "persistencia": 0,
+   "ultimos": [
+    {
+     "fecha": "18/06",
+     "indicativo": "VLG1PL",
+     "aterriza": "LEBB",
+     "avisado": false
+    },
+    {
+     "fecha": "20/04",
+     "indicativo": "RYR9844",
+     "aterriza": "LEMD",
+     "avisado": false
+    },
+    {
+     "fecha": "20/04",
+     "indicativo": "ANE82BX",
+     "aterriza": "LEMD",
+     "avisado": false
+    },
+    {
+     "fecha": "20/04",
+     "indicativo": "VLG1PL",
+     "aterriza": "LEAS",
+     "avisado": false
+    }
+   ]
+  }
+ },
+ "periodo": "enero a octubre de 2026"
+}
