@@ -349,3 +349,90 @@ body.pro {
   .pro .pie { padding-inline: 2px; }
 }
 @media (prefers-reduced-motion: reduce) { .p-lateral { transition: none; } }
+
+/* ---------------------------------------------------------------- C2: titular con aeropuertos en aviso y cifras en banda */
+.p-cliente { display: block; margin: -8px 10px 16px; padding: 0; border: 0; color: var(--p-lat-texto); font-size: 12.5px; }
+.p-cliente img { height: 22px; }
+.p-barra-tit span b { font-weight: 500; color: var(--tinta-2); }
+.p-hero { background: #fff; border: 1px solid var(--p-borde); border-radius: 10px; }
+.p-hero-rejilla { display: grid; grid-template-columns: minmax(0, 1fr) minmax(360px, 440px); gap: 24px 40px; padding: 24px 28px 20px; }
+.p-hero-estado { display: inline-flex; align-items: center; gap: 7px; margin: 0 0 10px; font-size: 12.5px; font-weight: 600; color: #24653d; }
+.p-hero-estado::before { content: ""; width: 8px; height: 8px; border-radius: 50%; background: #2f9e5b; }
+.p-hero-estado.alto { color: #b3261e; }
+.p-hero-estado.alto::before { background: var(--alto); }
+.p-hero-estado.moderado { color: #8a4f06; }
+.p-hero-estado.moderado::before { background: #e3a33b; }
+.p-hero h2 { margin: 0; font-size: 34px; font-weight: 600; letter-spacing: -.02em; line-height: 1.12; }
+.p-hero-sub { margin: 12px 0 0; font-size: 15px; color: var(--tinta-2); max-width: 60ch; }
+.p-hero-impacto { margin: 8px 0 0; font-size: 15px; font-weight: 500; color: var(--tinta); max-width: 60ch; }
+.p-hero-impacto:empty { display: none; }
+.p-hero-pie { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 16px; margin-top: 16px; }
+.p-hero-pie .recuento .cat { font-size: 11.5px; }
+.p-hero-pie .modo { margin: 0; font-size: 12.5px; color: var(--tinta-3); text-align: left; }
+.p-hero-pie .modo b { color: var(--tinta); font-weight: 600; }
+.p-hero-avisos h3 { display: flex; align-items: center; gap: 8px; margin: 0 0 4px; font-size: 12.5px; font-weight: 500; color: var(--tinta-3); }
+.p-hero-avisos h3 span { margin-left: auto; }
+.p-avisos { list-style: none; margin: 0; padding: 0; }
+.p-avisos li { border-top: 1px solid var(--p-borde-2); }
+.p-avisos a { display: grid; grid-template-columns: minmax(0, 1fr) 120px 56px; align-items: center; gap: 14px; min-height: 52px; padding: 6px 0; text-decoration: none; color: var(--tinta); }
+.p-avisos a:hover { background: #f7f9fa; }
+.p-av-nom { min-width: 0; }
+.p-av-nom b { display: block; font-weight: 600; }
+.p-av-nom small { display: block; font-size: 12.5px; color: var(--tinta-3); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.p-avisos svg { width: 120px; height: 30px; display: block; }
+.p-av-pct { text-align: right; font-size: 20px; font-weight: 600; }
+.p-av-pct.alto { color: var(--alto); }
+.p-av-pct.moderado { color: #a8650c; }
+.p-avisos .p-vacio { padding: 14px 0; border-top: 1px solid var(--p-borde-2); }
+.p-hero .p-resumen { border: 0; border-top: 1px solid var(--p-borde-2); border-radius: 0 0 10px 10px; }
+.p-hero .p-resumen > div { padding: 13px 28px; }
+.p-hero .p-resumen b { margin-top: 0; }
+.p-fila-mapa { grid-template-columns: minmax(0, 1.6fr) minmax(340px, 1fr); }
+.p-lleg { display: flex; flex-direction: column; }
+.p-lleg .p-cab > div > span { display: block; font-size: 12.5px; color: var(--tinta-3); }
+.p-lleg #llegadas { flex: 1; max-height: 520px; overflow: auto; }
+.p-vuelo { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 1px 12px; padding: 10px 16px; border-bottom: 1px solid var(--p-borde-2); cursor: pointer; }
+.p-vuelo:hover { background: #f2f6f9; }
+.p-v-id { min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.p-v-id b { font-weight: 500; }
+.p-v-id small { font-size: 12.5px; color: var(--tinta-3); }
+.p-v-pct { text-align: right; font-size: 16px; font-weight: 600; }
+.p-v-ruta { font-size: 12.5px; color: var(--tinta-2); }
+.p-v-coste { text-align: right; font-size: 12.5px; color: var(--tinta-2); }
+.p-matriz { align-self: stretch; }
+.p-relojes b { display: inline-block; min-width: 8ch; }
+
+@media (max-width: 1100px) {
+  .p-hero-rejilla { grid-template-columns: 1fr; }
+}
+@media (max-width: 900px) {
+  .p-hero .p-resumen { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+@media (max-width: 620px) {
+  /* titular a todo el ancho, sin tarjeta */
+  .p-hero { margin: -12px -12px 0; border-radius: 0; border-inline: 0; border-top: 0; }
+  .p-hero-rejilla { padding: 18px 16px 4px; gap: 16px; }
+  .p-hero h2 { font-size: 25px; line-height: 1.16; }
+  .p-hero-sub, .p-hero-impacto { font-size: 14.5px; }
+  .p-hero-pie { margin-top: 12px; }
+  .p-avisos a { grid-template-columns: minmax(0, 1fr) 72px 50px; gap: 10px; min-height: 56px; }
+  .p-avisos svg { width: 72px; height: 24px; }
+  .p-av-pct { font-size: 18px; }
+  .p-hero .p-resumen { grid-template-columns: repeat(3, minmax(0, 1fr)); border-radius: 0; }
+  .p-hero .p-resumen > div:first-child { display: none; }
+  .p-hero .p-resumen > div { padding: 10px 14px 12px; border-top: 0 !important; }
+  .p-hero .p-resumen > div:nth-child(2) { border-left: 0; }
+  .p-hero .p-resumen > div:nth-child(3) { border-left: 1px solid var(--p-borde-2); }
+  .p-hero .p-resumen small { display: none; }
+  .p-hero .p-resumen b { font-size: 18px; }
+  /* en el móvil, las llegadas antes que el mapa: es lo que hay que gestionar */
+  .p-fila-mapa { display: flex; flex-direction: column; }
+  .p-fila-mapa .p-lleg { order: -1; }
+  .p-lleg #llegadas { max-height: none; }
+  .p-vuelo { padding: 10px 14px; }
+  .p-relojes b { min-width: 0; }
+}
+@media (max-width: 620px) {
+  /* con retraso, el aviso de la barra se parte en dos líneas en vez de salirse de la pantalla */
+  .p-estado.retraso { white-space: normal; line-height: 1.15; max-width: 120px; font-size: 11px; }
+}
