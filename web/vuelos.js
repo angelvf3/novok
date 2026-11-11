@@ -77,11 +77,15 @@
     return mejor ? mejor.icao : null;
   }
 
+  // La llegada se cuenta desde el momento de la posición (en una foto de hace unos minutos, desde la hora de la foto);
+  // si según eso el avión ya habría aterrizado, no se da llegada
   function llegadaEstimada(av, destino, ahoraMs) {
     if (!av.gs_kt || av.gs_kt < 60) return null;
     const km = distanciaKm(av.lat, av.lon, destino.lat, destino.lon);
-    const min = km / (av.gs_kt * NM_KM) * 60 + (km > 25 ? MIN_APROX : 2);
-    return { ms: ahoraMs + min * 60000, km, min };
+    const base = Math.min(ahoraMs, av.t || ahoraMs);
+    const ms = base + (km / (av.gs_kt * NM_KM) * 60 + (km > 25 ? MIN_APROX : 2)) * 60000;
+    if (ms < ahoraMs - 2 * 60000) return null;
+    return { ms, km, min: Math.max(0, (ms - ahoraMs) / 60000) };
   }
 
   // Probabilidad de bajo mínimos a una hora dada, interpolando la serie de NOVOK (y lo observado ahora)
@@ -201,10 +205,26 @@
     return normalizar(json, Date.now());
   }
 
+  // Web publicada: foto de los vuelos que guarda GitHub al publicar (datos/vuelos_ahora.json), con la hora de la foto
+  const enFoto = cfg => !!cfg.instantanea && !enLocal();
+  const hhmm = ms => new Date(ms).toLocaleTimeString("es-ES", { timeZone: "Europe/Madrid", hour: "2-digit", minute: "2-digit" });
+  async function deFoto(cfg) {
+    const r = await fetch(cfg.instantanea, { cache: "no-store" });
+    if (!r.ok) throw new Error(r.status === 404 ? "todavía no hay foto de vuelos publicada" : `HTTP ${r.status}`);
+    const json = await r.json();
+    if (!(json.ac || []).length) throw new Error(json.error || "la foto de vuelos está vacía");
+    for (const x of json.rutas || []) if (x?.callsign) cacheRutas[x.callsign.trim()] = { ...x, _t: Date.now() };
+    const min = Math.round((Date.now() - json.now) / 60000);
+    cfg.foto_ms = json.now;
+    cfg.atribucion_actual = `${cfg.atribucion} · posiciones de las ${hhmm(json.now)}${min > 1 ? ` (hace ${min} min)` : ""}, se renuevan cada 30 min`;
+    return normalizar(json, json.now);
+  }
+
   // Proveedor principal y, si falla, los de respaldo de vuelos.json (si los hay), en orden. cfg.atribucion_actual dice cuál se usó.
   let principalCaidoHasta = 0;            // si el principal falla, se deja descansar 2 minutos
   let errorPrincipal = null;
   async function posiciones(cfg) {
+    if (enFoto(cfg)) return deFoto(cfg);
     try {
       if (Date.now() < principalCaidoHasta && cfg.respaldos?.length) throw errorPrincipal || new Error("principal en pausa");
       const av = await posicionesDe(cfg);
@@ -233,7 +253,7 @@
     return rutasEnCurso;
   }
   async function pedirRutas(cfg, aviones) {
-    if (!cfg.rutas) return cacheRutas;
+    if (!cfg.rutas || enFoto(cfg)) return cacheRutas;          // con foto, las rutas vienen dentro
     const ahora = Date.now();
     const faltan = aviones.filter(a => a.indicativo && !a.en_tierra && !(a.indicativo in cacheRutas && ahora - cacheRutas[a.indicativo]._t < 30 * 60000));
     for (let k = 0; k < faltan.length; k += 100) {

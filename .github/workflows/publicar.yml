@@ -42,6 +42,10 @@ jobs:
           if [ -f web/desvios.json ]; then cp web/desvios.json _site/; fi
           if [ -d web/cliente ]; then cp -r web/cliente _site/; fi
           python -m novok.red briefing --salida _site/datos
+      # Foto de los vuelos en el aire para la web (los proveedores gratuitos no atienden bien al Worker de Cloudflare)
+      - name: Foto de los vuelos
+        continue-on-error: true
+        run: python -m novok.instantanea --salida _site/datos/vuelos_ahora.json
       # Alertas (F10): el estado de lo ya avisado se guarda entre ejecuciones en la caché de Actions.
       # Sin los secretos NOVOK_TELEGRAM_* o NOVOK_SMTP_*, los avisos solo se escriben en el registro.
       - name: Recuperar estado de las alertas
