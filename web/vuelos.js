@@ -203,25 +203,24 @@
 
   // Proveedor principal y, si falla, los de respaldo de vuelos.json (si los hay), en orden. cfg.atribucion_actual dice cuál se usó.
   let principalCaidoHasta = 0;            // si el principal falla, se deja descansar 2 minutos
+  let errorPrincipal = null;
   async function posiciones(cfg) {
     try {
-      if (Date.now() < principalCaidoHasta && cfg.respaldos?.length) throw new Error("principal en pausa");
+      if (Date.now() < principalCaidoHasta && cfg.respaldos?.length) throw errorPrincipal || new Error("principal en pausa");
       const av = await posicionesDe(cfg);
       cfg.atribucion_actual = cfg.atribucion;
       return av;
     } catch (e) {
-      if (Date.now() >= principalCaidoHasta) principalCaidoHasta = Date.now() + 120000;
-      let error = e;
+      if (Date.now() >= principalCaidoHasta) { principalCaidoHasta = Date.now() + 120000; errorPrincipal = e; }
+      // Si fallan también los respaldos, se informa del error del proveedor principal (es el que importa)
       for (const r of cfg.respaldos || []) {          // se prueban en orden hasta que uno responda
         try {
           const av = await posicionesDe({ ...cfg, posiciones: null, ...r });
           cfg.atribucion_actual = r.atribucion;
           return av;
-        } catch (e2) {
-          error = e2;
-        }
+        } catch { /* se prueba el siguiente */ }
       }
-      throw error;
+      throw e;
     }
   }
 
