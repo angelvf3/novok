@@ -268,7 +268,7 @@
   <button type="button" class="p-menu" id="abrir-lateral" aria-label="Abrir menú" aria-controls="lateral" aria-expanded="false"><svg width="20" height="20" viewBox="0 0 20 20" aria-hidden="true"><path d="M3 5h14M3 10h14M3 15h14" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg></button>
   <a class="marca p-marca-movil" href="./"><img src="marca/novok-logo-claro-72.png" alt="NOVOK" width="99" height="22"></a>
   <div class="p-barra-tit"><h1><a href="./">Red del norte</a> / <span class="mono" id="icao">····</span></h1><span>Briefing de niebla y techo bajo</span></div>
-  <div class="p-relojes mono" aria-label="Hora actual"><span><b id="reloj-u">--:--</b> UTC</span><span><b id="reloj-l">--:--</b> peninsular</span></div>
+  <div class="p-relojes mono" aria-label="Hora actual"><span><b id="reloj-u">--:--:--</b> UTC</span><span><b id="reloj-l">--:--:--</b> peninsular</span></div>
   <span class="p-estado" id="estado-corto"></span>
 </header>
 
@@ -291,8 +291,20 @@
         <p class="b-nota" id="nota-meteo"></p>
       </section>
       <div id="hueco-llegadas"></div>
+      <section class="p-tarjeta p-visor-tarjeta" id="p-visor" aria-labelledby="t-visor">
+        <div class="p-cab"><h2 id="t-visor">Simulación 3D del aeropuerto</h2><span>Relieve real; arrastra para girar</span></div>
+        <div class="visor" id="visor">
+          <div id="mapa3d"></div>
+          <div class="hud hud-info" id="hud-info" aria-live="polite"></div>
+          <div class="hud hud-vistas" role="group" aria-label="Punto de vista">
+          </div>
+          <div class="hud hud-tiempo" id="hud-tiempo" role="group" aria-label="Momento"></div>
+          <p class="nota-visor">Ilustración de la previsión, no una simulación física: la cantidad de niebla dibujada sigue la visibilidad observada (ahora) o la probabilidad de niebla de NOVOK (previsión), y se desplaza con el viento.</p>
+        </div>
+        <p class="p-nota p-nota-visor">Ilustración de la previsión, no una simulación física: la niebla dibujada sigue la visibilidad observada (ahora) o la probabilidad de niebla de NOVOK (previsión), y se desplaza con el viento.</p>
+      </section>
     </div>
-    <div class="p-col">
+    <div class="p-col p-col-lateral">
       <section class="p-tarjeta p-oscura" aria-labelledby="t-ahora">
         <div class="p-cab"><h2 id="t-ahora">Condiciones ahora</h2><span id="hora-metar"></span></div>
         <dl class="b-datos" id="datos-ahora"></dl>
@@ -309,17 +321,6 @@
     </div>
   </div>
 
-  <section class="p-tarjeta p-visor-tarjeta" id="p-visor" aria-labelledby="t-visor">
-    <div class="p-cab"><h2 id="t-visor">Simulación 3D del aeropuerto</h2><span>Relieve real; arrastra para girar</span></div>
-    <div class="visor" id="visor">
-      <div id="mapa3d"></div>
-      <div class="hud hud-info" id="hud-info" aria-live="polite"></div>
-      <div class="hud hud-vistas" role="group" aria-label="Punto de vista">
-      </div>
-      <div class="hud hud-tiempo" id="hud-tiempo" role="group" aria-label="Momento"></div>
-      <p class="nota-visor">Ilustración de la previsión, no una simulación física: la cantidad de niebla dibujada sigue la visibilidad observada (ahora) o la probabilidad de niebla de NOVOK (previsión), y se desplaza con el viento.</p>
-    </div>
-  </section>
   <div id="contenido" aria-live="polite"></div>
   <section class="caja llegadas" aria-labelledby="t-lleg" id="caja-llegadas" hidden>
     <h2 id="t-lleg">Llegadas en el aire <span id="estado-lleg">cargando vuelos…</span></h2>
@@ -367,7 +368,7 @@ const pastilla = (c, grande) => `<span class="cat ${c || "NA"}${grande ? " grand
 
 function reloj() {
   const d = new Date();
-  const hm = zona => d.toLocaleTimeString("es-ES", { timeZone: zona, hour: "2-digit", minute: "2-digit" });
+  const hm = zona => d.toLocaleTimeString("es-ES", { timeZone: zona, hour: "2-digit", minute: "2-digit", second: "2-digit" });
   document.getElementById("reloj-l").textContent = hm(ZONA);
   document.getElementById("reloj-u").textContent = hm("UTC");
 }
