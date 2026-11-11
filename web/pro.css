@@ -267,7 +267,6 @@ body.pro {
   .p-aero-rejilla { display: flex; flex-direction: column; }
   .p-col { display: contents; }
   .p-oscura { order: -2; }
-  .p-aero-rejilla > *, .p-col > * { max-width: 100%; width: 100%; }
   .p-meteo { order: -1; }
 }
 @media (max-width: 900px) {
@@ -437,20 +436,31 @@ body.pro {
   .p-estado.retraso { white-space: normal; line-height: 1.15; max-width: 120px; font-size: 11px; }
 }
 
-/* ---------------------------------------------------------------- aeropuerto: dos columnas sin huecos
-   La simulación 3D va en la columna ancha, debajo de las llegadas; la columna estrecha (condiciones, TAF, desvíos)
-   acompaña al desplazarse, así no queda un hueco en blanco cuando una columna es más alta que la otra. */
-.p-aero-rejilla { align-items: start; }
-.p-col-lateral { position: sticky; top: 72px; }
-.p-col .p-visor-tarjeta .visor { height: 520px; }
-.p-col .p-visor-tarjeta .nota-visor { display: none; }
+/* ---------------------------------------------------------------- aeropuerto: filas alineadas, sin huecos
+   Fila 1: pronóstico | condiciones ahora (misma altura). Llegadas a todo el ancho. Fila 2: TAF | desvíos.
+   La simulación 3D, a todo el ancho y apaisada. */
+.p-aero-fila { display: grid; gap: 16px; align-items: stretch; }
+.p-aero-fila-1 { grid-template-columns: minmax(0, 1.75fr) minmax(320px, 1fr); }
+.p-aero-fila-2 { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); }
+.p-aero-fila-2:not(:has(.p-desvios:not([hidden]))) { grid-template-columns: minmax(0, 1fr); }
+.p-aero-fila .p-tarjeta { display: flex; flex-direction: column; }
+.p-oscura .b-datos { flex: 1; align-content: stretch; }
+.p-oscura .b-metar { margin-top: auto; }
+.p-taf .p-taf-cuerpo { flex: 1; }
+.p-visor-tarjeta .visor { height: 560px; }
 .p-nota-visor { border-top: 0; }
-.p-col .p-visor-tarjeta .hud-tiempo { max-width: calc(100% - 24px); overflow-x: auto; scrollbar-width: none; }
-.p-col .p-visor-tarjeta .hud-tiempo button { padding: 8px 9px; font-size: 12.5px; }
+.p-visor-tarjeta .nota-visor { display: none; }
 @media (max-width: 1100px) {
-  .p-col-lateral { position: static; }
-  .p-visor-tarjeta { order: 2; }
-  .p-col .p-visor-tarjeta .visor { height: 620px; }
+  .p-aero-fila-1 { display: flex; flex-direction: column; }
+  .p-aero-fila-1 .p-oscura { order: -3; }
+  .p-aero-fila-2 { grid-template-columns: minmax(0, 1fr); }
+}
+@media (max-width: 760px) {
+  .p-visor-tarjeta .visor { height: 620px; }
+  /* la barra de horas se desliza con el dedo en vez de salirse por la derecha */
+  .p-visor-tarjeta .hud-tiempo { overflow-x: auto; justify-content: flex-start; scrollbar-width: none; }
+  .p-visor-tarjeta .hud-tiempo::-webkit-scrollbar { display: none; }
+  .p-visor-tarjeta .hud-tiempo button { flex: none; }
 }
 
 /* ---------------------------------------------------------------- menú: Mi aerolínea */
