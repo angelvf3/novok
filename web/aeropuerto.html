@@ -290,18 +290,6 @@
         <p class="b-nota" id="nota-meteo"></p>
       </section>
       <div id="hueco-llegadas"></div>
-        <section class="p-tarjeta p-visor-tarjeta" id="p-visor" aria-labelledby="t-visor">
-          <div class="p-cab"><h2 id="t-visor">Simulación 3D del aeropuerto</h2><span>Relieve real; arrastra para girar</span></div>
-          <div class="visor" id="visor">
-            <div id="mapa3d"></div>
-            <div class="hud hud-info" id="hud-info" aria-live="polite"></div>
-            <div class="hud hud-vistas" role="group" aria-label="Punto de vista">
-            </div>
-            <div class="hud hud-tiempo" id="hud-tiempo" role="group" aria-label="Momento"></div>
-            <p class="nota-visor">Ilustración de la previsión, no una simulación física: la cantidad de niebla dibujada sigue la visibilidad observada (ahora) o la probabilidad de niebla de NOVOK (previsión), y se desplaza con el viento.</p>
-          </div>
-          <p class="p-nota p-nota-visor">Ilustración de la previsión, no una simulación física: la niebla dibujada sigue la visibilidad observada (ahora) o la probabilidad de niebla de NOVOK (previsión), y se desplaza con el viento.</p>
-        </section>
     </div>
     <div class="p-col p-col-lateral">
       <section class="p-tarjeta p-oscura" aria-labelledby="t-ahora">
@@ -319,6 +307,19 @@
       </section>
     </div>
   </div>
+
+  <section class="p-tarjeta p-visor-tarjeta" id="p-visor" aria-labelledby="t-visor">
+    <div class="p-cab"><h2 id="t-visor">Simulación 3D del aeropuerto</h2><span>Relieve real; arrastra para girar</span></div>
+    <div class="visor" id="visor">
+      <div id="mapa3d"></div>
+      <div class="hud hud-info" id="hud-info" aria-live="polite"></div>
+      <div class="hud hud-vistas" role="group" aria-label="Punto de vista">
+      </div>
+      <div class="hud hud-tiempo" id="hud-tiempo" role="group" aria-label="Momento"></div>
+      <p class="nota-visor">Ilustración de la previsión, no una simulación física: la cantidad de niebla dibujada sigue la visibilidad observada (ahora) o la probabilidad de niebla de NOVOK (previsión), y se desplaza con el viento.</p>
+    </div>
+    <p class="p-nota p-nota-visor">Ilustración de la previsión, no una simulación física: la niebla dibujada sigue la visibilidad observada (ahora) o la probabilidad de niebla de NOVOK (previsión), y se desplaza con el viento.</p>
+  </section>
 
   <div id="contenido" aria-live="polite"></div>
   <section class="caja llegadas" aria-labelledby="t-lleg" id="caja-llegadas" hidden>

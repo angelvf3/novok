@@ -437,27 +437,33 @@ body.pro {
   .p-estado.retraso { white-space: normal; line-height: 1.15; max-width: 120px; font-size: 11px; }
 }
 
-/* ---------------------------------------------------------------- aeropuerto: dos columnas sin huecos
-   La simulación 3D va en la columna ancha, debajo de las llegadas; la columna estrecha (condiciones, TAF, desvíos)
-   acompaña al desplazarse, así no queda un hueco en blanco cuando una columna es más alta que la otra. */
+/* ---------------------------------------------------------------- aeropuerto: dos columnas sin huecos + 3D a todo el ancho
+   Columna ancha: pronóstico y llegadas. Columna estrecha: condiciones, TAF y desvíos (acompaña al desplazarse).
+   Debajo, la simulación 3D a todo el ancho. En el móvil: condiciones, pronóstico, 3D, llegadas, TAF y desvíos. */
 .p-aero-rejilla { align-items: start; }
 .p-col-lateral { position: sticky; top: 72px; }
-.p-col .p-visor-tarjeta .visor { height: 520px; }
-.p-col .p-visor-tarjeta .nota-visor { display: none; }
+.p-visor-tarjeta .visor { height: 560px; }
+.p-visor-tarjeta .nota-visor { display: none; }
 .p-nota-visor { border-top: 0; }
-.p-col .p-visor-tarjeta .hud-tiempo { max-width: calc(100% - 24px); overflow-x: auto; scrollbar-width: none; }
-.p-col .p-visor-tarjeta .hud-tiempo::-webkit-scrollbar { display: none; }
-.p-col .p-visor-tarjeta .hud-tiempo button { padding: 8px 9px; font-size: 12.5px; flex: none; }
 @media (max-width: 1100px) {
-  /* en una columna: condiciones, pronóstico, 3D, llegadas, TAF y desvíos */
   .p-col-lateral { position: static; }
-  .p-aero-rejilla .p-oscura { order: -3; }
-  .p-aero-rejilla .p-meteo { order: -2; }
-  .p-aero-rejilla .p-visor-tarjeta { order: -1; }
-  .p-col .p-visor-tarjeta .visor { height: 620px; }
+  /* las tarjetas de las dos columnas y el 3D pasan a ser una sola lista, para poder ordenarlas */
+  .p-aero-rejilla { display: contents; }
+  #cabecera-aero, #banda { order: 0; }
+  .p-aero-rejilla .p-oscura { order: 1; }
+  .p-aero-rejilla .p-meteo { order: 2; }
+  .p-visor-tarjeta { order: 3; }
+  #caja-llegadas { order: 4; }
+  .p-aero-rejilla .p-taf { order: 5; }
+  .p-aero-rejilla .p-desvios { order: 6; }
+  #contenido { order: 7; }
+  .p-main > .pie { order: 8; }
+  .p-visor-tarjeta .visor { height: 620px; }
 }
 @media (max-width: 760px) {
-  .p-col .p-visor-tarjeta .hud-tiempo { justify-content: flex-start; }
+  .p-visor-tarjeta .hud-tiempo { overflow-x: auto; justify-content: flex-start; scrollbar-width: none; }
+  .p-visor-tarjeta .hud-tiempo::-webkit-scrollbar { display: none; }
+  .p-visor-tarjeta .hud-tiempo button { flex: none; }
 }
 
 /* ---------------------------------------------------------------- páginas: desvíos, guía, contacto */
