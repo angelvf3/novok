@@ -808,7 +808,8 @@ async function actualizarVuelos() {
 
 function motivoVuelos(e) {
   const m = String(e?.message || e || "");
-  if (/HTTP 403/.test(m)) return "el intermediario rechaza esta dirección: revisa ORIGENES en el Worker";
+  if (/HTTP 429/.test(m)) return "el proveedor de vuelos está limitando las peticiones; se vuelve a intentar en unos segundos";
+  if (/HTTP 403/.test(m)) return "el proveedor de vuelos o el intermediario rechaza la petición (HTTP 403)";
   if (/HTTP 404/.test(m)) return enLocalPagina() ? "abre la página con python -m novok.servidor" : "intermediario_publico de vuelos.json no apunta al Worker";
   if (/HTTP 5\d\d/.test(m)) return "el proveedor de vuelos no responde ahora (" + m + ")";
   if (/JSON|Unexpected token/.test(m)) return "el proveedor devolvió un aviso en lugar de datos (mantenimiento)";

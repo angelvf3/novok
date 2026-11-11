@@ -23,4 +23,20 @@ assert.strictEqual(pre.status, 204);
 const post = await worker.fetch(new Request("https://w.dev/api/vuelos/adsblol/api/0/routeset", { method: "POST", body: '{"planes":[]}', headers: { Origin: "https://angelvf3.github.io" } }), env);
 assert.strictEqual(post.status, 200);
 assert.deepStrictEqual(pedidas.map(p => p[1]), ["GET", "POST"]);
+// Si el proveedor limita (429), se devuelve la última respuesta buena y se le deja descansar
+let respuestaProveedor = () => new Response('{"ac":[{"hex":"abc"}]}', { status: 200 });
+globalThis.fetch = async (url, op) => { pedidas.push([url, op.method]); return respuestaProveedor(); };
+const u = "https://w.dev/api/vuelos/adsblol/v2/point/40/-3/250", h = { headers: { Origin: "https://angelvf3.github.io" } };
+assert.strictEqual((await worker.fetch(new Request(u, h), env)).status, 200);
+respuestaProveedor = () => new Response("Too Many Requests", { status: 429 });
+const limitada = await worker.fetch(new Request(u, h), env);
+assert.strictEqual(limitada.status, 200);
+assert.ok(limitada.headers.get("X-Novok-Copia") !== null);
+assert.deepStrictEqual(await limitada.json(), { ac: [{ hex: "abc" }] });
+const antes = pedidas.length;
+const enPausa = await worker.fetch(new Request(u, h), env);          // en pausa: no se pide al proveedor
+assert.strictEqual(enPausa.status, 200);
+assert.strictEqual(pedidas.length, antes);
+const sinCopia = await worker.fetch(new Request("https://w.dev/api/vuelos/adsblol/v2/point/1/1/1", h), env);
+assert.strictEqual(sinCopia.status, 429);
 console.log("worker.js: todo bien");
