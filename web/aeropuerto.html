@@ -249,7 +249,6 @@
     <a class="marca" href="./"><img src="marca/novok-logo-oscuro-72.png" alt="NOVOK" width="126" height="28"></a>
     <button type="button" class="p-cerrar-lat" id="cerrar-lateral" aria-label="Cerrar menú">×</button>
   </div>
-  <label class="p-mia"><span>Mi aerolínea</span><select id="mi-aerolinea"><option value="">Todas las aerolíneas</option></select></label>
   <nav class="p-nav" aria-label="Principal">
     <a href="./"><i></i>Panel de red</a>
     <a href="#" aria-current="page"><i></i>Briefing del aeropuerto</a>
@@ -295,6 +294,18 @@
         <p class="b-metar mono" id="metar-bruto" hidden></p>
       </section>
   </div>
+  <section class="p-tarjeta p-visor-tarjeta" id="p-visor" aria-labelledby="t-visor">
+    <div class="p-cab"><h2 id="t-visor">Simulación 3D del aeropuerto</h2><span>Relieve real; arrastra para girar</span></div>
+    <div class="visor" id="visor">
+      <div id="mapa3d"></div>
+      <div class="hud hud-info" id="hud-info" aria-live="polite"></div>
+      <div class="hud hud-vistas" role="group" aria-label="Punto de vista">
+      </div>
+      <div class="hud hud-tiempo" id="hud-tiempo" role="group" aria-label="Momento"></div>
+      <p class="nota-visor">Ilustración de la previsión, no una simulación física: la cantidad de niebla dibujada sigue la visibilidad observada (ahora) o la probabilidad de niebla de NOVOK (previsión), y se desplaza con el viento.</p>
+    </div>
+    <p class="p-nota p-nota-visor">Ilustración de la previsión, no una simulación física: la niebla dibujada sigue la visibilidad observada (ahora) o la probabilidad de niebla de NOVOK (previsión), y se desplaza con el viento.</p>
+  </section>
   <div id="hueco-llegadas"></div>
   <div class="p-aero-fila p-aero-fila-2" id="fila-taf">
       <section class="p-tarjeta p-taf" aria-labelledby="t-taf">
@@ -306,18 +317,6 @@
         <div class="p-d-cuerpo" id="desvios-cuerpo"></div>
       </section>
   </div>
-    <section class="p-tarjeta p-visor-tarjeta" id="p-visor" aria-labelledby="t-visor">
-      <div class="p-cab"><h2 id="t-visor">Simulación 3D del aeropuerto</h2><span>Relieve real; arrastra para girar</span></div>
-      <div class="visor" id="visor">
-        <div id="mapa3d"></div>
-        <div class="hud hud-info" id="hud-info" aria-live="polite"></div>
-        <div class="hud hud-vistas" role="group" aria-label="Punto de vista">
-        </div>
-        <div class="hud hud-tiempo" id="hud-tiempo" role="group" aria-label="Momento"></div>
-        <p class="nota-visor">Ilustración de la previsión, no una simulación física: la cantidad de niebla dibujada sigue la visibilidad observada (ahora) o la probabilidad de niebla de NOVOK (previsión), y se desplaza con el viento.</p>
-      </div>
-      <p class="p-nota p-nota-visor">Ilustración de la previsión, no una simulación física: la niebla dibujada sigue la visibilidad observada (ahora) o la probabilidad de niebla de NOVOK (previsión), y se desplaza con el viento.</p>
-    </section>
 
   <div id="contenido" aria-live="polite"></div>
   <section class="caja llegadas" aria-labelledby="t-lleg" id="caja-llegadas" hidden>

@@ -18,7 +18,6 @@
     <a class="marca" href="./"><img src="marca/novok-logo-oscuro-72.png" alt="NOVOK" width="126" height="28"></a>
     <button type="button" class="p-cerrar-lat" id="cerrar-lateral" aria-label="Cerrar menú">×</button>
   </div>
-  <label class="p-mia"><span>Mi aerolínea</span><select id="mi-aerolinea"><option value="">Todas las aerolíneas</option></select></label>
   <nav class="p-nav" aria-label="Principal">
     <a href="./"><i></i>Panel de red</a>
     <a href="desvios.html"><i></i>Desvíos 2026</a>
@@ -40,47 +39,59 @@
   <span class="p-estado" id="estado-corto"></span>
 </header>
 
-<main class="p-main p-pagina">
-  <section class="p-hero" aria-labelledby="titular">
-    <div class="p-hero-rejilla">
-      <div class="p-hero-texto">
-        <p class="p-hero-estado bajo">Temporada de niebla 2026-2027</p>
-        <h2 id="titular">Prueba NOVOK en tu operación este invierno</h2>
-        <p class="p-hero-sub">Un piloto durante la temporada de niebla, con tus vuelos y tus aeropuertos, para medir cuántos desvíos se podían haber anticipado y con cuánto margen.</p>
-        <div class="c-acciones" id="c-acciones"></div>
+<main class="p-main p-pagina p-pagina-ancha">
+  <section class="c-hero" aria-labelledby="titular">
+    <div class="c-hero-texto">
+      <p class="c-eti">Piloto · temporada de niebla 2026-2027</p>
+      <h2 id="titular">Anticipa los desvíos por niebla antes de que el avión despegue</h2>
+      <p class="c-sub">Prueba NOVOK durante el invierno con tus vuelos y tus aeropuertos, y mide cuántos desvíos se podían haber previsto y con cuánto margen.</p>
+      <div class="c-acciones" id="c-acciones">
+        <a class="c-boton" href="./">Ver el panel en directo</a>
+        <a class="c-boton c-sec" href="desvios.html">Desvíos de 2026</a>
       </div>
-      <div class="p-hero-avisos">
-        <h3>Quién está detrás</h3>
-        <p class="c-quien"><b id="c-nombre">Ángel Villabrille Fernández</b><span id="c-lugar">Gijón</span></p>
-        <p class="c-texto">Desarrollo NOVOK en solitario: el modelo, la verificación con los desvíos reales y esta web. Respondo yo directamente.</p>
-      </div>
+    </div>
+    <dl class="c-cifras" id="c-cifras">
+      <div><dt id="c-c1">13</dt><dd id="c-c1t">aeropuertos del norte de España, actualizados cada 30 minutos</dd></div>
+      <div><dt id="c-c2">12 h</dt><dd id="c-c2t">de previsión hora a hora de niebla y techo bajo</dd></div>
+      <div><dt id="c-c3">—</dt><dd id="c-c3t">vuelos en el aire cruzados con la previsión de su destino</dd></div>
+    </dl>
+  </section>
+
+  <section class="c-bloque" aria-labelledby="c-t-pasos">
+    <h2 id="c-t-pasos" class="c-tit">Cómo funciona el piloto</h2>
+    <ol class="c-pasos3">
+      <li><span class="c-num">1</span><h3>Llamada de 15 minutos</h3><p>Te enseño el panel con datos en directo y vemos qué aeropuertos, vuelos y decisiones te importan.</p></li>
+      <li><span class="c-num">2</span><h3>Configuración</h3><p>Tu aerolínea, tus costes de desvío y las personas que deben recibir los avisos. Sin instalar nada.</p></li>
+      <li><span class="c-num">3</span><h3>Temporada de niebla</h3><p>Lo usas en tu operación durante la temporada. Cada mes revisamos juntos los desvíos reales y los avisos.</p></li>
+    </ol>
+  </section>
+
+  <section class="c-bloque" aria-labelledby="c-t-inc">
+    <h2 id="c-t-inc" class="c-tit">Qué incluye</h2>
+    <div class="c-incluye">
+      <article><svg class="c-ico" viewBox="0 0 24 24" width="22" height="22" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M3 4h18v12H3z M8 20h8 M12 16v4" /></svg><h3>Panel con tus vuelos</h3><p>El panel de NOVOK filtrado para tu aerolínea: llegadas en riesgo, alternativo probable y coste esperado de cada desvío.</p></article>
+      <article><svg class="c-ico" viewBox="0 0 24 24" width="22" height="22" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M16 7.5a5.5 5.5 0 1 0 0 9 M5 10.5h8 M5 13.5h8" /></svg><h3>Tus costes</h3><p>El coste de desvío con tus cifras de combustible, tripulación, handling y atención al pasaje, en lugar de las de ejemplo.</p></article>
+      <article><svg class="c-ico" viewBox="0 0 24 24" width="22" height="22" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M6 16V11a6 6 0 0 1 12 0v5l1.5 2h-15z M10 20.5a2 2 0 0 0 4 0" /></svg><h3>Avisos</h3><p>Mensaje por Telegram o correo a quien tú digas cuando un aeropuerto entra en riesgo, empeora o se recupera.</p></article>
+      <article><svg class="c-ico" viewBox="0 0 24 24" width="22" height="22" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M6 3h9l3 3v15H6z M9 12h6 M9 15.5h6 M9 8.5h3" /></svg><h3>Informe mensual</h3><p>Los desvíos reales del mes y lo que NOVOK avisó en cada uno, con la misma metodología que la página de desvíos.</p></article>
     </div>
   </section>
 
-  <div class="p-fila p-fila-datos">
-    <section class="p-tarjeta p-doc" aria-labelledby="c-incluye">
-      <div class="p-cab"><h2 id="c-incluye">Qué incluye el piloto</h2></div>
-      <div class="p-doc-cuerpo">
-        <dl class="g-partes">
-          <div><dt>Panel con tu aerolínea</dt><dd>Este mismo panel, con tu aerolínea seleccionada: tus llegadas en riesgo, su alternativo y el coste esperado.</dd></div>
-          <div><dt>Tus costes</dt><dd>El coste de desvío con tus cifras de combustible, tripulación, handling y atención al pasaje, en lugar de las de ejemplo.</dd></div>
-          <div><dt>Avisos</dt><dd>Aviso a quien tú digas cuando un aeropuerto entra en riesgo, empeora o se recupera.</dd></div>
-          <div><dt>Informe mensual</dt><dd>Los desvíos reales del mes y lo que NOVOK avisó en cada uno, como en la página <a href="desvios.html">Desvíos 2026</a>.</dd></div>
-        </dl>
-      </div>
-    </section>
-    <section class="p-tarjeta p-doc" aria-labelledby="c-pasos">
-      <div class="p-cab"><h2 id="c-pasos">Cómo empezar</h2></div>
-      <div class="p-doc-cuerpo">
-        <ol class="c-pasos">
-          <li><b>Una llamada de 15 minutos.</b> Te enseño el panel con datos en directo y vemos qué aeropuertos y vuelos te importan.</li>
-          <li><b>Lo configuro para ti.</b> Tu aerolínea, tus costes y a quién avisar.</li>
-          <li><b>Lo usas durante la temporada.</b> Cada mes revisamos juntos los desvíos reales y los avisos.</li>
-        </ol>
-        <p class="p-nota-doc">NOVOK es una herramienta de apoyo a la planificación. No sustituye al METAR y al TAF de AEMET.</p>
-      </div>
-    </section>
-  </div>
+  <section class="c-pie" aria-label="Quién está detrás y contacto">
+    <div class="c-quien-caja">
+      <h2 class="c-tit">Quién está detrás</h2>
+      <p class="c-nombre"><b id="c-nombre">Ángel Villabrille Fernández</b><span id="c-lugar">Gijón</span></p>
+      <p>Desarrollo NOVOK en solitario: el modelo de predicción, la verificación con los desvíos reales y esta web. Hablas directamente con quien lo ha construido.</p>
+    </div>
+    <div class="c-contacto" id="c-contacto">
+      <h2 class="c-tit">Qué necesito de tu parte</h2>
+      <ul class="c-lista">
+        <li>La aerolínea o aerolíneas a seguir y los aeropuertos que más te preocupan.</li>
+        <li>Si quieres afinar el coste esperado, tus costes aproximados de un desvío.</li>
+        <li>Quién debe recibir los avisos y por qué canal.</li>
+      </ul>
+      <div class="c-acciones c-acciones-pie" id="c-acciones-pie"></div>
+    </div>
+  </section>
 
   <footer class="pie">
     <p><strong>Herramienta de apoyo a la planificación de operaciones. No sustituye a la información meteorológica aeronáutica oficial (METAR y TAF de AEMET), que es la que vale para las decisiones de vuelo.</strong></p>
@@ -90,17 +101,34 @@
 <script src="marco.js"></script>
 <script>
 (() => {
+  const $ = id => document.getElementById(id);
   const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c]);
+  // Contacto: solo lo que haya en contacto.json
   fetch("contacto.json", { cache: "no-cache" }).then(r => r.ok ? r.json() : null).catch(() => null).then(c => {
     c = c || {};
-    if (c.nombre) document.getElementById("c-nombre").textContent = c.nombre;
-    if (c.lugar) document.getElementById("c-lugar").textContent = c.lugar;
-    const asunto = encodeURIComponent("Piloto de NOVOK");
-    const botones = [];
-    if (c.correo) botones.push(`<a class="c-boton" href="mailto:${esc(c.correo)}?subject=${asunto}">Escribir a ${esc(c.correo)}</a>`);
-    if (c.linkedin) botones.push(`<a class="c-boton c-sec" href="${esc(c.linkedin)}" rel="noopener" target="_blank">LinkedIn</a>`);
-    if (c.telefono) botones.push(`<a class="c-boton c-sec" href="tel:${esc(c.telefono.replace(/\s/g, ""))}">${esc(c.telefono)}</a>`);
-    document.getElementById("c-acciones").innerHTML = botones.join("");
+    if (c.nombre) $("c-nombre").textContent = c.nombre;
+    if (c.lugar) $("c-lugar").textContent = c.lugar;
+    const asunto = encodeURIComponent("Piloto de NOVOK"), b = [];
+    if (c.correo) b.push(`<a class="c-boton" href="mailto:${esc(c.correo)}?subject=${asunto}">Solicitar el piloto</a>`);
+    if (c.linkedin) b.push(`<a class="c-boton c-sec" href="${esc(c.linkedin)}" rel="noopener" target="_blank">LinkedIn</a>`);
+    if (c.telefono) b.push(`<a class="c-boton c-sec" href="tel:${esc(c.telefono.replace(/\s/g, ""))}">${esc(c.telefono)}</a>`);
+    if (b.length) {
+      $("c-acciones").innerHTML = b[0] + `<a class="c-boton c-sec" href="desvios.html">Desvíos de 2026</a>`;
+      $("c-acciones-pie").innerHTML = b.join("") + (c.correo ? `<p class="c-correo">${esc(c.correo)}</p>` : "");
+    }
+  });
+  // Cifras reales: desvíos avisados (desvios.json) y vuelos en el aire hacia la red (si hay datos)
+  fetch("desvios.json", { cache: "no-cache" }).then(r => r.ok ? r.json() : null).catch(() => null).then(d => {
+    const x = d?.red?.["6h"];
+    if (x) {
+      $("c-c3").textContent = `${x.novok} de ${x.total}`;
+      $("c-c3t").textContent = `desvíos reales de 2026 avisados con 6 horas; suponer que el tiempo sigue igual habría avisado de ${x.persistencia}`;
+      return;
+    }
+    const A = Object.values(d?.aeropuertos || {});
+    const ev = A.reduce((t, a) => t + a.evaluados, 0), av = A.reduce((t, a) => t + a.avisados, 0);
+    if (ev) { $("c-c3").textContent = `${av} de ${ev}`; $("c-c3t").textContent = `desvíos reales de 2026 avisados con ${d.antelacion_h || 6} horas de antelación`; }
+    else $("c-c3").closest("div").remove();
   });
 })();
 </script>
