@@ -1,0 +1,108 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>NOVOK · Pedir un piloto</title>
+<meta name="description" content="Pide un piloto de NOVOK para la temporada de niebla: panel con tu aerolínea, tus costes, avisos e informe mensual de desvíos.">
+<meta name="theme-color" content="#0b1116">
+<link rel="icon" href="novok-logo.png">
+<link rel="apple-touch-icon" href="marca/novok-icono-180.png">
+<link rel="stylesheet" href="vendor/fuentes.css">
+<link rel="stylesheet" href="nordico.css">
+<link rel="stylesheet" href="pro.css">
+</head>
+<body class="pro" data-marco="completo">
+<aside class="p-lateral" id="lateral" aria-label="Navegación">
+  <div class="p-lat-cab">
+    <a class="marca" href="./"><img src="marca/novok-logo-oscuro-72.png" alt="NOVOK" width="126" height="28"></a>
+    <button type="button" class="p-cerrar-lat" id="cerrar-lateral" aria-label="Cerrar menú">×</button>
+  </div>
+  <label class="p-mia"><span>Mi aerolínea</span><select id="mi-aerolinea"><option value="">Todas las aerolíneas</option></select></label>
+  <nav class="p-nav" aria-label="Principal">
+    <a href="./"><i></i>Panel de red</a>
+    <a href="desvios.html"><i></i>Desvíos 2026</a>
+    <a href="guia.html"><i></i>Cómo leer el panel</a>
+    <a href="contacto.html" aria-current="page"><i></i>Pedir un piloto</a>
+  </nav>
+  <h2 class="p-lat-tit">Aeropuertos</h2>
+  <ul class="p-lat-red" id="lateral-red"></ul>
+  <p class="p-lat-pie">Apoyo a la planificación. No sustituye al METAR y TAF oficiales de AEMET.</p>
+</aside>
+<div class="p-velo" id="velo" hidden></div>
+
+<div class="p-contenido">
+<header class="p-barra">
+  <button type="button" class="p-menu" id="abrir-lateral" aria-label="Abrir menú" aria-controls="lateral" aria-expanded="false"><svg width="20" height="20" viewBox="0 0 20 20" aria-hidden="true"><path d="M3 5h14M3 10h14M3 15h14" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg></button>
+  <a class="marca p-marca-movil" href="./"><img src="marca/novok-logo-claro-72.png" alt="NOVOK" width="99" height="22"></a>
+  <div class="p-barra-tit"><h1>Pedir un piloto</h1><span>Prueba NOVOK con tu operación</span></div>
+  <div class="p-relojes mono" aria-label="Hora actual"><span><b id="reloj-u">--:--:--</b> UTC</span><span><b id="reloj-l">--:--:--</b> peninsular</span></div>
+  <span class="p-estado" id="estado-corto"></span>
+</header>
+
+<main class="p-main p-pagina">
+  <section class="p-hero" aria-labelledby="titular">
+    <div class="p-hero-rejilla">
+      <div class="p-hero-texto">
+        <p class="p-hero-estado bajo">Temporada de niebla 2026-2027</p>
+        <h2 id="titular">Prueba NOVOK en tu operación este invierno</h2>
+        <p class="p-hero-sub">Un piloto durante la temporada de niebla, con tus vuelos y tus aeropuertos, para medir cuántos desvíos se podían haber anticipado y con cuánto margen.</p>
+        <div class="c-acciones" id="c-acciones"></div>
+      </div>
+      <div class="p-hero-avisos">
+        <h3>Quién está detrás</h3>
+        <p class="c-quien"><b id="c-nombre">Ángel Villabrille Fernández</b><span id="c-lugar">Gijón</span></p>
+        <p class="c-texto">Desarrollo NOVOK en solitario: el modelo, la verificación con los desvíos reales y esta web. Respondo yo directamente.</p>
+      </div>
+    </div>
+  </section>
+
+  <div class="p-fila p-fila-datos">
+    <section class="p-tarjeta p-doc" aria-labelledby="c-incluye">
+      <div class="p-cab"><h2 id="c-incluye">Qué incluye el piloto</h2></div>
+      <div class="p-doc-cuerpo">
+        <dl class="g-partes">
+          <div><dt>Panel con tu aerolínea</dt><dd>Este mismo panel, con tu aerolínea seleccionada: tus llegadas en riesgo, su alternativo y el coste esperado.</dd></div>
+          <div><dt>Tus costes</dt><dd>El coste de desvío con tus cifras de combustible, tripulación, handling y atención al pasaje, en lugar de las de ejemplo.</dd></div>
+          <div><dt>Avisos</dt><dd>Aviso a quien tú digas cuando un aeropuerto entra en riesgo, empeora o se recupera.</dd></div>
+          <div><dt>Informe mensual</dt><dd>Los desvíos reales del mes y lo que NOVOK avisó en cada uno, como en la página <a href="desvios.html">Desvíos 2026</a>.</dd></div>
+        </dl>
+      </div>
+    </section>
+    <section class="p-tarjeta p-doc" aria-labelledby="c-pasos">
+      <div class="p-cab"><h2 id="c-pasos">Cómo empezar</h2></div>
+      <div class="p-doc-cuerpo">
+        <ol class="c-pasos">
+          <li><b>Una llamada de 15 minutos.</b> Te enseño el panel con datos en directo y vemos qué aeropuertos y vuelos te importan.</li>
+          <li><b>Lo configuro para ti.</b> Tu aerolínea, tus costes y a quién avisar.</li>
+          <li><b>Lo usas durante la temporada.</b> Cada mes revisamos juntos los desvíos reales y los avisos.</li>
+        </ol>
+        <p class="p-nota-doc">NOVOK es una herramienta de apoyo a la planificación. No sustituye al METAR y al TAF de AEMET.</p>
+      </div>
+    </section>
+  </div>
+
+  <footer class="pie">
+    <p><strong>Herramienta de apoyo a la planificación de operaciones. No sustituye a la información meteorológica aeronáutica oficial (METAR y TAF de AEMET), que es la que vale para las decisiones de vuelo.</strong></p>
+  </footer>
+</main>
+</div>
+<script src="marco.js"></script>
+<script>
+(() => {
+  const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c]);
+  fetch("contacto.json", { cache: "no-cache" }).then(r => r.ok ? r.json() : null).catch(() => null).then(c => {
+    c = c || {};
+    if (c.nombre) document.getElementById("c-nombre").textContent = c.nombre;
+    if (c.lugar) document.getElementById("c-lugar").textContent = c.lugar;
+    const asunto = encodeURIComponent("Piloto de NOVOK");
+    const botones = [];
+    if (c.correo) botones.push(`<a class="c-boton" href="mailto:${esc(c.correo)}?subject=${asunto}">Escribir a ${esc(c.correo)}</a>`);
+    if (c.linkedin) botones.push(`<a class="c-boton c-sec" href="${esc(c.linkedin)}" rel="noopener" target="_blank">LinkedIn</a>`);
+    if (c.telefono) botones.push(`<a class="c-boton c-sec" href="tel:${esc(c.telefono.replace(/\s/g, ""))}">${esc(c.telefono)}</a>`);
+    document.getElementById("c-acciones").innerHTML = botones.join("");
+  });
+})();
+</script>
+</body>
+</html>

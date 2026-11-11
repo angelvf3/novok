@@ -79,3 +79,6 @@ def test_web_resumen_por_aeropuerto(tmp_path, monkeypatch):
     assert x["ultimos"][0] == {"fecha": "03/02", "indicativo": "IBE512", "aterriza": "LEVX", "avisado": False}
     assert out["periodo"] == "enero a febrero de 2026"
     assert json.loads((raiz / "web" / "desvios.json").read_text())["aeropuertos"]["LECO"]["casos"] == 2
+    assert out["red"]["6h"] == {"novok": 1, "persistencia": 1, "total": 2}
+    assert [c["indicativo"] for c in out["casos"]] == ["IBE512", "AEA7233"]
+    assert out["casos"][1]["hora"] == "08:00" and out["casos"][1]["aviso"] == {}

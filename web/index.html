@@ -174,17 +174,19 @@
     <button type="button" class="p-cerrar-lat" id="cerrar-lateral" aria-label="Cerrar menú">×</button>
   </div>
   <span id="cliente" class="cliente p-cliente" hidden></span>
+  <label class="p-mia"><span>Mi aerolínea</span><select id="mi-aerolinea"><option value="">Todas las aerolíneas</option></select></label>
   <nav class="p-nav" aria-label="Principal">
-    <a href="./" aria-current="page"><i></i>Panel de red</a>
-    <a href="#p-alertas"><i></i>Avisos<b id="nav-alertas"></b></a>
-    <a href="#p-lleg"><i></i>Llegadas en riesgo<b id="nav-llegadas"></b></a>
-    <a href="#p-matriz"><i></i>Próximas 12 horas</a>
+    <a href="./" aria-current="page"><i></i>Panel de red<b id="nav-alertas"></b></a>
+    <a href="desvios.html"><i></i>Desvíos 2026</a>
+    <a href="guia.html"><i></i>Cómo leer el panel</a>
+    <a href="contacto.html"><i></i>Pedir un piloto</a>
   </nav>
   <h2 class="p-lat-tit">Aeropuertos</h2>
   <ul class="p-lat-red" id="lateral-red"></ul>
   <p class="p-lat-pie">Apoyo a la planificación. No sustituye al METAR y TAF oficiales de AEMET.</p>
 </aside>
 <div class="p-velo" id="velo" hidden></div>
+<script src="marco.js"></script>
 
 <div class="p-contenido">
 <header class="p-barra">
@@ -749,7 +751,6 @@ function pintarLlegadas() {
   const enRiesgo = lleg.filter(a => a.riesgo && a.riesgo.nivel !== "bajo"), conRiesgo = enRiesgo.length;
   const deAero = vuelos.filtro ? esc(vuelos.aerolineas[vuelos.filtro] || vuelos.filtro) : "";
   document.getElementById("n-llegadas").textContent = conRiesgo || "";
-  document.getElementById("nav-llegadas").textContent = conRiesgo || "";
   document.getElementById("lleg-vista").innerHTML = (deAero ? deAero + " · " : "") + "en el aire ahora, por riesgo a su llegada";
   const total = lleg.reduce((t, a) => t + (a.coste?.esperado || 0), 0);
   const sinDatos = vuelos.error && !vuelos.analizados.length;
@@ -832,14 +833,21 @@ async function iniciarVuelos() {
   document.getElementById("solo-riesgo").addEventListener("change", e => {
     vuelos.soloRiesgo = e.target.checked; pintarLlegadas(); dibujarVuelos();
   });
-  document.getElementById("aerolinea").addEventListener("change", e => {
-    vuelos.filtro = e.target.value;
+  // El filtro del mapa y "Mi aerolínea" del menú son la misma elección: se guarda y se recuerda en todas las páginas
+  const cambiarAerolinea = v => {
+    vuelos.filtro = v;
     try { localStorage.setItem("novok-aerolinea", vuelos.filtro); } catch { /* sin almacenamiento */ }
     const u = new URL(location.href);
     vuelos.filtro ? u.searchParams.set("aerolinea", vuelos.filtro) : u.searchParams.delete("aerolinea");
     history.replaceState(null, "", u);          // el enlace sirve para enviar la vista de una aerolínea
     pintarEstado(); pintarFiltro(); pintarLlegadas(); dibujarVuelos();
+  };
+  document.getElementById("aerolinea").addEventListener("change", e => {
+    cambiarAerolinea(e.target.value);
+    window.NovokMarco?.fijar(vuelos.filtro, false);
   });
+  window.NovokMarco?.alCambiar(cambiarAerolinea);
+  window.NovokMarco?.fijar(vuelos.filtro, false);
   const arrancar = () => { capasVuelos(); actualizarVuelos(); setInterval(actualizarVuelos, (vuelos.cfg.refresco_s || 10) * 1000); setInterval(dibujarVuelos, 1000); };
   mapa.loaded() ? arrancar() : mapa.once("load", arrancar);
   document.getElementById("ver-vuelos").addEventListener("change", dibujarVuelos);

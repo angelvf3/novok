@@ -184,5 +184,1196 @@
    ]
   }
  },
- "periodo": "enero a octubre de 2026"
+ "periodo": "enero a octubre de 2026",
+ "red": {
+  "12h": {
+   "novok": 25,
+   "persistencia": 1,
+   "total": 54
+  },
+  "6h": {
+   "novok": 25,
+   "persistencia": 5,
+   "total": 53
+  },
+  "3h": {
+   "novok": 24,
+   "persistencia": 17,
+   "total": 53
+  },
+  "1h": {
+   "novok": 38,
+   "persistencia": 40,
+   "total": 54
+  }
+ },
+ "aerolineas": {
+  "AEA": {
+   "casos": 12,
+   "evaluados": 12,
+   "avisados": 7
+  },
+  "ANE": {
+   "casos": 13,
+   "evaluados": 12,
+   "avisados": 8
+  },
+  "BCS": {
+   "casos": 3,
+   "evaluados": 3,
+   "avisados": 2
+  },
+  "IBB": {
+   "casos": 2,
+   "evaluados": 2,
+   "avisados": 0
+  },
+  "IBE": {
+   "casos": 3,
+   "evaluados": 3,
+   "avisados": 2
+  },
+  "RYR": {
+   "casos": 3,
+   "evaluados": 3,
+   "avisados": 0
+  },
+  "VLG": {
+   "casos": 17,
+   "evaluados": 17,
+   "avisados": 6
+  }
+ },
+ "casos": [
+  {
+   "fecha": "2026-10-05",
+   "hora": "08:55",
+   "indicativo": "ANE1111",
+   "operador": "ANE",
+   "previsto": "LECO",
+   "aterriza": "LEST",
+   "motivo": "destino_habitual",
+   "p": {
+    "12h": 0.6,
+    "6h": 0.545,
+    "3h": 0.763,
+    "1h": 0.891
+   },
+   "aviso": {
+    "12h": true,
+    "6h": true,
+    "3h": true,
+    "1h": true
+   }
+  },
+  {
+   "fecha": "2026-10-05",
+   "hora": "07:58",
+   "indicativo": "AEA7233",
+   "operador": "AEA",
+   "previsto": "LECO",
+   "aterriza": "LEST",
+   "motivo": "aproximacion_frustrada",
+   "p": {
+    "12h": 0.643,
+    "6h": 0.548,
+    "3h": 0.667,
+    "1h": 0.904
+   },
+   "aviso": {
+    "12h": true,
+    "6h": true,
+    "3h": true,
+    "1h": true
+   }
+  },
+  {
+   "fecha": "2026-10-05",
+   "hora": "07:24",
+   "indicativo": "VLG1292",
+   "operador": "VLG",
+   "previsto": "LECO",
+   "aterriza": "LEST",
+   "motivo": "aproximacion_frustrada",
+   "p": {
+    "12h": 0.643,
+    "6h": 0.548,
+    "3h": 0.667,
+    "1h": 0.904
+   },
+   "aviso": {
+    "12h": true,
+    "6h": true,
+    "3h": true,
+    "1h": true
+   }
+  },
+  {
+   "fecha": "2026-09-28",
+   "hora": "07:12",
+   "indicativo": "AEA27GB",
+   "operador": "AEA",
+   "previsto": "LEBB",
+   "aterriza": "LEMD",
+   "motivo": "aproximacion_frustrada",
+   "p": {
+    "12h": 0.046,
+    "6h": 0.032,
+    "3h": 0.055,
+    "1h": 0.491
+   },
+   "aviso": {
+    "12h": false,
+    "6h": false,
+    "3h": false,
+    "1h": true
+   }
+  },
+  {
+   "fecha": "2026-09-15",
+   "hora": "08:22",
+   "indicativo": "VLG701K",
+   "operador": "VLG",
+   "previsto": "LEVX",
+   "aterriza": "LEST",
+   "motivo": "aproximacion_frustrada",
+   "p": {
+    "12h": 0.409,
+    "6h": 0.709,
+    "3h": 0.886,
+    "1h": 0.925
+   },
+   "aviso": {
+    "12h": true,
+    "6h": true,
+    "3h": true,
+    "1h": true
+   }
+  },
+  {
+   "fecha": "2026-09-06",
+   "hora": "08:42",
+   "indicativo": "ANE1111",
+   "operador": "ANE",
+   "previsto": "LECO",
+   "aterriza": "LEST",
+   "motivo": "destino_habitual",
+   "p": {
+    "12h": 0.02,
+    "6h": 0.019,
+    "3h": 0.013,
+    "1h": 0.521
+   },
+   "aviso": {
+    "12h": false,
+    "6h": false,
+    "3h": false,
+    "1h": true
+   }
+  },
+  {
+   "fecha": "2026-09-06",
+   "hora": "07:48",
+   "indicativo": "AEA7233",
+   "operador": "AEA",
+   "previsto": "LECO",
+   "aterriza": "LEST",
+   "motivo": "aproximacion_frustrada",
+   "p": {
+    "12h": 0.014,
+    "6h": 0.031,
+    "3h": 0.009,
+    "1h": 0.032
+   },
+   "aviso": {
+    "12h": false,
+    "6h": false,
+    "3h": false,
+    "1h": false
+   }
+  },
+  {
+   "fecha": "2026-09-04",
+   "hora": "08:22",
+   "indicativo": "ANE1111",
+   "operador": "ANE",
+   "previsto": "LECO",
+   "aterriza": "LEST",
+   "motivo": "aproximacion_frustrada",
+   "p": {
+    "12h": 0.105,
+    "6h": 0.261,
+    "3h": 0.387,
+    "1h": 0.829
+   },
+   "aviso": {
+    "12h": false,
+    "6h": true,
+    "3h": true,
+    "1h": true
+   }
+  },
+  {
+   "fecha": "2026-09-04",
+   "hora": "07:51",
+   "indicativo": "AEA7233",
+   "operador": "AEA",
+   "previsto": "LECO",
+   "aterriza": "LEMD",
+   "motivo": "aproximacion_frustrada",
+   "p": {
+    "12h": 0.109,
+    "6h": 0.343,
+    "3h": 0.287,
+    "1h": 0.823
+   },
+   "aviso": {
+    "12h": false,
+    "6h": true,
+    "3h": true,
+    "1h": true
+   }
+  },
+  {
+   "fecha": "2026-09-03",
+   "hora": "08:43",
+   "indicativo": "IBE0453",
+   "operador": "IBE",
+   "previsto": "LECO",
+   "aterriza": "LEST",
+   "motivo": "destino_habitual",
+   "p": {
+    "12h": 0.44,
+    "6h": 0.512,
+    "3h": 0.718,
+    "1h": 0.835
+   },
+   "aviso": {
+    "12h": true,
+    "6h": true,
+    "3h": true,
+    "1h": true
+   }
+  },
+  {
+   "fecha": "2026-09-03",
+   "hora": "08:11",
+   "indicativo": "AEA7233",
+   "operador": "AEA",
+   "previsto": "LECO",
+   "aterriza": "LEST",
+   "motivo": "destino_habitual",
+   "p": {
+    "12h": 0.44,
+    "6h": 0.512,
+    "3h": 0.718,
+    "1h": 0.835
+   },
+   "aviso": {
+    "12h": true,
+    "6h": true,
+    "3h": true,
+    "1h": true
+   }
+  },
+  {
+   "fecha": "2026-09-03",
+   "hora": "08:04",
+   "indicativo": "VLG1292",
+   "operador": "VLG",
+   "previsto": "LECO",
+   "aterriza": "LEST",
+   "motivo": "destino_habitual",
+   "p": {
+    "12h": 0.44,
+    "6h": 0.512,
+    "3h": 0.718,
+    "1h": 0.835
+   },
+   "aviso": {
+    "12h": true,
+    "6h": true,
+    "3h": true,
+    "1h": true
+   }
+  },
+  {
+   "fecha": "2026-09-02",
+   "hora": "09:11",
+   "indicativo": "AEA7233",
+   "operador": "AEA",
+   "previsto": "LECO",
+   "aterriza": "LEMD",
+   "motivo": "destino_habitual",
+   "p": {
+    "12h": 0.398,
+    "6h": 0.469,
+    "3h": 0.714,
+    "1h": 0.754
+   },
+   "aviso": {
+    "12h": true,
+    "6h": true,
+    "3h": true,
+    "1h": true
+   }
+  },
+  {
+   "fecha": "2026-09-02",
+   "hora": "09:04",
+   "indicativo": "ANE1111",
+   "operador": "ANE",
+   "previsto": "LECO",
+   "aterriza": "LEVX",
+   "motivo": "destino_habitual",
+   "p": {
+    "12h": 0.398,
+    "6h": 0.469,
+    "3h": 0.714,
+    "1h": 0.754
+   },
+   "aviso": {
+    "12h": true,
+    "6h": true,
+    "3h": true,
+    "1h": true
+   }
+  },
+  {
+   "fecha": "2026-09-02",
+   "hora": "07:30",
+   "indicativo": "VLG1292",
+   "operador": "VLG",
+   "previsto": "LECO",
+   "aterriza": "LEVX",
+   "motivo": "aproximacion_frustrada",
+   "p": {
+    "12h": 0.344,
+    "6h": 0.521,
+    "3h": 0.614,
+    "1h": 0.923
+   },
+   "aviso": {
+    "12h": true,
+    "6h": true,
+    "3h": true,
+    "1h": true
+   }
+  },
+  {
+   "fecha": "2026-06-18",
+   "hora": "10:46",
+   "indicativo": "BCS3JM",
+   "operador": "BCS",
+   "previsto": "LEST",
+   "aterriza": "LEMD",
+   "motivo": "destino_habitual",
+   "p": {
+    "12h": 0.365,
+    "6h": 0.418,
+    "3h": 0.551,
+    "1h": 0.808
+   },
+   "aviso": {
+    "12h": true,
+    "6h": true,
+    "3h": true,
+    "1h": true
+   }
+  },
+  {
+   "fecha": "2026-06-18",
+   "hora": "08:28",
+   "indicativo": "VLG1PL",
+   "operador": "VLG",
+   "previsto": "LEXJ",
+   "aterriza": "LEBB",
+   "motivo": "aproximacion_frustrada",
+   "p": {
+    "12h": 0.001,
+    "6h": 0.004,
+    "3h": 0.002,
+    "1h": 0.474
+   },
+   "aviso": {
+    "12h": false,
+    "6h": false,
+    "3h": false,
+    "1h": true
+   }
+  },
+  {
+   "fecha": "2026-05-26",
+   "hora": "09:45",
+   "indicativo": "BCS3JM",
+   "operador": "BCS",
+   "previsto": "LEST",
+   "aterriza": "LEVT",
+   "motivo": "destino_habitual",
+   "p": {
+    "12h": 0.19,
+    "6h": 0.207,
+    "3h": 0.147,
+    "1h": 0.231
+   },
+   "aviso": {
+    "12h": false,
+    "6h": false,
+    "3h": false,
+    "1h": false
+   }
+  },
+  {
+   "fecha": "2026-05-26",
+   "hora": "08:40",
+   "indicativo": "IBE0453",
+   "operador": "IBE",
+   "previsto": "LECO",
+   "aterriza": "LEMD",
+   "motivo": "aproximacion_frustrada",
+   "p": {
+    "12h": 0.121,
+    "6h": 0.072,
+    "3h": 0.188,
+    "1h": 0.481
+   },
+   "aviso": {
+    "12h": false,
+    "6h": false,
+    "3h": true,
+    "1h": true
+   }
+  },
+  {
+   "fecha": "2026-05-26",
+   "hora": "08:33",
+   "indicativo": "VLG7PV",
+   "operador": "VLG",
+   "previsto": "LECO",
+   "aterriza": "LEAS",
+   "motivo": "aproximacion_frustrada",
+   "p": {
+    "12h": 0.121,
+    "6h": 0.072,
+    "3h": 0.188,
+    "1h": 0.481
+   },
+   "aviso": {
+    "12h": false,
+    "6h": false,
+    "3h": true,
+    "1h": true
+   }
+  },
+  {
+   "fecha": "2026-05-26",
+   "hora": "07:37",
+   "indicativo": "AEA7233",
+   "operador": "AEA",
+   "previsto": "LECO",
+   "aterriza": "LEMD",
+   "motivo": "aproximacion_frustrada",
+   "p": {
+    "12h": 0.116,
+    "6h": 0.13,
+    "3h": 0.149,
+    "1h": 0.6
+   },
+   "aviso": {
+    "12h": false,
+    "6h": false,
+    "3h": false,
+    "1h": true
+   }
+  },
+  {
+   "fecha": "2026-04-20",
+   "hora": "11:06",
+   "indicativo": "RYR9844",
+   "operador": "RYR",
+   "previsto": "LEXJ",
+   "aterriza": "LEMD",
+   "motivo": "destino_habitual",
+   "p": {
+    "12h": 0.001,
+    "6h": 0.001,
+    "3h": 0.073,
+    "1h": 0.051
+   },
+   "aviso": {
+    "12h": false,
+    "6h": false,
+    "3h": false,
+    "1h": false
+   }
+  },
+  {
+   "fecha": "2026-04-20",
+   "hora": "09:59",
+   "indicativo": "ANE82BX",
+   "operador": "ANE",
+   "previsto": "LEXJ",
+   "aterriza": "LEMD",
+   "motivo": "destino_habitual",
+   "p": {
+    "12h": 0.002,
+    "6h": 0.013,
+    "3h": 0.011,
+    "1h": 0.314
+   },
+   "aviso": {
+    "12h": false,
+    "6h": false,
+    "3h": false,
+    "1h": true
+   }
+  },
+  {
+   "fecha": "2026-04-20",
+   "hora": "08:16",
+   "indicativo": "VLG1PL",
+   "operador": "VLG",
+   "previsto": "LEXJ",
+   "aterriza": "LEAS",
+   "motivo": "destino_habitual",
+   "p": {
+    "12h": 0.003,
+    "6h": 0.006,
+    "3h": 0.002,
+    "1h": 0.024
+   },
+   "aviso": {
+    "12h": false,
+    "6h": false,
+    "3h": false,
+    "1h": false
+   }
+  },
+  {
+   "fecha": "2026-04-20",
+   "hora": "07:57",
+   "indicativo": "VLG883P",
+   "operador": "VLG",
+   "previsto": "LEBB",
+   "aterriza": "LEAS",
+   "motivo": "aproximacion_frustrada",
+   "p": {
+    "12h": 0.007,
+    "6h": 0.012,
+    "3h": 0.035,
+    "1h": 0.078
+   },
+   "aviso": {
+    "12h": false,
+    "6h": false,
+    "3h": false,
+    "1h": false
+   }
+  },
+  {
+   "fecha": "2026-04-20",
+   "hora": "07:53",
+   "indicativo": "VLG5PP",
+   "operador": "VLG",
+   "previsto": "LEBB",
+   "aterriza": "LEAS",
+   "motivo": "aproximacion_frustrada",
+   "p": {
+    "12h": 0.007,
+    "6h": 0.012,
+    "3h": 0.035,
+    "1h": 0.078
+   },
+   "aviso": {
+    "12h": false,
+    "6h": false,
+    "3h": false,
+    "1h": false
+   }
+  },
+  {
+   "fecha": "2026-04-17",
+   "hora": "09:28",
+   "indicativo": "ANE82BX",
+   "operador": "ANE",
+   "previsto": "LEXJ",
+   "aterriza": "LEBB",
+   "motivo": "destino_habitual",
+   "p": {
+    "12h": 0.023,
+    "6h": 0.008,
+    "3h": 0.01,
+    "1h": 0.05
+   },
+   "aviso": {
+    "12h": false,
+    "6h": false,
+    "3h": false,
+    "1h": false
+   }
+  },
+  {
+   "fecha": "2026-04-13",
+   "hora": "21:20",
+   "indicativo": "VLG1GC",
+   "operador": "VLG",
+   "previsto": "LEST",
+   "aterriza": "LECO",
+   "motivo": "destino_habitual",
+   "p": {
+    "12h": 0.035,
+    "6h": 0.075,
+    "3h": 0.017,
+    "1h": 0.182
+   },
+   "aviso": {
+    "12h": false,
+    "6h": false,
+    "3h": false,
+    "1h": false
+   }
+  },
+  {
+   "fecha": "2026-04-13",
+   "hora": "20:54",
+   "indicativo": "VLG68VC",
+   "operador": "VLG",
+   "previsto": "LEST",
+   "aterriza": "LECO",
+   "motivo": "destino_habitual",
+   "p": {
+    "12h": 0.029,
+    "6h": 0.039,
+    "3h": 0.013,
+    "1h": 0.022
+   },
+   "aviso": {
+    "12h": false,
+    "6h": false,
+    "3h": false,
+    "1h": false
+   }
+  },
+  {
+   "fecha": "2026-04-13",
+   "hora": "20:51",
+   "indicativo": "RYR31UZ",
+   "operador": "RYR",
+   "previsto": "LEST",
+   "aterriza": "LECO",
+   "motivo": "destino_habitual",
+   "p": {
+    "12h": 0.029,
+    "6h": 0.039,
+    "3h": 0.013,
+    "1h": 0.022
+   },
+   "aviso": {
+    "12h": false,
+    "6h": false,
+    "3h": false,
+    "1h": false
+   }
+  },
+  {
+   "fecha": "2026-04-05",
+   "hora": "08:32",
+   "indicativo": "ANE1111",
+   "operador": "ANE",
+   "previsto": "LECO",
+   "aterriza": "LEVX",
+   "motivo": "destino_habitual",
+   "p": {
+    "12h": 0.448,
+    "6h": 0.297,
+    "3h": 0.096,
+    "1h": 0.639
+   },
+   "aviso": {
+    "12h": true,
+    "6h": true,
+    "3h": false,
+    "1h": true
+   }
+  },
+  {
+   "fecha": "2026-04-05",
+   "hora": "07:51",
+   "indicativo": "AEA7233",
+   "operador": "AEA",
+   "previsto": "LECO",
+   "aterriza": "LEVX",
+   "motivo": "destino_habitual",
+   "p": {
+    "12h": 0.251,
+    "6h": 0.143,
+    "3h": 0.086,
+    "1h": 0.117
+   },
+   "aviso": {
+    "12h": true,
+    "6h": true,
+    "3h": false,
+    "1h": false
+   }
+  },
+  {
+   "fecha": "2026-03-21",
+   "hora": "08:38",
+   "indicativo": "VLG7JF",
+   "operador": "VLG",
+   "previsto": "LECO",
+   "aterriza": "LEST",
+   "motivo": "destino_habitual",
+   "p": {
+    "12h": 0.202,
+    "6h": 0.205,
+    "3h": 0.295,
+    "1h": 0.464
+   },
+   "aviso": {
+    "12h": true,
+    "6h": true,
+    "3h": true,
+    "1h": true
+   }
+  },
+  {
+   "fecha": "2026-03-21",
+   "hora": "08:30",
+   "indicativo": "AEA7233",
+   "operador": "AEA",
+   "previsto": "LECO",
+   "aterriza": "LEST",
+   "motivo": "destino_habitual",
+   "p": {
+    "12h": 0.202,
+    "6h": 0.205,
+    "3h": 0.295,
+    "1h": 0.464
+   },
+   "aviso": {
+    "12h": true,
+    "6h": true,
+    "3h": true,
+    "1h": true
+   }
+  },
+  {
+   "fecha": "2026-03-17",
+   "hora": "05:25",
+   "indicativo": "BCS422",
+   "operador": "BCS",
+   "previsto": "LEVT",
+   "aterriza": "LEMD",
+   "motivo": "destino_habitual",
+   "p": {
+    "12h": 0.333,
+    "6h": 0.292,
+    "3h": 0.231,
+    "1h": 0.907
+   },
+   "aviso": {
+    "12h": true,
+    "6h": true,
+    "3h": false,
+    "1h": true
+   }
+  },
+  {
+   "fecha": "2026-03-13",
+   "hora": "09:30",
+   "indicativo": "ANE17ZM",
+   "operador": "ANE",
+   "previsto": "LEVX",
+   "aterriza": "LEST",
+   "motivo": "aproximacion_frustrada",
+   "p": {
+    "12h": 0.843,
+    "6h": 0.815,
+    "3h": 0.895,
+    "1h": 0.936
+   },
+   "aviso": {
+    "12h": true,
+    "6h": true,
+    "3h": true,
+    "1h": true
+   }
+  },
+  {
+   "fecha": "2026-03-11",
+   "hora": "09:02",
+   "indicativo": "OOMMT",
+   "operador": NaN,
+   "previsto": "LECO",
+   "aterriza": "LEST",
+   "motivo": "aproximacion_frustrada",
+   "p": {
+    "12h": 0.002,
+    "6h": 0.003,
+    "3h": 0.003,
+    "1h": 0.023
+   },
+   "aviso": {
+    "12h": false,
+    "6h": false,
+    "3h": false,
+    "1h": false
+   }
+  },
+  {
+   "fecha": "2026-02-27",
+   "hora": "09:19",
+   "indicativo": "VLG9LP",
+   "operador": "VLG",
+   "previsto": "LEST",
+   "aterriza": "LECO",
+   "motivo": "destino_habitual",
+   "p": {
+    "12h": 0.307,
+    "6h": 0.087,
+    "3h": 0.128,
+    "1h": 0.441
+   },
+   "aviso": {
+    "12h": true,
+    "6h": false,
+    "3h": false,
+    "1h": true
+   }
+  },
+  {
+   "fecha": "2026-02-23",
+   "hora": "09:17",
+   "indicativo": "AEA7233",
+   "operador": "AEA",
+   "previsto": "LECO",
+   "aterriza": "LEMD",
+   "motivo": "destino_habitual",
+   "p": {
+    "12h": 0.223,
+    "6h": 0.094,
+    "3h": 0.669,
+    "1h": 0.804
+   },
+   "aviso": {
+    "12h": true,
+    "6h": false,
+    "3h": true,
+    "1h": true
+   }
+  },
+  {
+   "fecha": "2026-02-23",
+   "hora": "08:31",
+   "indicativo": "IBE04SY",
+   "operador": "IBE",
+   "previsto": "LECO",
+   "aterriza": "LEST",
+   "motivo": "destino_habitual",
+   "p": {
+    "12h": 0.55,
+    "6h": 0.211,
+    "3h": 0.605,
+    "1h": 0.887
+   },
+   "aviso": {
+    "12h": true,
+    "6h": true,
+    "3h": true,
+    "1h": true
+   }
+  },
+  {
+   "fecha": "2026-02-18",
+   "hora": "11:53",
+   "indicativo": "VLG2CM",
+   "operador": "VLG",
+   "previsto": "LEST",
+   "aterriza": "LEAS",
+   "motivo": "destino_habitual",
+   "p": {
+    "12h": 0.009,
+    "6h": 0.008,
+    "3h": 0.015,
+    "1h": 0.009
+   },
+   "aviso": {
+    "12h": false,
+    "6h": false,
+    "3h": false,
+    "1h": false
+   }
+  },
+  {
+   "fecha": "2026-02-18",
+   "hora": "11:41",
+   "indicativo": "RYR52TQ",
+   "operador": "RYR",
+   "previsto": "LEST",
+   "aterriza": "LEMD",
+   "motivo": "destino_habitual",
+   "p": {
+    "12h": 0.009,
+    "6h": 0.008,
+    "3h": 0.015,
+    "1h": 0.009
+   },
+   "aviso": {
+    "12h": false,
+    "6h": false,
+    "3h": false,
+    "1h": false
+   }
+  },
+  {
+   "fecha": "2026-02-16",
+   "hora": "09:57",
+   "indicativo": "ANE17ZM",
+   "operador": "ANE",
+   "previsto": "LEVX",
+   "aterriza": "LEST",
+   "motivo": "destino_habitual",
+   "p": {
+    "12h": 0.611,
+    "6h": 0.586,
+    "3h": 0.719,
+    "1h": 0.669
+   },
+   "aviso": {
+    "12h": true,
+    "6h": true,
+    "3h": true,
+    "1h": true
+   }
+  },
+  {
+   "fecha": "2026-02-15",
+   "hora": "09:14",
+   "indicativo": "VLG9LP",
+   "operador": "VLG",
+   "previsto": "LEST",
+   "aterriza": "LECO",
+   "motivo": "destino_habitual",
+   "p": {
+    "12h": 0.205,
+    "6h": 0.181,
+    "3h": 0.086,
+    "1h": 0.009
+   },
+   "aviso": {
+    "12h": false,
+    "6h": false,
+    "3h": false,
+    "1h": false
+   }
+  },
+  {
+   "fecha": "2026-02-11",
+   "hora": "10:12",
+   "indicativo": "VLG1702",
+   "operador": "VLG",
+   "previsto": "LEVX",
+   "aterriza": "LEST",
+   "motivo": "destino_habitual",
+   "p": {
+    "12h": 0.392,
+    "6h": 0.312,
+    "3h": 0.51,
+    "1h": 0.689
+   },
+   "aviso": {
+    "12h": true,
+    "6h": true,
+    "3h": true,
+    "1h": true
+   }
+  },
+  {
+   "fecha": "2026-02-10",
+   "hora": "14:00",
+   "indicativo": "ANE48MA",
+   "operador": "ANE",
+   "previsto": "LEVX",
+   "aterriza": "LEMD",
+   "motivo": "destino_habitual",
+   "p": {
+    "12h": 0.133,
+    "6h": 0.1,
+    "3h": 0.112,
+    "1h": 0.34
+   },
+   "aviso": {
+    "12h": false,
+    "6h": false,
+    "3h": false,
+    "1h": true
+   }
+  },
+  {
+   "fecha": "2026-02-10",
+   "hora": "13:15",
+   "indicativo": "IBB82QF",
+   "operador": "IBB",
+   "previsto": "LEVX",
+   "aterriza": "LECO",
+   "motivo": "destino_habitual",
+   "p": {
+    "12h": 0.215,
+    "6h": 0.168,
+    "3h": 0.228,
+    "1h": 0.428
+   },
+   "aviso": {
+    "12h": false,
+    "6h": false,
+    "3h": false,
+    "1h": true
+   }
+  },
+  {
+   "fecha": "2026-02-10",
+   "hora": "12:45",
+   "indicativo": "AEA7302",
+   "operador": "AEA",
+   "previsto": "LEVX",
+   "aterriza": "LEMD",
+   "motivo": "destino_habitual",
+   "p": {
+    "12h": 0.318,
+    "6h": 0.3,
+    "3h": 0.353,
+    "1h": 0.552
+   },
+   "aviso": {
+    "12h": true,
+    "6h": true,
+    "3h": false,
+    "1h": true
+   }
+  },
+  {
+   "fecha": "2026-02-09",
+   "hora": "14:16",
+   "indicativo": "VLG4CY",
+   "operador": "VLG",
+   "previsto": "LEST",
+   "aterriza": "LECO",
+   "motivo": "destino_habitual",
+   "p": {
+    "12h": 0.093,
+    "6h": 0.09,
+    "3h": 0.03,
+    "1h": 0.05
+   },
+   "aviso": {
+    "12h": false,
+    "6h": false,
+    "3h": false,
+    "1h": false
+   }
+  },
+  {
+   "fecha": "2026-02-04",
+   "hora": "11:21",
+   "indicativo": "ANE53GX",
+   "operador": "ANE",
+   "previsto": "LELN",
+   "aterriza": "LEAS",
+   "motivo": "destino_habitual",
+   "p": {
+    "12h": 0.014,
+    "1h": 0.431
+   },
+   "aviso": {
+    "12h": false,
+    "1h": true
+   }
+  },
+  {
+   "fecha": "2026-02-01",
+   "hora": "12:49",
+   "indicativo": "ANE48MA",
+   "operador": "ANE",
+   "previsto": "LEVX",
+   "aterriza": "LEST",
+   "motivo": "destino_habitual",
+   "p": {
+    "12h": 0.66,
+    "6h": 0.606,
+    "3h": 0.667,
+    "1h": 0.776
+   },
+   "aviso": {
+    "12h": true,
+    "6h": true,
+    "3h": true,
+    "1h": true
+   }
+  },
+  {
+   "fecha": "2026-01-22",
+   "hora": "20:41",
+   "indicativo": "IBB37TC",
+   "operador": "IBB",
+   "previsto": "LEVX",
+   "aterriza": "LEAS",
+   "motivo": "destino_habitual",
+   "p": {
+    "12h": 0.152,
+    "6h": 0.226,
+    "3h": 0.183,
+    "1h": 0.376
+   },
+   "aviso": {
+    "12h": false,
+    "6h": false,
+    "3h": false,
+    "1h": true
+   }
+  },
+  {
+   "fecha": "2026-01-22",
+   "hora": "20:24",
+   "indicativo": "AEA7306",
+   "operador": "AEA",
+   "previsto": "LEVX",
+   "aterriza": "LEMD",
+   "motivo": "aproximacion_frustrada",
+   "p": {
+    "12h": 0.152,
+    "6h": 0.226,
+    "3h": 0.183,
+    "1h": 0.376
+   },
+   "aviso": {
+    "12h": false,
+    "6h": false,
+    "3h": false,
+    "1h": true
+   }
+  },
+  {
+   "fecha": "2026-01-08",
+   "hora": "09:57",
+   "indicativo": "ANE17ZM",
+   "operador": "ANE",
+   "previsto": "LEVX",
+   "aterriza": "LECO",
+   "motivo": "destino_habitual",
+   "p": {
+    "12h": 0.866,
+    "6h": 0.845,
+    "3h": 0.914,
+    "1h": 0.911
+   },
+   "aviso": {
+    "12h": true,
+    "6h": true,
+    "3h": true,
+    "1h": true
+   }
+  }
+ ]
 }

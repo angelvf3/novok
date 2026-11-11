@@ -1,0 +1,192 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>NOVOK · Desvíos 2026</title>
+<meta name="description" content="Desvíos reales por niebla en los aeropuertos del norte de España en 2026 y con cuánta antelación los avisaba NOVOK.">
+<meta name="theme-color" content="#0b1116">
+<link rel="icon" href="novok-logo.png">
+<link rel="apple-touch-icon" href="marca/novok-icono-180.png">
+<link rel="stylesheet" href="vendor/fuentes.css">
+<link rel="stylesheet" href="nordico.css">
+<link rel="stylesheet" href="pro.css">
+</head>
+<body class="pro" data-marco="completo">
+<aside class="p-lateral" id="lateral" aria-label="Navegación">
+  <div class="p-lat-cab">
+    <a class="marca" href="./"><img src="marca/novok-logo-oscuro-72.png" alt="NOVOK" width="126" height="28"></a>
+    <button type="button" class="p-cerrar-lat" id="cerrar-lateral" aria-label="Cerrar menú">×</button>
+  </div>
+  <label class="p-mia"><span>Mi aerolínea</span><select id="mi-aerolinea"><option value="">Todas las aerolíneas</option></select></label>
+  <nav class="p-nav" aria-label="Principal">
+    <a href="./"><i></i>Panel de red</a>
+    <a href="desvios.html" aria-current="page"><i></i>Desvíos 2026</a>
+    <a href="guia.html"><i></i>Cómo leer el panel</a>
+    <a href="contacto.html"><i></i>Pedir un piloto</a>
+  </nav>
+  <h2 class="p-lat-tit">Aeropuertos</h2>
+  <ul class="p-lat-red" id="lateral-red"></ul>
+  <p class="p-lat-pie">Apoyo a la planificación. No sustituye al METAR y TAF oficiales de AEMET.</p>
+</aside>
+<div class="p-velo" id="velo" hidden></div>
+
+<div class="p-contenido">
+<header class="p-barra">
+  <button type="button" class="p-menu" id="abrir-lateral" aria-label="Abrir menú" aria-controls="lateral" aria-expanded="false"><svg width="20" height="20" viewBox="0 0 20 20" aria-hidden="true"><path d="M3 5h14M3 10h14M3 15h14" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg></button>
+  <a class="marca p-marca-movil" href="./"><img src="marca/novok-logo-claro-72.png" alt="NOVOK" width="99" height="22"></a>
+  <div class="p-barra-tit"><h1>Desvíos 2026</h1><span>Desvíos reales por niebla y lo que NOVOK avisó</span></div>
+  <div class="p-relojes mono" aria-label="Hora actual"><span><b id="reloj-u">--:--:--</b> UTC</span><span><b id="reloj-l">--:--:--</b> peninsular</span></div>
+  <span class="p-estado" id="estado-corto"></span>
+</header>
+
+<main class="p-main p-pagina">
+  <section class="p-hero" aria-labelledby="titular">
+    <div class="p-hero-rejilla">
+      <div class="p-hero-texto">
+        <p class="p-hero-estado" id="d-estado">Desvíos reales, comprobados con el METAR</p>
+        <h2 id="titular">Cargando desvíos…</h2>
+        <p class="p-hero-sub" id="d-sub"></p>
+        <p class="p-hero-impacto" id="d-mia"></p>
+      </div>
+      <div class="p-hero-avisos" id="d-antelacion" hidden>
+        <h3>Desvíos avisados según la antelación</h3>
+        <div class="d-barras" id="d-barras"></div>
+        <p class="d-ley"><span><i class="d-novok"></i>NOVOK</span><span><i class="d-pers"></i>suponer que el tiempo sigue igual</span></p>
+      </div>
+    </div>
+  </section>
+
+  <div class="p-fila p-fila-datos">
+    <section class="p-tarjeta" aria-labelledby="t-aero">
+      <div class="p-cab"><h2 id="t-aero">Por aeropuerto de destino</h2><span id="d-ant-aero"></span></div>
+      <div class="d-tabla-caja"><table class="d-tabla" id="d-aeropuertos"></table></div>
+    </section>
+    <section class="p-tarjeta" aria-labelledby="t-aerol" id="d-caja-aerolineas" hidden>
+      <div class="p-cab"><h2 id="t-aerol">Por aerolínea</h2><span id="d-ant-aerol"></span></div>
+      <div class="d-tabla-caja"><table class="d-tabla" id="d-aerolineas"></table></div>
+    </section>
+  </div>
+
+  <section class="p-tarjeta" aria-labelledby="t-casos" id="d-caja-casos" hidden>
+    <div class="p-cab"><h2 id="t-casos">Caso por caso <b class="p-cuenta" id="d-n"></b></h2>
+      <div class="d-filtros">
+        <label>Aeropuerto <select id="f-aero"><option value="">Todos</option></select></label>
+        <label>Aerolínea <select id="f-aerol"><option value="">Todas</option></select></label>
+      </div>
+    </div>
+    <div class="d-tabla-caja"><table class="d-tabla d-casos" id="d-casos"></table></div>
+    <p class="p-nota">Probabilidad de bajo mínimos CAT I que daba NOVOK para la hora prevista de llegada, calculada 12, 6, 3 y 1 hora antes. En rojo: superaba el umbral de aviso del modelo. Hora peninsular.</p>
+  </section>
+
+  <section class="p-tarjeta p-doc" aria-labelledby="t-metodo">
+    <div class="p-cab"><h2 id="t-metodo">Cómo se cuentan</h2></div>
+    <div class="p-doc-cuerpo">
+      <p>Los desvíos se detectan en el histórico público de posiciones de vuelos de adsb.lol (ODbL): aviones que bajan hacia un aeropuerto de la red y acaban en otro (aproximación frustrada), o que aterrizan lejos de su destino habitual. Solo se cuentan los casos en los que el METAR del destino estaba por debajo de mínimos CAT I (visibilidad menor de 550 m o techo de 200 ft o menos).</p>
+      <p>Las probabilidades son las que NOVOK habría dado en tiempo real: el modelo se entrenó con datos hasta 2025 y no vio estos casos. "Suponer que el tiempo sigue igual" (persistencia) es la referencia: avisa si el aeropuerto ya está bajo mínimos en el momento de mirar.</p>
+      <p class="p-nota-doc">Puede haber errores de detección, desvíos que las antenas no vieron y vuelos con capacidad CAT II/III que sí aterrizaron.</p>
+    </div>
+  </section>
+
+  <footer class="pie">
+    <p><strong>Herramienta de apoyo a la planificación de operaciones. No sustituye a la información meteorológica aeronáutica oficial (METAR y TAF de AEMET), que es la que vale para las decisiones de vuelo.</strong></p>
+  </footer>
+</main>
+</div>
+<script src="marco.js"></script>
+<script>
+(() => {
+  const $ = id => document.getElementById(id);
+  const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c]);
+  const MOTIVO = { aproximacion_frustrada: "aproximación frustrada", destino_habitual: "desvío" };
+  const MESES = ["ene", "feb", "mar", "abr", "may", "jun", "jul", "ago", "sep", "oct", "nov", "dic"];
+  const fecha = f => { const [a, m, d] = f.split("-"); return `${+d} ${MESES[+m - 1]}`; };
+  const barra = (n, t) => `<span class="d-barra"><i style="width:${t ? n / t * 100 : 0}%"></i></span>`;
+  let D = null, nombres = {}, aerol = {};
+
+  Promise.all([
+    fetch("desvios.json", { cache: "no-cache" }).then(r => r.ok ? r.json() : null).catch(() => null),
+    fetch("datos/red.json", { cache: "no-store" }).then(r => r.ok ? r.json() : null).catch(() => null),
+    fetch("aerolineas.json", { cache: "no-cache" }).then(r => r.ok ? r.json() : null).catch(() => null),
+  ]).then(([d, red, al]) => {
+    nombres = { LEMD: "Madrid", LEBL: "Barcelona", LPPR: "Oporto", LEZG: "Zaragoza", LEMG: "Málaga", LEZL: "Sevilla", LEPA: "Palma" };
+    for (const a of red?.aeropuertos || []) nombres[a.icao] = a.nombre;
+    aerol = al?.aerolineas || {};
+    D = d;
+    if (!d || !Object.keys(d.aeropuertos || {}).length) {
+      $("titular").textContent = "Todavía no hay desvíos publicados";
+      $("d-sub").textContent = "Esta página se llena con el análisis de los desvíos reales de la temporada.";
+      return;
+    }
+    pintar();
+    NovokMarco.alCambiar(() => pintar());
+  });
+
+  function pintar() {
+    const d = D, L = d.antelacion_h || 6, A = Object.entries(d.aeropuertos);
+    const casos = A.reduce((t, [, x]) => t + x.casos, 0);
+    const ev = A.reduce((t, [, x]) => t + x.evaluados, 0), av = A.reduce((t, [, x]) => t + x.avisados, 0);
+    const pe = A.reduce((t, [, x]) => t + x.persistencia, 0);
+    $("d-estado").textContent = `Desvíos reales por niebla · ${d.periodo || ""}`;
+    $("titular").textContent = `${casos} vuelos acabaron en otro aeropuerto con el destino bajo mínimos`;
+    $("d-sub").textContent = `NOVOK avisaba de ${av} de ${ev} con ${L} horas de antelación. Suponer que el tiempo sigue igual habría avisado de ${pe}.`;
+
+    const mia = NovokMarco.aerolinea(), xm = mia && d.aerolineas?.[mia];
+    $("d-mia").textContent = xm ? `${aerol[mia] || mia}: ${xm.casos} ${xm.casos === 1 ? "desvío" : "desvíos"}, ${xm.avisados} de ${xm.evaluados} avisados con ${L} horas.` : "";
+
+    if (d.red && Object.keys(d.red).length) {
+      $("d-antelacion").hidden = false;
+      $("d-barras").innerHTML = ["12h", "6h", "3h", "1h"].filter(k => d.red[k]).map(k => {
+        const x = d.red[k];
+        return `<div class="d-fila"><b>${k.replace("h", " h")}</b>
+          <span class="d-par"><span class="d-barra d-novok-b"><i style="width:${x.novok / x.total * 100}%"></i></span><em>${x.novok} de ${x.total}</em></span>
+          <span class="d-par"><span class="d-barra d-pers-b"><i style="width:${x.persistencia / x.total * 100}%"></i></span><em>${x.persistencia}</em></span></div>`;
+      }).join("");
+    }
+
+    $("d-ant-aero").textContent = $("d-ant-aerol").textContent = `avisados con ${L} h`;
+    $("d-aeropuertos").innerHTML = `<thead><tr><th scope="col">Aeropuerto</th><th scope="col" class="num">Desvíos</th><th scope="col">Avisados por NOVOK</th><th scope="col" class="num">Persistencia</th></tr></thead><tbody>` +
+      A.sort((x, y) => y[1].casos - x[1].casos).map(([icao, x]) => `<tr>
+        <td><a href="aeropuerto.html?a=${encodeURIComponent(icao)}"><b class="mono">${esc(icao)}</b> ${esc(nombres[icao] || "")}</a></td>
+        <td class="num">${x.casos}</td>
+        <td>${x.evaluados ? `<span class="d-celda">${barra(x.avisados, x.evaluados)}<b>${x.avisados} de ${x.evaluados}</b></span>` : `<span class="gris">sin previsión de entonces</span>`}</td>
+        <td class="num gris">${x.evaluados ? x.persistencia : "—"}</td></tr>`).join("") + "</tbody>";
+
+    const AL = Object.entries(d.aerolineas || {});
+    $("d-caja-aerolineas").hidden = !AL.length;
+    $("d-aerolineas").innerHTML = `<thead><tr><th scope="col">Aerolínea</th><th scope="col" class="num">Desvíos</th><th scope="col">Avisados por NOVOK</th></tr></thead><tbody>` +
+      AL.sort((x, y) => y[1].casos - x[1].casos).map(([op, x]) => `<tr class="${op === mia ? "d-mia" : ""}">
+        <td><span class="operador">${esc(op)}</span> ${esc(aerol[op] || "")}</td><td class="num">${x.casos}</td>
+        <td>${x.evaluados ? `<span class="d-celda">${barra(x.avisados, x.evaluados)}<b>${x.avisados} de ${x.evaluados}</b></span>` : `<span class="gris">—</span>`}</td></tr>`).join("") + "</tbody>";
+
+    const C = d.casos || [];
+    $("d-caja-casos").hidden = !C.length;
+    if (!C.length) return;
+    const fa = $("f-aero"), fl = $("f-aerol");
+    if (!fa.dataset.listo) {
+      [...new Set(C.map(c => c.previsto))].sort().forEach(i => fa.add(new Option(`${i} ${nombres[i] || ""}`, i)));
+      [...new Set(C.map(c => c.operador).filter(Boolean))].sort().forEach(o => fl.add(new Option(aerol[o] || o, o)));
+      fa.addEventListener("change", casosTabla); fl.addEventListener("change", casosTabla);
+      fa.dataset.listo = "1";
+    }
+    if ([...fl.options].some(o => o.value === mia)) fl.value = mia; else if (!mia) fl.value = "";
+    casosTabla();
+  }
+
+  function casosTabla() {
+    const fa = $("f-aero").value, fl = $("f-aerol").value;
+    const C = D.casos.filter(c => (!fa || c.previsto === fa) && (!fl || c.operador === fl));
+    $("d-n").textContent = C.length;
+    const celda = (c, k) => c.p?.[k] == null ? `<td class="num gris">—</td>`
+      : `<td class="num ${c.aviso?.[k] ? "d-si" : "gris"}">${Math.round(c.p[k] * 100)} %</td>`;
+    $("d-casos").innerHTML = `<thead><tr><th scope="col">Fecha</th><th scope="col">Hora</th><th scope="col">Vuelo</th><th scope="col">Iba a</th><th scope="col">Aterrizó en</th><th scope="col">Qué pasó</th>
+      <th scope="col" class="num">12 h</th><th scope="col" class="num">6 h</th><th scope="col" class="num">3 h</th><th scope="col" class="num">1 h</th></tr></thead><tbody>` +
+      (C.length ? C.map(c => `<tr><td>${fecha(c.fecha)}</td><td class="mono">${esc(c.hora)}</td>
+        <td><b class="mono">${esc(c.indicativo)}</b></td><td>${esc(nombres[c.previsto] || c.previsto)}</td><td><b>${esc(nombres[c.aterriza] || c.aterriza)}</b></td>
+        <td class="gris">${esc(MOTIVO[c.motivo] || "desvío")}</td>${celda(c, "12h")}${celda(c, "6h")}${celda(c, "3h")}${celda(c, "1h")}</tr>`).join("")
+        : `<tr><td colspan="10" class="gris">Ningún desvío con esos filtros.</td></tr>`) + "</tbody>";
+  }
+})();
+</script>
+</body>
+</html>

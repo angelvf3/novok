@@ -504,6 +504,32 @@ def web(antelacion: int = 6) -> dict:
                          "avisado": bool(c_av in g and pd.notna(getattr(r, c_av)) and getattr(r, c_av))}
                         for r in g.head(4).itertuples()],
         }
+    # Para la página de desvíos: aciertos por antelación en toda la red, por aerolínea y la lista completa de casos
+    out["red"] = {}
+    for L in (12, 6, 3, 1):
+        c, cp = f"aviso_{L}h", f"persistencia_{L}h"
+        if c in n and n[c].notna().any():
+            x = n[n[c].notna()]
+            out["red"][f"{L}h"] = {"novok": int((x[c] == True).sum()),  # noqa: E712
+                                   "persistencia": int((x[cp] == True).sum()), "total": int(len(x))}  # noqa: E712
+    out["aerolineas"] = {}
+    if "operador" in n:
+        for op, g in n.groupby("operador"):
+            ev = g[g[c_av].notna()] if c_av in g else g.iloc[0:0]
+            out["aerolineas"][op] = {"casos": int(len(g)), "evaluados": int(len(ev)),
+                                     "avisados": int((ev[c_av] == True).sum()) if len(ev) else 0}  # noqa: E712
+    out["casos"] = []
+    for r in n.sort_values("hora_prevista_utc", ascending=False).itertuples():
+        t = pd.Timestamp(r.hora_prevista_utc).tz_convert("Europe/Madrid")
+        caso = {"fecha": t.strftime("%Y-%m-%d"), "hora": t.strftime("%H:%M"), "indicativo": r.indicativo,
+                "operador": getattr(r, "operador", None), "previsto": r.previsto, "aterriza": r.aterriza,
+                "motivo": getattr(r, "motivo", None), "p": {}, "aviso": {}}
+        for L in (12, 6, 3, 1):
+            pv, av = getattr(r, f"p_{L}h", None), getattr(r, f"aviso_{L}h", None)
+            if pv is not None and pd.notna(pv):
+                caso["p"][f"{L}h"] = float(pv)
+                caso["aviso"][f"{L}h"] = bool(av) if pd.notna(av) else False
+        out["casos"].append(caso)
     destino = RAIZ / "web" / "desvios.json"
     destino.write_text(json.dumps(out, ensure_ascii=False, indent=1), encoding="utf-8")
     casos = sum(x["casos"] for x in out["aeropuertos"].values())

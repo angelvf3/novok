@@ -1,0 +1,114 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>NOVOK · Cómo leer el panel</title>
+<meta name="description" content="Guía rápida para leer el panel de NOVOK: niveles de riesgo, categorías de vuelo, llegadas en riesgo y coste esperado.">
+<meta name="theme-color" content="#0b1116">
+<link rel="icon" href="novok-logo.png">
+<link rel="apple-touch-icon" href="marca/novok-icono-180.png">
+<link rel="stylesheet" href="vendor/fuentes.css">
+<link rel="stylesheet" href="nordico.css">
+<link rel="stylesheet" href="pro.css">
+</head>
+<body class="pro" data-marco="completo">
+<aside class="p-lateral" id="lateral" aria-label="Navegación">
+  <div class="p-lat-cab">
+    <a class="marca" href="./"><img src="marca/novok-logo-oscuro-72.png" alt="NOVOK" width="126" height="28"></a>
+    <button type="button" class="p-cerrar-lat" id="cerrar-lateral" aria-label="Cerrar menú">×</button>
+  </div>
+  <label class="p-mia"><span>Mi aerolínea</span><select id="mi-aerolinea"><option value="">Todas las aerolíneas</option></select></label>
+  <nav class="p-nav" aria-label="Principal">
+    <a href="./"><i></i>Panel de red</a>
+    <a href="desvios.html"><i></i>Desvíos 2026</a>
+    <a href="guia.html" aria-current="page"><i></i>Cómo leer el panel</a>
+    <a href="contacto.html"><i></i>Pedir un piloto</a>
+  </nav>
+  <h2 class="p-lat-tit">Aeropuertos</h2>
+  <ul class="p-lat-red" id="lateral-red"></ul>
+  <p class="p-lat-pie">Apoyo a la planificación. No sustituye al METAR y TAF oficiales de AEMET.</p>
+</aside>
+<div class="p-velo" id="velo" hidden></div>
+
+<div class="p-contenido">
+<header class="p-barra">
+  <button type="button" class="p-menu" id="abrir-lateral" aria-label="Abrir menú" aria-controls="lateral" aria-expanded="false"><svg width="20" height="20" viewBox="0 0 20 20" aria-hidden="true"><path d="M3 5h14M3 10h14M3 15h14" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg></button>
+  <a class="marca p-marca-movil" href="./"><img src="marca/novok-logo-claro-72.png" alt="NOVOK" width="99" height="22"></a>
+  <div class="p-barra-tit"><h1>Cómo leer el panel</h1><span>Guía rápida</span></div>
+  <div class="p-relojes mono" aria-label="Hora actual"><span><b id="reloj-u">--:--:--</b> UTC</span><span><b id="reloj-l">--:--:--</b> peninsular</span></div>
+  <span class="p-estado" id="estado-corto"></span>
+</header>
+
+<main class="p-main p-pagina">
+  <section class="p-hero" aria-labelledby="titular">
+    <div class="p-hero-rejilla p-hero-una">
+      <div class="p-hero-texto">
+        <p class="p-hero-estado bajo">Guía rápida</p>
+        <h2 id="titular">Cómo leer el panel de NOVOK</h2>
+        <p class="p-hero-sub">NOVOK calcula, hora a hora y para las próximas 12 horas, la probabilidad de que cada aeropuerto del norte esté por debajo de los mínimos de aproximación por niebla o techo bajo, y la cruza con los vuelos que están en el aire hacia él.</p>
+      </div>
+    </div>
+  </section>
+
+  <section class="p-tarjeta p-doc" aria-labelledby="g-que">
+    <div class="p-cab"><h2 id="g-que">Qué es «bajo mínimos»</h2></div>
+    <div class="p-doc-cuerpo">
+      <p>NOVOK usa los mínimos de una aproximación de precisión CAT I: <b>visibilidad menor de 550 m o techo de nubes a 200 ft o menos</b>. Por debajo de eso, un avión sin certificación CAT II/III normalmente no puede aterrizar y tiene que esperar o desviarse.</p>
+      <p class="p-nota-doc">Es una aproximación: los mínimos reales dependen del procedimiento publicado de cada pista, del avión y de la tripulación.</p>
+    </div>
+  </section>
+  <section class="p-tarjeta p-doc" aria-labelledby="g-niveles">
+    <div class="p-cab"><h2 id="g-niveles">Los tres niveles de riesgo</h2></div>
+    <div class="p-doc-cuerpo">
+      <dl class="g-niveles">
+        <div><dt><i class="g-c g-bajo"></i>Sin riesgo significativo</dt><dd>Menos del 10 % de probabilidad en todas las horas.</dd></div>
+        <div><dt><i class="g-c g-mod"></i>Vigilar</dt><dd>Entre el 10 % y el 30 % en alguna hora. Conviene mirar el aeropuerto de nuevo más tarde.</dd></div>
+        <div><dt><i class="g-c g-alto"></i>Aviso</dt><dd>30 % o más en alguna hora. Es el momento de revisar alternativos, turnos y combustible. En el mapa, un anillo rojo indica además que se supera el umbral de aviso propio del modelo para ese aeropuerto.</dd></div>
+      </dl>
+      <p>Una probabilidad no es una certeza: un 40 % significa que, en situaciones parecidas, aproximadamente 4 de cada 10 veces el aeropuerto estuvo bajo mínimos.</p>
+    </div>
+  </section>
+  <section class="p-tarjeta p-doc" aria-labelledby="g-cat">
+    <div class="p-cab"><h2 id="g-cat">Categorías de vuelo (ahora)</h2></div>
+    <div class="p-doc-cuerpo">
+      <p>El color del punto de cada aeropuerto es su categoría de vuelo según el último METAR, con los criterios de la FAA:</p>
+      <dl class="g-niveles">
+        <div><dt><i class="g-c" style="background:var(--vfr,#2e8540)"></i>VFR</dt><dd>Techo por encima de 3000 ft y visibilidad de más de 8 km.</dd></div>
+        <div><dt><i class="g-c" style="background:var(--mvfr,#0071bc)"></i>MVFR</dt><dd>Techo de 3000 ft o menos, o visibilidad de 8 km o menos.</dd></div>
+        <div><dt><i class="g-c" style="background:var(--ifr,#d83933)"></i>IFR</dt><dd>Techo por debajo de 1000 ft o visibilidad por debajo de 4800 m.</dd></div>
+        <div><dt><i class="g-c" style="background:var(--lifr,#b5179e)"></i>LIFR</dt><dd>Techo por debajo de 500 ft o visibilidad por debajo de 1600 m.</dd></div>
+      </dl>
+    </div>
+  </section>
+  <section class="p-tarjeta p-doc" aria-labelledby="g-panel">
+    <div class="p-cab"><h2 id="g-panel">Las partes del panel</h2></div>
+    <div class="p-doc-cuerpo">
+      <dl class="g-partes">
+        <div><dt>Titular y aeropuertos con aviso</dt><dd>Lo que pasa en una frase. Cada aeropuerto con aviso lleva su curva de las próximas 12 horas (la línea roja discontinua es el 30 %) y su máximo.</dd></div>
+        <div><dt>Mapa</dt><dd>Aeropuertos con su categoría actual y los aviones en el aire. Los aviones en rojo van a un aeropuerto con riesgo alto a su hora de llegada. Pulsa un aeropuerto o un avión para ver el detalle.</dd></div>
+        <div><dt>Llegadas en riesgo</dt><dd>Vuelos en el aire hacia la red, ordenados por la probabilidad de bajo mínimos en destino a su hora estimada de llegada, con el alternativo de la red con mejor previsión.</dd></div>
+        <div><dt>Coste esperado</dt><dd>Probabilidad × coste de desviar al alternativo (combustible, tripulación, handling, autobús y atención al pasaje). Es una cifra para comparar y priorizar; cada aerolínea puede poner sus propios costes.</dd></div>
+        <div><dt>Próximas 12 horas</dt><dd>Una fila por aeropuerto y una celda por hora con su probabilidad. «Cuándo» es la franja de horas con aviso o a vigilar.</dd></div>
+        <div><dt>Despeje previsto</dt><dd>Cuando ya hay niebla, la hora más probable a la que se levanta y el intervalo en el que lo hará 8 de cada 10 veces.</dd></div>
+        <div><dt>Mi aerolínea</dt><dd>En el menú lateral. Si la eliges, el mapa, las llegadas y el coste muestran solo sus vuelos, y se recuerda la próxima vez.</dd></div>
+      </dl>
+    </div>
+  </section>
+  <section class="p-tarjeta p-doc" aria-labelledby="g-datos">
+    <div class="p-cab"><h2 id="g-datos">De dónde salen los datos y cada cuánto se actualizan</h2></div>
+    <div class="p-doc-cuerpo">
+      <p>El pronóstico se recalcula cada 30 minutos con los METAR de cada aeropuerto y con pronósticos numéricos. Los vuelos se actualizan cada pocos segundos con datos abiertos de ADS-B (adsb.lol). Arriba a la derecha se ve la hora de la última actualización; si pasa de 75 minutos aparece «Datos con retraso» y las horas cuentan desde entonces.</p>
+      <p><b>NOVOK es una herramienta de apoyo a la planificación.</b> No sustituye al METAR y al TAF de AEMET, que son la información oficial para las decisiones de vuelo.</p>
+    </div>
+  </section>
+
+  <footer class="pie">
+    <p><strong>Herramienta de apoyo a la planificación de operaciones. No sustituye a la información meteorológica aeronáutica oficial (METAR y TAF de AEMET), que es la que vale para las decisiones de vuelo.</strong></p>
+  </footer>
+</main>
+</div>
+<script src="marco.js"></script>
+
+</body>
+</html>

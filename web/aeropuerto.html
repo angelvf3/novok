@@ -249,13 +249,13 @@
     <a class="marca" href="./"><img src="marca/novok-logo-oscuro-72.png" alt="NOVOK" width="126" height="28"></a>
     <button type="button" class="p-cerrar-lat" id="cerrar-lateral" aria-label="Cerrar menú">×</button>
   </div>
+  <label class="p-mia"><span>Mi aerolínea</span><select id="mi-aerolinea"><option value="">Todas las aerolíneas</option></select></label>
   <nav class="p-nav" aria-label="Principal">
     <a href="./"><i></i>Panel de red</a>
     <a href="#" aria-current="page"><i></i>Briefing del aeropuerto</a>
-    <a href="#p-meteo"><i></i>Próximas 12 horas</a>
-    <a href="#caja-llegadas"><i></i>Llegadas en el aire</a>
-    <a href="#p-visor"><i></i>Simulación 3D</a>
-    <a href="#contenido"><i></i>Detalle técnico</a>
+    <a href="desvios.html"><i></i>Desvíos 2026</a>
+    <a href="guia.html"><i></i>Cómo leer el panel</a>
+    <a href="contacto.html"><i></i>Pedir un piloto</a>
   </nav>
   <h2 class="p-lat-tit">Aeropuertos</h2>
   <ul class="p-lat-red" id="lateral-red"></ul>
@@ -339,6 +339,7 @@
 </div>
 
 <script src="vuelos.js"></script>
+<script src="marco.js"></script>
 <script>
 const ZONA = "Europe/Madrid";
 const ms = iso => new Date(iso).getTime();
